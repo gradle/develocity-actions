@@ -1,2 +1,2 @@
 # github-actions
-Shared Github Actions
+A collection of reusable and composite Github Actions
