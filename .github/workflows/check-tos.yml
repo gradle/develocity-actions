@@ -1,0 +1,58 @@
+name: Gradle - Terms of Service approval verification
+
+on:
+  workflow_call:
+    inputs:
+      tos-location:
+        description: 'Terms of Service location'
+        type: string
+        required: true
+      pr-comment-tos-approval-missing:
+        description: 'PR comment added when Terms of Service are not approved (<tos-location> in the value will be replaced by tos-location input)'
+        type: string
+        default: 'Please accept [Gradle Enterprise Terms of Service](<tos-location>) to get your PR build scan published by commenting this PR with the following message:'
+      pr-comment-tos-approval-request:
+        description: 'PR comment to approve the Terms of Service'
+        type: string
+        default: 'I have read Gradle Enterprise Terms of Service and I hereby accept the Terms'
+      pr-comment-tos-approval-validation:
+        description: 'PR comment added when Terms of Service are approved'
+        type: string
+        default: 'All Contributors have accepted Gradle Enterprise Terms of Service.'
+      signature-branch:
+        description: 'Git branch where the signature file will be stored'
+        type: string
+        default: 'main'
+      signature-location:
+        description: 'Signature file location'
+        type: string
+        default: '.github/gradle-enterprise-tos.json'
+      white-list:
+        description: 'CSV List of users not required to approve the Terms of Service'
+        type: string
+
+jobs:
+  gradle-check-tos:
+    if: (github.event.comment.body == 'recheck' || github.event.comment.body == ${{ inputs.pr-comment-tos-approval-request }}) || github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set Terms of Service location in missing approval message
+        id: set-approval-message
+        run: |
+          TEMPLATE="${{ inputs.pr-comment-tos-approval-missing }}"
+          TOKEN="<tos-location>"
+          REPLACER="${{ inputs.tos-location }}"
+          echo "PR_COMMENT_TOS_APPROVAL_MISSING=$(sed "s|${TOKEN}|${REPLACER}|" <<<${TEMPLATE})" >> "$GITHUB_OUTPUT"
+      - name: Gradle - Terms of Service approval verification
+        uses: contributor-assistant/github-action@v2.3.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          custom-notsigned-prcomment: ${{ steps.set-approval-message.outputs.PR_COMMENT_TOS_APPROVAL_MISSING }}
+          custom-pr-sign-comment: ${{ inputs.pr-comment-tos-approval-request }}
+          custom-allsigned-prcomment: ${{ inputs.pr-comment-tos-approval-validation }}
+          branch: ${{ inputs.signature-branch }}
+          path-to-signatures: ${{ inputs.signature-location }}
+          allowlist: ${{ inputs.white-list }}
+          path-to-document: 'unused'
+          lock-pullrequest-aftermerge: false
