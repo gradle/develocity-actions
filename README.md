@@ -67,3 +67,46 @@ jobs:
           #white-list: 'bot1,bot2'
           #github-token: ${{ secrets.MY_PAT }}
 ```
+
+## maven/build-scan-save
+A Composite action to save an unpublished Maven Build Scan®.
+
+The action uploads the Build Scan® (if present) as a workflow artifact with a random name (pattern: `scan-maven-<UUID>`).
+
+**Dependencies**:
+
+- [actions/upload-artifact](https://github.com/marketplace/actions/upload-a-build-artifact)
+
+**Event Trigger**:
+
+This composite action can be called from any workflow but the main use case is to save unpublished Build Scans® issued from workflows triggered on `pull_request` event
+
+**Action inputs**:
+
+N/A
+
+**Usage**:
+
+```yaml
+name: Check Pull Request
+
+on: 
+  pull_request:
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Build with Maven
+        run: mvn clean package
+      - name: Save Build Scan
+        uses: gradle/github-actions/maven/build-scan-save@v1
+```

@@ -1,0 +1,44 @@
+name: TEST - Save Maven Build Scan
+
+on:
+  pull_request:
+
+jobs:
+  check-save-build-scan:
+    name: Check Save Build Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+      - name: Checkout Maven sample project
+        uses: actions/checkout@v4
+        with:
+          repository: 'gradle/gradle-enterprise-build-config-samples'
+          path: 'sample'
+          ref: 'main'
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+      - name: Save Maven Build Scan (no-op)
+        uses: ./maven/build-scan-save
+      - name: Run Maven Build 1
+        working-directory: ./sample/common-gradle-enterprise-maven-configuration
+        run: mvn clean -B
+      - name: Save Maven Build Scan 1
+        uses: ./maven/build-scan-save
+      - name: Run Maven Build 2
+        working-directory: ./sample/common-gradle-enterprise-maven-configuration
+        run: mvn initialize -B
+      - name: Save Maven Build Scan 2
+        uses: ./maven/build-scan-save
+      - name: Download Workflow Artifacts
+        uses: actions/download-artifact@v3
+      - name: Verify Build Scan count
+        run: |
+          scanCount=$(find ./scan-maven-*/ -type f -name 'scan.scan' | wc -l)
+          if [ "$scanCount" != "2" ]; then
+            echo "Found $scanCount scans (2 expected)"
+            exit 1
+          fi
