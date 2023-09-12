@@ -4,8 +4,8 @@ on:
   pull_request:
 
 jobs:
-  check-save-build-scan:
-    name: Check Save Build Scan
+  create-and-save-build-scans:
+    name: Create and Save Build Scans
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current repository
@@ -33,11 +33,22 @@ jobs:
         run: mvn initialize -B
       - name: Save Maven Build Scan 2
         uses: ./maven/build-scan-save
+
+  check-saved-build-scans:
+    name: Check Save Build Scan
+    needs: create-and-save-build-scans
+    runs-on: ubuntu-latest
+    env:
+      DATA_ARTIFACT_NAME: 'maven-build-scan-data'
+    steps:
       - name: Download Workflow Artifacts
         uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.DATA_ARTIFACT_NAME }}
+          path: ${{ env.DATA_ARTIFACT_NAME }}
       - name: Verify Build Scan count
         run: |
-          scanCount=$(find ./maven-build-scan-data/ -type f -name 'scan.scan' | wc -l)
+          scanCount=$(find ${{ env.DATA_ARTIFACT_NAME }} -type f -name 'scan.scan' | wc -l)
           if [ "$scanCount" != "2" ]; then
             echo "Found $scanCount scans (2 expected)"
             exit 1
