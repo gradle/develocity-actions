@@ -91,26 +91,12 @@ N/A
 
 **Usage**:
 
+Insert the `Save Build Scan` step after each step creating a Maven Build Scan® in the Github workflow called to validate PR (`Build with Maven` here).
+
 ```yaml
-name: Check Pull Request
-
-on: 
-  pull_request:
-
-jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+[...]
       - name: Build with Maven
         run: mvn clean package
       - name: Save Build Scan
-        uses: gradle/github-actions/maven/build-scan-save@v1
-```
+        uses: gradle/github-actions/maven/build-scan-save@v1.0
+[...]```
