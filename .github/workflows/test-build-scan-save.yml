@@ -37,7 +37,7 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Verify Build Scan count
         run: |
-          scanCount=$(find ./scan-maven-*/ -type f -name 'scan.scan' | wc -l)
+          scanCount=$(find ./maven-build-scan-data/ -type f -name 'scan.scan' | wc -l)
           if [ "$scanCount" != "2" ]; then
             echo "Found $scanCount scans (2 expected)"
             exit 1

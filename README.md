@@ -71,7 +71,11 @@ jobs:
 ## maven/build-scan-save
 A Composite action to save an unpublished Maven Build Scan®.
 
-The action uploads the Build Scan® (if present) as a workflow artifact with a random name (pattern: `scan-maven-<UUID>`).
+The action uploads the Build Scan® (if present) as a workflow artifact with name `maven-build-scan-data`.
+
+The main use case is to reference this composite action in an existing Github workflow called to validate PR. 
+Such workflows are running in an untrusted context and therefore do not have access to repository secrets.
+Build Scans® issued in such context are not published but can be saved with this action in order to be published by a subsequent workflow running in a trusted context.
 
 **Dependencies**:
 

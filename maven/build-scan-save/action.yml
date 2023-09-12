@@ -4,13 +4,8 @@ description: Save Maven Build Scan
 runs:
   using: composite
   steps:
-    - name: Generate UUID
-      id: generate-uuid
-      run: |
-        echo "UUID=$(cat /proc/sys/kernel/random/uuid)" >> "$GITHUB_OUTPUT"
-      shell: bash
     - name: Upload Build Scan as workflow Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: 'scan-maven-${{ steps.generate-uuid.outputs.UUID }}'
+        name: 'maven-build-scan-data'
         path: '~/.m2/.gradle-enterprise/build-scan-data/'
