@@ -3,14 +3,20 @@ name: TEST - Gradle - Terms of Service approval verification
 on:
   pull_request:
 
-permissions:
-  pull-requests: write
-  actions: write
-  statuses: write
-
 jobs:
   gradle-check-tos:
-    uses: ./.github/workflows/check-tos.yml
-    with:
-      tos-location: 'https://foo.bar/tos.html'
-      white-list: '*'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Gradle - Terms of Service approval verification
+        uses: ./check-tos
+        with:
+          tos-location: 'https://foo.bar/tos.html'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          white-list: '*'

@@ -1,0 +1,45 @@
+name: Gradle - Terms of Service approval verification
+description: Check Gradle Terms of Service approval
+
+inputs:
+  tos-location:
+    description: 'Terms of Service location'
+    required: true
+  github-token:
+    description: 'GitHub token'
+    required: true
+  pr-comment-tos-approval-missing:
+    description: 'PR comment added when Terms of Service are not approved ({0} in the value will be replaced by tos-location input)'
+    default: 'Please accept [Gradle Enterprise Terms of Service]({0}) to get your PR build scan published by commenting this PR with the following message:'
+  pr-comment-tos-approval-request:
+    description: 'PR comment to approve the Terms of Service'
+    default: 'I have read Gradle Enterprise Terms of Service and I hereby accept the Terms'
+  pr-comment-tos-approval-validation:
+    description: 'PR comment added when Terms of Service are approved'
+    default: 'All Contributors have accepted Gradle Enterprise Terms of Service.'
+  signature-branch:
+    description: 'Git branch where the signature file will be stored'
+    default: 'main'
+  signature-location:
+    description: 'Signature file location'
+    default: '.github/gradle-enterprise-tos.json'
+  white-list:
+    description: 'CSV List of users not required to approve the Terms of Service'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Gradle - Terms of Service approval verification
+      if: (github.event.comment.body == 'recheck' || github.event.comment.body == ${{ inputs.pr-comment-tos-approval-request }}) || github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+      uses: contributor-assistant/github-action@v2.3.0
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      with:
+        custom-notsigned-prcomment: ${{ format(inputs.pr-comment-tos-approval-missing, inputs.tos-location )}}
+        custom-pr-sign-comment: ${{ inputs.pr-comment-tos-approval-request }}
+        custom-allsigned-prcomment: ${{ inputs.pr-comment-tos-approval-validation }}
+        branch: ${{ inputs.signature-branch }}
+        path-to-signatures: ${{ inputs.signature-location }}
+        allowlist: ${{ inputs.white-list }}
+        path-to-document: 'unused'
+        lock-pullrequest-aftermerge: false
