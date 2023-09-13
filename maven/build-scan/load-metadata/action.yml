@@ -1,0 +1,32 @@
+name: Collect Gradle Enterprise extension versions from Build Metadata
+description: Collect Gradle Enterprise extension versions from Build Metadata
+
+outputs:
+  extension-versions:
+    description: 'Array of Gradle Enterprise Maven Extension versions to publish Build Scans for'
+    value: ${{ steps.collect-versions.outputs.VERSIONS }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download Build Scan metadata
+      uses: dawidd6/action-download-artifact@v2
+      env:
+        METADATA_ARTIFACT_NAME: 'maven-build-scan-metadata'
+      with:
+        run_id: ${{ github.event.workflow_run.id }}
+        name: ${{ env.METADATA_ARTIFACT_NAME }}
+        path: ${{ env.METADATA_ARTIFACT_NAME }}
+    - name: Collect Gradle Enterprise extension versions
+      env:
+        METADATA_ARTIFACT_NAME: 'maven-build-scan-metadata'
+        METADATA_FILE_NAME: 'ge-extension-versions.txt'
+      id: collect-versions
+      run: |
+        # concatenate all metadata files in one single file
+        find ${{ env.METADATA_ARTIFACT_NAME }}/ -type f -name '*-${{ env.METADATA_FILE_NAME }}' -exec cat {} \; > ${{ env.METADATA_FILE_NAME }}
+        # create json array from unified file
+        VERSIONS=$(jq -R -s -c 'split("\n") | unique | map(select(length > 0))' < ${{ env.METADATA_FILE_NAME }})
+        # add as output
+        echo "VERSIONS=$VERSIONS" >> $GITHUB_OUTPUT
+      shell: bash

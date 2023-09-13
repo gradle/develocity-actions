@@ -1,0 +1,32 @@
+name: Save Maven Build Scan
+description: Save Maven Build Scan
+
+runs:
+  using: composite
+  steps:
+    - name: Generate UUID
+      id: generate-uuid
+      run: |
+        # create a unique file name to avoid issues with actions/upload-artifact if this composite action is called multiple times
+        echo "UUID=$(cat /proc/sys/kernel/random/uuid)" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - name: Dump Gradle Enterprise extension versions in file
+      env:
+        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
+      run: |
+        if [ -d ${{ env.BUILD_SCAN_DIR }} ]; then
+          find ${{ env.BUILD_SCAN_DIR }} -type d -name "*.*" -maxdepth 1 -mindepth 1 -exec basename {} \; > ${{ steps.generate-uuid.outputs.UUID }}-ge-extension-versions.txt
+        fi
+      shell: bash
+    - name: Upload Build Scan metadata as workflow Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: 'maven-build-scan-metadata'
+        path: '*-ge-extension-versions.txt'
+        retention-days: 1
+    - name: Upload Build Scan as workflow Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: 'maven-build-scan-data'
+        path: '~/.m2/.gradle-enterprise/build-scan-data/'
+        retention-days: 1

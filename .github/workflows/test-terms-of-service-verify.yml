@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  gradle-check-tos:
+  check-terms-of-service-approval:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Gradle - Terms of Service approval verification
-        uses: ./check-tos
+        uses: ./terms-of-service/verify
         with:
           tos-location: 'https://foo.bar/tos.html'
           white-list: '*'

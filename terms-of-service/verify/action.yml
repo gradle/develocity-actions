@@ -1,5 +1,5 @@
-name: Gradle - Terms of Service approval verification
-description: Check Gradle Terms of Service approval
+name: Verify Gradle Terms of Service approval
+description: Verify Gradle Terms of Service approval
 
 inputs:
   tos-location:
@@ -31,7 +31,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Gradle - Terms of Service approval verification
+    - name: Verify Gradle Terms of Service approval
       if: (github.event.comment.body == 'recheck' || github.event.comment.body == ${{ inputs.pr-comment-tos-approval-request }}) || github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
       uses: contributor-assistant/github-action@v2.3.0
       env:
