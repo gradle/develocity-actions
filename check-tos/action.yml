@@ -6,13 +6,13 @@ inputs:
     description: 'Terms of Service location as an URL (https://foo.com/tos.html) or a Github repository file (/<owner>/<repo>/blob/<branch>/tos.html)'
     required: true
   pr-comment-tos-approval-missing:
-    description: 'PR comment added when Terms of Service are not approved ({0} in the value will be replaced by tos-location input)'
-    default: 'Please accept [Gradle Enterprise Terms of Service]({0}) to get your PR build scan published by commenting this PR with the following message:'
+    description: 'pull-request comment added when Terms of Service are not approved ({0} in the value will be replaced by tos-location input)'
+    default: 'Please accept [Gradle Enterprise Terms of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:'
   pr-comment-tos-approval-request:
-    description: 'PR comment to approve the Terms of Service'
+    description: 'pull-request comment to approve the Terms of Service'
     default: 'I have read Gradle Enterprise Terms of Service and I hereby accept the Terms'
   pr-comment-tos-approval-validation:
-    description: 'PR comment added when Terms of Service are approved'
+    description: 'pull-request comment added when Terms of Service are approved'
     default: 'All Contributors have accepted Gradle Enterprise Terms of Service.'
   signature-branch:
     description: 'Git branch where the signature file will be stored'
