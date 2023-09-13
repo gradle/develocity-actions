@@ -3,10 +3,7 @@ description: Check Gradle Terms of Service approval
 
 inputs:
   tos-location:
-    description: 'Terms of Service location'
-    required: true
-  github-token:
-    description: 'GitHub token'
+    description: 'Terms of Service location as an URL (https://foo.com/tos.html) or a Github repository file (/<owner>/<repo>/blob/<branch>/tos.html)'
     required: true
   pr-comment-tos-approval-missing:
     description: 'PR comment added when Terms of Service are not approved ({0} in the value will be replaced by tos-location input)'
@@ -19,12 +16,17 @@ inputs:
     default: 'All Contributors have accepted Gradle Enterprise Terms of Service.'
   signature-branch:
     description: 'Git branch where the signature file will be stored'
-    default: 'main'
+    default: ${{ github.event.repository.default_branch }}
   signature-location:
     description: 'Signature file location'
     default: '.github/gradle-enterprise-tos.json'
   white-list:
     description: 'CSV List of users not required to approve the Terms of Service'
+    default: ''
+  github-token:
+    description: 'The token used for Github API requests'
+    default: ${{ github.token }}
+    required: false
 
 runs:
   using: 'composite'

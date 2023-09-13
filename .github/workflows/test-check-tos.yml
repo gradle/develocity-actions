@@ -18,5 +18,4 @@ jobs:
         uses: ./check-tos
         with:
           tos-location: 'https://foo.bar/tos.html'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           white-list: '*'
