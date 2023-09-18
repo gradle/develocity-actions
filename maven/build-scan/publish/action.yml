@@ -8,9 +8,6 @@ inputs:
   gradle-enterprise-access-key:
     description: 'Gradle Enterprise access key'
     required: false
-  gradle-enterprise-extension-version:
-    description: 'Gradle Enterprise extension version'
-    required: true
   gradle-enterprise-allow-untrusted:
     description: 'Gradle Enterprise allow-untrusted flag'
     default: 'false'
@@ -34,6 +31,28 @@ runs:
         mkdir -p ${{ env.BUILD_SCAN_DIR }}
         cp -r ${{ env.ARTIFACT_NAME }}/* ${{ env.BUILD_SCAN_DIR }}
       shell: bash
+    - name: Collect extension version(s)
+      id: init
+      env:
+        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
+      run: |
+        versions=""
+        if [ -d ${{ env.BUILD_SCAN_DIR }} ]; then
+          scans=$(find ${{ env.BUILD_SCAN_DIR }} -type f -name "scan.scan")
+          for scan in ${scans}; do        
+            # assuming directory name is ${{ env.BUILD_SCAN_DIR }}/<VERSION>/previous/<UUID>/scan.scan
+            currentVersion=$(basename ${scan%/previous/*})
+               
+            # check current version is not yet collected and matches a version pattern 
+            if [[ ! "${versions}" =~ .*"${currentVersion} ".* ]] && [[ "${currentVersion}" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+              versions+="${currentVersion} "
+            else
+              echo "skipping ${currentVersion}"
+            fi
+          done        
+        fi
+        echo "versions=$versions" >> $GITHUB_OUTPUT
+      shell: bash
     - name: Create Maven Project Structure
       env:
         PROJECT_DIR: 'maven-build-scan-publisher'
@@ -50,13 +69,13 @@ runs:
         </project>
         EOF
 
-        cat > ${{ env.PROJECT_DIR }}/.mvn/extensions.xml << EOF
+        cat > ${{ env.PROJECT_DIR }}/.mvn/extensions.xml.template << EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <extensions>
           <extension>
             <groupId>com.gradle</groupId>
             <artifactId>gradle-enterprise-maven-extension</artifactId>
-            <version>${{ inputs.gradle-enterprise-extension-version }}</version>
+            <version>REPLACE_ME</version>
           </extension>
         </extensions>
         EOF
@@ -85,10 +104,22 @@ runs:
       working-directory: ${{ env.PROJECT_DIR }}
       run: |
         set +e
-        NB_SCANS=$(find ${{ env.BUILD_SCAN_DIR }}${{ inputs.gradle-enterprise-extension-version }} -type f -name "scan.scan"  | wc -l)
-        for ((i=1; i <= $NB_SCANS; i++))
-        do
-          echo "BUILD SCAN PUBLICATION $i/$NB_SCANS"
-          mvn gradle-enterprise:build-scan-publish-previous
+        
+        # iterate over extension versions
+        for version in ${{ steps.init.outputs.versions }}; do
+          echo "Processing extension version ${version}"
+
+          # set current version in project
+          sed "s/REPLACE_ME/${version}/g" .mvn/extensions.xml.template > .mvn/extensions.xml
+
+          # iterate over build scans
+          nbScans=$(find ${{ env.BUILD_SCAN_DIR }}${version} -type f -name "scan.scan"  | wc -l)
+          for ((i=1; i <= $nbScans; i++))
+          do
+            echo "Publishing Build Scan ${i}/${nbScans}"
+            
+            # publish build scan
+            mvn gradle-enterprise:build-scan-publish-previous
+          done
         done
       shell: bash
