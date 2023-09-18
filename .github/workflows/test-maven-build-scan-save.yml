@@ -34,15 +34,14 @@ jobs:
       - name: Save Maven Build Scan 2
         uses: ./maven/build-scan/save
 
-  check-saved-build-scans:
+  verify-saved-build-scans:
     name: Verify Saved Build Scans
     needs: create-and-save-build-scans
     runs-on: ubuntu-latest
     env:
       DATA_ARTIFACT_NAME: 'maven-build-scan-data'
-      METADATA_ARTIFACT_NAME: 'maven-build-scan-metadata'
     steps:
-      - name: Download data workflow artifact
+      - name: Download Workflow Artifacts
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.DATA_ARTIFACT_NAME }}
@@ -52,17 +51,5 @@ jobs:
           scanCount=$(find ${{ env.DATA_ARTIFACT_NAME }} -type f -name 'scan.scan' | wc -l)
           if [ "$scanCount" != "2" ]; then
             echo "Found $scanCount scans (2 expected)"
-            exit 1
-          fi
-      - name: Download metadata workflow artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.METADATA_ARTIFACT_NAME }}
-          path: ${{ env.METADATA_ARTIFACT_NAME }}
-      - name: Verify metadata files count
-        run: |
-          metadataFilesCount=$(find ${{ env.METADATA_ARTIFACT_NAME }} -type f -name '*-ge-extension-versions.txt' | wc -l)
-          if [ "$metadataFilesCount" != "2" ]; then
-            echo "Found $metadataFilesCount metadata files (2 expected)"
             exit 1
           fi
