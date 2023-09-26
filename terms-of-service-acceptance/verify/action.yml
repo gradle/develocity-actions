@@ -1,9 +1,9 @@
 name: Verify Terms of Service acceptance
-description: Verify Terms of Service acceptance
+description: Verify that the Terms of Service acceptance workflow has completed successfully
 
 inputs:
   terms-of-service-acceptance-workflow-job-name:
-    description: 'Workflow job name run to '
+    description: 'The name of the workflow job that checks for Terms of Service acceptance'
     required: true
   github-token:
     description: 'The token used for Github API requests'
