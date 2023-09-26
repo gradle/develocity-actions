@@ -4,13 +4,7 @@ on:
   pull_request:
 
 jobs:
-<<<<<<<< HEAD:.github/workflows/test-terms-of-service-run.yml
   run-terms-of-service-acceptance:
-|||||||| parent of f238f4b (Add Publish Maven Build Scan composite action):.github/workflows/test-check-tos.yml
-  gradle-check-tos:
-========
-  check-terms-of-service-approval:
->>>>>>>> f238f4b (Add Publish Maven Build Scan composite action):.github/workflows/test-terms-of-service-verify.yml
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,16 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-<<<<<<<< HEAD:.github/workflows/test-terms-of-service-run.yml
       - name: Run Terms of Service acceptance
         uses: ./terms-of-service-acceptance/run
-|||||||| parent of f238f4b (Add Publish Maven Build Scan composite action):.github/workflows/test-check-tos.yml
-      - name: Gradle - Terms of Service approval verification
-        uses: ./check-tos
-========
-      - name: Gradle - Terms of Service approval verification
-        uses: ./terms-of-service/verify
->>>>>>>> f238f4b (Add Publish Maven Build Scan composite action):.github/workflows/test-terms-of-service-verify.yml
         with:
           tos-location: 'https://foo.bar/tos.html'
           white-list: '*'
