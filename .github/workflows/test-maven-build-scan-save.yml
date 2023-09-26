@@ -22,20 +22,20 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
       - name: Save Maven Build Scan (no-op)
-        uses: ./maven/build-scan-save
+        uses: ./maven-build-scan/save
       - name: Run Maven Build 1
         working-directory: ./sample/common-gradle-enterprise-maven-configuration
         run: mvn clean -B
       - name: Save Maven Build Scan 1
-        uses: ./maven/build-scan-save
+        uses: ./maven-build-scan/save
       - name: Run Maven Build 2
         working-directory: ./sample/common-gradle-enterprise-maven-configuration
         run: mvn initialize -B
       - name: Save Maven Build Scan 2
-        uses: ./maven/build-scan-save
+        uses: ./maven-build-scan/save
 
-  check-saved-build-scans:
-    name: Check Save Build Scan
+  verify-saved-build-scans:
+    name: Verify Saved Build Scans
     needs: create-and-save-build-scans
     runs-on: ubuntu-latest
     env:

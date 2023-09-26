@@ -1,0 +1,47 @@
+name: Run Terms of Service acceptance
+description: Check if the user has previously accepted the Terms of Service, and prompt the user to accept if not
+
+inputs:
+  tos-location:
+    description: 'Terms of Service location as an URL (https://foo.com/tos.html) or a Github repository file (/<owner>/<repo>/blob/<branch>/tos.html)'
+    required: true
+  pr-comment-tos-acceptance-missing:
+    description: 'pull-request comment added when Terms of Service are not accepted ({0} in the value will be replaced by tos-location input)'
+    default: 'Please accept [Develocity Terms of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:'
+  pr-comment-tos-acceptance-request:
+    description: 'pull-request comment to accept the Terms of Service'
+    default: 'I have read Develocity Terms of Service and I hereby accept the Terms'
+  pr-comment-tos-acceptance-validation:
+    description: 'pull-request comment added when Terms of Service are accepted'
+    default: 'All Contributors have accepted Develocity Terms of Service.'
+  signature-branch:
+    description: 'Git branch where the signature file will be stored'
+    default: ${{ github.event.repository.default_branch }}
+  signature-location:
+    description: 'Signature file location'
+    default: '.github/develocity-tos.json'
+  white-list:
+    description: 'CSV List of users not required to accept the Terms of Service'
+    default: ''
+  github-token:
+    description: 'The token used for Github API requests'
+    default: ${{ github.token }}
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Terms of Service acceptance
+      if: (github.event.comment.body == 'recheck' || github.event.comment.body == ${{ inputs.pr-comment-tos-acceptance-request }}) || github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
+      uses: contributor-assistant/github-action@v2.3.0
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      with:
+        custom-notsigned-prcomment: ${{ format(inputs.pr-comment-tos-acceptance-missing, inputs.tos-location )}}
+        custom-pr-sign-comment: ${{ inputs.pr-comment-tos-acceptance-request }}
+        custom-allsigned-prcomment: ${{ inputs.pr-comment-tos-acceptance-validation }}
+        branch: ${{ inputs.signature-branch }}
+        path-to-signatures: ${{ inputs.signature-location }}
+        allowlist: ${{ inputs.white-list }}
+        path-to-document: 'unused'
+        lock-pullrequest-aftermerge: false

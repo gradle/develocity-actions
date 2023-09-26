@@ -1,10 +1,10 @@
-name: TEST - Gradle - Terms of Service approval verification
+name: TEST - Run Terms of Service acceptance verification
 
 on:
   pull_request:
 
 jobs:
-  gradle-check-tos:
+  run-terms-of-service-acceptance:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -14,8 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Gradle - Terms of Service approval verification
-        uses: ./check-tos
+      - name: Run Terms of Service acceptance
+        uses: ./terms-of-service-acceptance/run
         with:
           tos-location: 'https://foo.bar/tos.html'
           white-list: '*'

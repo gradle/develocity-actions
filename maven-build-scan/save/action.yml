@@ -9,3 +9,4 @@ runs:
       with:
         name: 'maven-build-scan-data'
         path: '~/.m2/.gradle-enterprise/build-scan-data/'
+        retention-days: 1
