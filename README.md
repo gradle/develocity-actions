@@ -134,13 +134,19 @@ The `terms-of-service-acceptance/verify` action is used to ensure this workflow 
 This action should be configured to respond to the following event trigger:
 - `workflow_run`: to run after the pull-request workflow.
 
+**Permissions**:
+
+The following permissions are required for this action to operate:
+- `pull-requests: write`: to comment the pull-request
+
 **Action inputs**:
 
-| Name                         | Description                                 | Default |
-|------------------------------|---------------------------------------------|---------|
-| `develocity-url`             | Develocity URL                              |         |
-| `develocity-access-key`      | *Optional*: Develocity access key           |         |
-| `develocity-allow-untrusted` | *Optional*: Develocity allow-untrusted flag | `false` |
+| Name                          | Description                                   | Default               |
+|-------------------------------|-----------------------------------------------|-----------------------|
+| `develocity-url`              | Develocity URL                                |                       |
+| `develocity-access-key`       | *Optional*: Develocity access key             |                       |
+| `develocity-allow-untrusted`  | *Optional*: Develocity allow-untrusted flag   | `false`               |
+| `github-token`                | *Optional*: Github token                      | `${{ github.token }}` |
 
 **Usage**:
 
@@ -163,6 +169,8 @@ jobs:
 
   publish-build-scans:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Verify Terms of Service acceptance job passed
         uses: gradle/github-actions/terms-of-service-acceptance/verify@v1.0
