@@ -81,7 +81,7 @@ jobs:
           #github-token: ${{ secrets.MY_PAT }}
 ```
 
-## maven/build-scan/save
+## maven-build-scan/save
 A Composite action to save an unpublished Maven Build Scan®.
 
 The action saves unpublished Build Scan® data as a workflow artifact with name `maven-build-scan-data`, which can then be published in a dependent workflow.
@@ -111,13 +111,13 @@ Insert the `Save Build Scan` step after each Maven execution step in the Github 
       - name: Build with Maven
         run: mvn clean package
       - name: Save Build Scan
-        uses: gradle/github-actions/maven/build-scan/save@v1.0
+        uses: gradle/github-actions/maven-build-scan/save@v1.0
 [...]
 ```
 
-## maven/build-scan/publish
+## maven-build-scan/publish
 
-This action will publish all Maven Build Scans® that have been saved as workflow artifacts by the `maven/build-scan/save` action.
+This action will publish all Maven Build Scans® that have been saved as workflow artifacts by the `maven-build-scan/save` action.
 
 Use this action in a separate workflow with a `workflow_run` event trigger, that will run after an existing pull-request workflow has completed. The action will download any saved Build Scan® and publish them to Develocity.
 This event allows access to the repository secrets (_Develocity Access Key_) which is required to publish a Build Scan® to Gradle Enterprise when authentication is enabled.
@@ -169,7 +169,7 @@ jobs:
         with:
           terms-of-service-acceptance-workflow-job-name: 'run-terms-of-service-acceptance'
       - name: Publish Maven Build Scans
-        uses: gradle/github-actions/maven/build-scan/publish@v1.0
+        uses: gradle/github-actions/maven-build-scan/publish@v1.0
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
