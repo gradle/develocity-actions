@@ -5,6 +5,9 @@ inputs:
   tos-location:
     description: 'Terms of Service location as an URL (https://foo.com/tos.html) or a Github repository file (/<owner>/<repo>/blob/<branch>/tos.html)'
     required: true
+  pr-number:
+    description: 'pull-request number'
+    required: true
   pr-comment-tos-acceptance-missing:
     description: 'pull-request comment added when Terms of Service are not accepted ({0} in the value will be replaced by tos-location input)'
     default: 'Please accept [Develocity Terms of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:'
@@ -32,8 +35,9 @@ runs:
   using: 'composite'
   steps:
     - name: Run Terms of Service acceptance
-      if: (github.event.comment.body == 'recheck' || github.event.comment.body == ${{ inputs.pr-comment-tos-acceptance-request }}) || github.event_name == 'pull_request_target' || github.event_name == 'pull_request'
-      uses: contributor-assistant/github-action@v2.3.0
+#      uses: contributor-assistant/github-action@v2.3.0
+      id: check
+      uses: jprinet/check-terms-of-service@v1
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       with:
@@ -45,3 +49,4 @@ runs:
         allowlist: ${{ inputs.white-list }}
         path-to-document: 'unused'
         lock-pullrequest-aftermerge: false
+        pr-number: ${{ inputs.pr-number }}

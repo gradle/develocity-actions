@@ -15,34 +15,13 @@ inputs:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}
     required: false
+  pr-number:
+    description: 'PR number'
+    required: true
 
 runs:
   using: 'composite'
   steps:
-    - name: Download Build Scans
-      uses: dawidd6/action-download-artifact@v2
-      env:
-        ARTIFACT_NAME: 'maven-build-scan-data'
-      with:
-        run_id: ${{ github.event.workflow_run.id }}
-        name: ${{ env.ARTIFACT_NAME }}
-        path: ${{ env.ARTIFACT_NAME }}
-    - name: Restore Build Scans
-      env:
-        ARTIFACT_NAME: 'maven-build-scan-data'
-        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
-      run: |
-        mkdir -p ${{ env.BUILD_SCAN_DIR }}
-        cp -r ${{ env.ARTIFACT_NAME }}/* ${{ env.BUILD_SCAN_DIR }}
-      shell: bash
-    - name: Collect pull-request number
-      id: pr
-      env:
-        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
-      run: |
-        source $(find ${{ env.BUILD_SCAN_DIR }} -type f -name "pr-number.properties")
-        echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
-      shell: bash
     - name: Create Maven Project Structure
       env:
         PROJECT_DIR: 'maven-build-scan-publisher'
@@ -128,7 +107,7 @@ runs:
     - name: Comment pull-request with Build Scan links
       uses: actions/github-script@v6
       env:
-        PR: ${{ steps.pr.outputs.PR_NUMBER }}
+        PR: ${{ inputs.pr-number }}
         SCAN_LINKS: ${{ steps.publish.outputs.SCAN_LINKS }}
       with:
         github-token: ${{ inputs.github-token }}

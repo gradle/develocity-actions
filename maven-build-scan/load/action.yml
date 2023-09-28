@@ -1,0 +1,68 @@
+name: Load Maven Build Scans
+description: Load Maven Build Scans
+
+inputs:
+  build-workflow-filename:
+    description: 'Filename of the workflow where the maven-build-scan/save action was triggered'
+    required: true
+  pr-comment-tos-acceptance-request:
+    description: 'pull-request comment to accept the Terms of Service'
+    default: 'I have read Develocity Terms of Service and I hereby accept the Terms'
+
+outputs:
+  pr-number:
+    description: "pull-request number"
+    value: ${{ steps.pr.outputs.PR_NUMBER }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check event trigger
+      if: |
+        (github.event_name != 'issue_comment' 
+          || (
+            github.event.comment.body != 'recheck' 
+            && github.event.comment.body != inputs.pr-comment-tos-acceptance-request
+          )
+        )
+        && github.event_name != 'workflow_run'
+      run: |
+        echo "Skipping Github event"
+        exit 1
+      shell: bash
+    - name: Download Build Metadata after PR Build
+      if: github.event_name == 'workflow_run'
+      uses: dawidd6/action-download-artifact@v2
+      env:
+        ARTIFACT_NAME: 'maven-build-scan-data'
+      with:
+        run_id: ${{ github.event.workflow_run.id }}
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ${{ env.ARTIFACT_NAME }}
+    - name: Download Build Metadata after PR Comment
+      if: github.event_name == 'issue_comment'
+      env:
+        ARTIFACT_NAME: 'maven-build-scan-data'
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        pr: ${{ github.event.issue.number }}
+        workflow_conclusion: success
+        workflow: ${{ inputs.build-workflow-filename }}
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ${{ env.ARTIFACT_NAME }}
+    - name: Restore Build Scans
+      env:
+        ARTIFACT_NAME: 'maven-build-scan-data'
+        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
+      run: |
+        mkdir -p ${{ env.BUILD_SCAN_DIR }}
+        cp -r ${{ env.ARTIFACT_NAME }}/* ${{ env.BUILD_SCAN_DIR }}
+      shell: bash
+    - name: Collect pull-request number
+      id: pr
+      env:
+        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
+      run: |
+        source $(find ${{ env.BUILD_SCAN_DIR }} -type f -name "pr-number.properties")
+        echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
+      shell: bash
