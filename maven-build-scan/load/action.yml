@@ -7,7 +7,7 @@ inputs:
     required: true
   pr-comment-tos-acceptance-request:
     description: 'pull-request comment to accept the Terms of Service'
-    default: 'I have read Develocity Terms of Service and I hereby accept the Terms'
+    required: true
 
 outputs:
   pr-number:

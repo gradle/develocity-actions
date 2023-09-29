@@ -10,7 +10,7 @@ inputs:
     required: false
   develocity-allow-untrusted:
     description: 'Develocity allow-untrusted flag'
-    default: 'false'
+    required: true
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}

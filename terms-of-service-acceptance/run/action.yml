@@ -10,22 +10,22 @@ inputs:
     required: true
   pr-comment-tos-acceptance-missing:
     description: 'pull-request comment added when Terms of Service are not accepted ({0} in the value will be replaced by tos-location input)'
-    default: 'Please accept [Develocity Terms of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:'
+    required: true
   pr-comment-tos-acceptance-request:
     description: 'pull-request comment to accept the Terms of Service'
-    default: 'I have read Develocity Terms of Service and I hereby accept the Terms'
+    required: true
   pr-comment-tos-acceptance-validation:
     description: 'pull-request comment added when Terms of Service are accepted'
-    default: 'All Contributors have accepted Develocity Terms of Service.'
+    required: true
   signature-branch:
     description: 'Git branch where the signature file will be stored'
-    default: ${{ github.event.repository.default_branch }}
+    required: true
   signature-location:
     description: 'Signature file location'
-    default: '.github/develocity-tos.json'
+    required: true
   white-list:
     description: 'CSV List of users not required to accept the Terms of Service'
-    default: ''
+    required: true
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}
