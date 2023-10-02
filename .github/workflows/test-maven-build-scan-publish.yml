@@ -1,0 +1,39 @@
+name: TEST - Publish Maven Build Scan
+
+on:
+  pull_request:
+
+jobs:
+  create-and-verify-build-scan-publication:
+    name: Create and attempt to publish Maven Build Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+      - name: Checkout Maven sample project
+        uses: actions/checkout@v4
+        with:
+          repository: 'gradle/gradle-enterprise-build-config-samples'
+          path: 'sample'
+          ref: 'main'
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+      - name: Run Maven Build
+        working-directory: ./sample/common-gradle-enterprise-maven-configuration
+        run: mvn clean -B
+      - name: Attempt to publish Maven Build Scans
+        uses: ./maven-build-scan/publish
+        with:
+          develocity-url: 'https://foo.bar'
+          pr-number: ${{ github.event.number }}
+      - name: Verify publication attempt
+        run: |
+          if ! grep -q "Publishing build scan..." ./maven-build-scan-publisher/build.out; then
+            echo "Publication attempt not found in build log:"
+            cat ./maven-build-scan-publisher/build.out
+            exit 1
+          fi
+          
