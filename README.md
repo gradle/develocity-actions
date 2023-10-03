@@ -90,25 +90,25 @@ These event allows access to the repository secrets (_Develocity Access Key_) wh
 **Permissions**:
 
 The following permissions are required for this action to operate:
-- `contents: write`: to create/edit the signature file
+- `contents: write`: to create/edit the Terms of Service acceptance file
 - `pull-requests: write`: to comment the pull-request
 
 **Action inputs**:
 
-| Name                                     | Description                                                                                    | Default                                                                                                                                                      |
-|------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `build-workflow-filename`                | Filename of the workflow using `maven-build-scan/save` (called upon pull-request submission)   |                                                                                                                                                              |
-| `tos-location`                           | Terms Of Service location (URL)                                                                |                                                                                                                                                              |
-| `develocity-url`                         | Develocity URL                                                                                 |                                                                                                                                                              |
-| `develocity-access-key`                  | *Optional*: Develocity access key                                                              |                                                                                                                                                              |
-| `develocity-allow-untrusted`             | *Optional*: Develocity allow-untrusted flag                                                    | `false`                                                                                                                                                      |
-| `signature-branch`                       | *Optional*: Git branch where the signature file will be stored                                 | `${{ github.event.repository.default_branch }}`                                                                                                              |
-| `signature-location`                     | *Optional*: Signature file location                                                            | `.github/develocity-tos.json`                                                                                                                                |
-| `pr-comment-tos-acceptance-missing`      | *Optional*: pull-request comment added when Terms of Service have not previously been accepted | `Please accept [Develocity Terms Of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:` |
-| `pr-comment-tos-acceptance-request`      | *Optional*: pull-request comment to accept the Terms of Service                                | `I have read Develocity Terms Of Service and I hereby accept the Terms`                                                                                      |
-| `pr-comment-tos-acceptance-confirmation` | *Optional*: pull-request comment added when Terms of Service are accepted                      | `All Contributors have accepted Develocity Terms Of Service.`                                                                                                |
-| `white-list`                             | *Optional*: CSV List of users not required to accept the Terms of Service                      | `''`                                                                                                                                                         |
-| `github-token`                           | *Optional*: Github token                                                                       | `${{ github.token }}`                                                                                                                                        |
+| Name                                      | Description                                                                                    | Default                                                                                                                                                      |
+|-------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `build-workflow-filename`                 | Filename of the workflow using `maven-build-scan/save` (called upon pull-request submission)   |                                                                                                                                                              |
+| `tos-location`                            | Terms Of Service location (URL)                                                                |                                                                                                                                                              |
+| `develocity-url`                          | Develocity URL                                                                                 |                                                                                                                                                              |
+| `develocity-access-key`                   | *Optional*: Develocity access key                                                              |                                                                                                                                                              |
+| `develocity-allow-untrusted`              | *Optional*: Develocity allow-untrusted flag                                                    | `false`                                                                                                                                                      |
+| `tos-acceptance-file-branch`              | *Optional*: Git branch where the Terms of Service acceptance file will be stored               | `${{ github.event.repository.default_branch }}`                                                                                                              |
+| `tos-acceptance-file`                     | *Optional*: Terms of Service acceptance file location                                          | `.github/develocity-tos.json`                                                                                                                                |
+| `pr-comment-tos-acceptance-missing`       | *Optional*: pull-request comment added when Terms of Service have not previously been accepted | `Please accept [Develocity Terms Of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:` |
+| `pr-comment-tos-acceptance-request`       | *Optional*: pull-request comment to accept the Terms of Service                                | `I have read Develocity Terms Of Service and I hereby accept the Terms`                                                                                      |
+| `pr-comment-tos-acceptance-confirmation`  | *Optional*: pull-request comment added when Terms of Service are accepted                      | `All Contributors have accepted Develocity Terms Of Service.`                                                                                                |
+| `white-list`                              | *Optional*: CSV List of users not required to accept the Terms of Service                      | `''`                                                                                                                                                         |
+| `github-token`                            | *Optional*: Github token                                                                       | `${{ github.token }}`                                                                                                                                        |
 
 **Usage**:
 
@@ -232,22 +232,22 @@ This action should be configured to respond to the following event triggers:
 **Permissions**:
 
 The following permissions are required for this action to operate:
-- `contents: write`: to create/edit the signature file
+- `contents: write`: to create/edit the Terms of Service acceptance file
 - `pull-requests: write`: to comment the pull-request
 
 **Action inputs**:
 
-| Name                                     | Description                                                                        | Default |
-|------------------------------------------|------------------------------------------------------------------------------------|---------|
-| `tos-location`                           | Terms Of Service location (URL)                                                    |         |
-| `pr-number`                              | pull-request number                                                                |         |
-| `signature-branch`                       | Git branch where the signature file will be stored                                 |         |
-| `signature-location`                     | Signature file location                                                            |         |
-| `pr-comment-tos-acceptance-missing`      | pull-request comment added when Terms of Service have not previously been accepted |         |
-| `pr-comment-tos-acceptance-request`      | pull-request comment to accept the Terms of Service                                |         |
-| `pr-comment-tos-acceptance-confirmation` | pull-request comment added when Terms of Service are accepted                      |         |
-| `white-list`                             | CSV List of users not required to accept the Terms of Service                      |         |
-| `github-token`                           | Github token                                                                       |         |
+| Name                                      | Description                                                                        | Default |
+|-------------------------------------------|------------------------------------------------------------------------------------|---------|
+| `tos-location`                            | Terms Of Service location (URL)                                                    |         |
+| `pr-number`                               | pull-request number                                                                |         |
+| `tos-acceptance-file-branch`              | Git branch where the Terms of Service acceptance file will be stored               |         |
+| `tos-acceptance-file`                     | Terms of Service acceptance file location                                          |         |
+| `pr-comment-tos-acceptance-missing`       | pull-request comment added when Terms of Service have not previously been accepted |         |
+| `pr-comment-tos-acceptance-request`       | pull-request comment to accept the Terms of Service                                |         |
+| `pr-comment-tos-acceptance-confirmation`  | pull-request comment added when Terms of Service are accepted                      |         |
+| `white-list`                              | CSV List of users not required to accept the Terms of Service                      |         |
+| `github-token`                            | Github token                                                                       |         |
 
 **Usage**:
 

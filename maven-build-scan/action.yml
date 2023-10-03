@@ -26,11 +26,11 @@ inputs:
   pr-comment-tos-acceptance-validation:
     description: 'pull-request comment added when Terms of Service are accepted'
     default: 'All Contributors have accepted Develocity Terms of Service.'
-  signature-branch:
-    description: 'Git branch where the signature file will be stored'
+  tos-acceptance-file-branch:
+    description: 'Git branch where the Terms of Service acceptance file will be stored'
     default: ${{ github.event.repository.default_branch }}
-  signature-location:
-    description: 'Signature file location'
+  tos-acceptance-file:
+    description: 'Terms of Service acceptance file location'
     default: '.github/develocity-tos.json'
   white-list:
     description: 'CSV List of users not required to accept the Terms of Service'
@@ -45,24 +45,24 @@ runs:
   steps:
     - name: Load data
       id: load
-      uses: gradle/github-actions/maven-build-scan/load@v0.1
+      uses: gradle/github-actions/maven-build-scan/load@v1.0
       with:
         build-workflow-filename: ${{ inputs.build-workflow-filename }}
         pr-comment-tos-acceptance-request: ${{ inputs.pr-comment-tos-acceptance-request }}
     - name: Verify Terms of Service acceptance
-      uses: gradle/github-actions/terms-of-service-acceptance/run@v0.1
+      uses: gradle/github-actions/terms-of-service-acceptance/run@v1.0
       with:
         tos-location: ${{ inputs.tos-location }}
         pr-number: ${{ steps.load.outputs.pr-number }}
         pr-comment-tos-acceptance-missing: ${{ inputs.pr-comment-tos-acceptance-missing }}
         pr-comment-tos-acceptance-request: ${{ inputs.pr-comment-tos-acceptance-request }}
         pr-comment-tos-acceptance-validation: ${{ inputs.pr-comment-tos-acceptance-validation }}
-        signature-branch: ${{ inputs.signature-branch }}
-        signature-location: ${{ inputs.signature-location }}
+        tos-acceptance-file-branch: ${{ inputs.tos-acceptance-file-branch }}
+        tos-acceptance-file: ${{ inputs.tos-acceptance-file }}
         white-list: ${{ inputs.white-list }}
         github-token: ${{ inputs.github-token }}
     - name: Publish Maven Build Scans
-      uses: gradle/github-actions/maven-build-scan/publish@v0.1
+      uses: gradle/github-actions/maven-build-scan/publish@v1.0
       with:
         develocity-url: ${{ inputs.develocity-url }}
         develocity-access-key: ${{ inputs.develocity-access-key }}

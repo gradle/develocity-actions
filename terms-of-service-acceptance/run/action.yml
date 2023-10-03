@@ -17,11 +17,11 @@ inputs:
   pr-comment-tos-acceptance-validation:
     description: 'pull-request comment added when Terms of Service are accepted'
     required: true
-  signature-branch:
-    description: 'Git branch where the signature file will be stored'
+  tos-acceptance-file-branch:
+    description: 'Git branch where the Terms of Service acceptance file will be stored'
     required: true
-  signature-location:
-    description: 'Signature file location'
+  tos-acceptance-file:
+    description: 'Terms of Service acceptance file location'
     required: true
   white-list:
     description: 'CSV List of users not required to accept the Terms of Service'
@@ -44,8 +44,8 @@ runs:
         custom-notsigned-prcomment: ${{ format(inputs.pr-comment-tos-acceptance-missing, inputs.tos-location )}}
         custom-pr-sign-comment: ${{ inputs.pr-comment-tos-acceptance-request }}
         custom-allsigned-prcomment: ${{ inputs.pr-comment-tos-acceptance-validation }}
-        branch: ${{ inputs.signature-branch }}
-        path-to-signatures: ${{ inputs.signature-location }}
+        branch: ${{ inputs.tos-acceptance-file-branch }}
+        path-to-signatures: ${{ inputs.tos-acceptance-file }}
         allowlist: ${{ inputs.white-list }}
         path-to-document: 'unused'
         lock-pullrequest-aftermerge: false

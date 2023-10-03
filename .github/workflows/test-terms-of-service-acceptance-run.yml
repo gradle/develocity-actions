@@ -17,5 +17,5 @@ jobs:
         with:
           tos-location: 'https://foo.bar/tos.html'
           white-list: '*'
-          signature-branch: ${{ github.event.repository.default_branch }}
-          signature-location: '.github/develocity-tos.json'
+          tos-acceptance-file-branch: ${{ github.event.repository.default_branch }}
+          tos-acceptance-file: '.github/develocity-tos.json'

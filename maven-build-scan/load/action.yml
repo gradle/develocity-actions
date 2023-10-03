@@ -17,7 +17,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Check event trigger
+    - name: Assert event trigger
       if: |
         (github.event_name != 'issue_comment' 
           || (
@@ -27,7 +27,7 @@ runs:
         )
         && github.event_name != 'workflow_run'
       run: |
-        echo "Skipping Github event"
+        echo "Skipping the publication process due to unsupported event trigger"
         exit 1
       shell: bash
     - name: Download Build Metadata after PR Build
