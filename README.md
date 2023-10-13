@@ -2,7 +2,19 @@
 
 A collection of composite Github Actions
 
-## terms-of-service-acceptance/run
+## Publish Build Scans® from forked repositories
+
+### Description
+When submitting a pull request, a Github workflow that validates the change is usually triggered, however the Develocity Build Scans® can’t be published for 2 reasons:
+- The Develocity Terms of Service have not been agreed to by the contributor
+- Workflows from forked repositories do not have access to secrets although an access token is required to publish a Build Scan®
+
+This repository contains some actions which can be combined to solve this.
+
+### Architecture
+![Architecture](./doc/architecture.png)
+
+### terms-of-service-acceptance/run
 
 A composite action to verify that Develocity Terms of Service have been accepted.
 
@@ -81,7 +93,7 @@ jobs:
           #github-token: ${{ secrets.MY_PAT }}
 ```
 
-## maven-build-scan/save
+### maven-build-scan/save
 A Composite action to save an unpublished Maven Build Scan®.
 
 The action saves unpublished Build Scan® data as a workflow artifact with name `maven-build-scan-data`, which can then be published in a dependent workflow.
@@ -105,6 +117,7 @@ N/A
 **Usage**:
 
 Insert the `Save Build Scan` step after each Maven execution step in the Github workflow called to validate a pull-request (`Build with Maven` here).
+Use the `always` flag to run the step even if the build step failed.
 
 ```yaml
 [...]
@@ -112,10 +125,11 @@ Insert the `Save Build Scan` step after each Maven execution step in the Github 
         run: mvn clean package
       - name: Save Build Scan
         uses: gradle/github-actions/maven-build-scan/save@v1.0
+        if: ${{ always() }}
 [...]
 ```
 
-## maven-build-scan/publish
+### maven-build-scan/publish
 
 This action will publish all Maven Build Scans® that have been saved as workflow artifacts by the `maven-build-scan/save` action.
 
