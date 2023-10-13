@@ -125,7 +125,7 @@ Use the `always` flag to run the step even if the build step failed.
         run: mvn clean package
       - name: Save Build Scan
         uses: gradle/github-actions/maven-build-scan/save@v1.0
-        if: ${{ always() }}
+        if: always()
 [...]
 ```
 
