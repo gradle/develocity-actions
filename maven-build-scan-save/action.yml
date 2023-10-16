@@ -1,0 +1,7 @@
+name: Save Maven Build Scan
+description: Save Maven Build Scan
+author: Gradle team
+
+runs:
+  using: node20
+  main: dist/index.js
