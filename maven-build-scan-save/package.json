@@ -19,6 +19,7 @@
   },
   "scripts": {
     "bundle": "npm run format:write && npm run lint && npm run package && npm run test",
+    "format:check": "prettier --check src/**.ts",
     "format:write": "prettier --write src/**.ts",
     "format:test": "prettier --write __tests__/**.ts",
     "lint": "eslint src/**.ts",
