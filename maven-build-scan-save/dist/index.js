@@ -40465,6 +40465,25 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 8672:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.writeContentToFileSync = void 0;
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+function writeContentToFileSync(fileName, content) {
+    fs_1.default.writeFileSync(fileName, content);
+}
+exports.writeContentToFileSync = writeContentToFileSync;
+
+
+/***/ }),
+
 /***/ 3925:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -40519,13 +40538,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
-const fs = __importStar(__nccwpck_require__(7147));
 const path_1 = __importDefault(__nccwpck_require__(1017));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const glob = __importStar(__nccwpck_require__(8090));
 const artifact_1 = __nccwpck_require__(2605);
 const layout = __importStar(__nccwpck_require__(3925));
+const io = __importStar(__nccwpck_require__(8672));
 /**
  * Main entrypoint for the Save Maven Build Scan action
  */
@@ -40535,10 +40554,13 @@ async function run() {
         // Retrieve Build Scan Data files
         const buildScanDataFiles = await getBuildScanDataFiles();
         if (buildScanDataFiles && buildScanDataFiles.length) {
-            // Add Build Scan metadata
-            addBuildScanMetadata(buildScanDataFiles);
-            // Upload Build Scan data as workflow artifact
-            uploadArtifacts(buildScanDataFiles);
+            const buildScanFile = buildScanDataFiles.find(item => item.endsWith('scan.scan'));
+            if (buildScanFile) {
+                // Add Build Scan metadata
+                addBuildScanMetadata(buildScanDataFiles, path_1.default.dirname(buildScanFile));
+                // Upload Build Scan data as workflow artifact
+                uploadArtifacts(buildScanDataFiles);
+            }
         }
         else {
             core.info(`No Build Scan to process`);
@@ -40555,17 +40577,12 @@ async function getBuildScanDataFiles() {
     const globber = await glob.create(`${layout.mavenBuildScanData()}/**`);
     return await globber.glob();
 }
-function addBuildScanMetadata(buildScanDataFiles) {
-    const buildScanFile = buildScanDataFiles.find(item => item.endsWith('scan.scan'));
-    if (buildScanFile) {
-        // Collect Build Scan directory
-        const buildScanDir = path_1.default.dirname(buildScanFile);
-        // Dump pull-request number
-        const pullRequestNumberFileName = `${buildScanDir}/pr-number.properties`;
-        core.info(`Adding metadata file ${pullRequestNumberFileName}`);
-        fs.writeFileSync(pullRequestNumberFileName, `PR_NUMBER=${github.context.issue.number}\n`);
-        buildScanDataFiles.push(pullRequestNumberFileName);
-    }
+function addBuildScanMetadata(buildScanDataFiles, buildScanDir) {
+    // Dump pull-request number
+    const pullRequestNumberFileName = `${buildScanDir}/pr-number.properties`;
+    core.info(`Adding metadata file ${pullRequestNumberFileName}`);
+    io.writeContentToFileSync(pullRequestNumberFileName, `PR_NUMBER=${github.context.issue.number}\n`);
+    buildScanDataFiles.push(pullRequestNumberFileName);
     return buildScanDataFiles;
 }
 function uploadArtifacts(files) {

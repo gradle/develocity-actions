@@ -1,8 +1,8 @@
-import fs from 'fs'
 import * as core from '@actions/core'
 import {getExecOutput} from '@actions/exec'
 import * as glob from '@actions/glob'
 
+import * as io from '../shared/io'
 import * as params from '../shared/params'
 import * as layout from '../shared/layout'
 
@@ -18,9 +18,9 @@ export async function publishBuildScan(): Promise<string[]> {
 
 function createMavenProjectStructure(): void {
     // Create Maven directory
-    if (!fs.existsSync(MAVEN_DIR)) {
+    if (!io.existsSync(MAVEN_DIR)) {
         core.debug(`Creating ${MAVEN_DIR}`)
-        fs.mkdirSync(MAVEN_DIR, {recursive: true})
+        io.mkdirSync(MAVEN_DIR, {recursive: true})
     }
 
     createFile(`${PROJECT_DIR}/pom.xml`, getPomContent())
@@ -28,7 +28,7 @@ function createMavenProjectStructure(): void {
 }
 
 function createFile(filename: string, content: string): void {
-    fs.writeFileSync(filename, content)
+    io.writeContentToFileSync(filename, content)
 }
 
 function getPomContent(): string {

@@ -38838,15 +38838,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.publishBuildScan = void 0;
-const fs_1 = __importDefault(__nccwpck_require__(7147));
 const core = __importStar(__nccwpck_require__(2186));
 const exec_1 = __nccwpck_require__(1514);
 const glob = __importStar(__nccwpck_require__(8090));
+const io = __importStar(__nccwpck_require__(6265));
 const params = __importStar(__nccwpck_require__(8839));
 const layout = __importStar(__nccwpck_require__(2410));
 const PROJECT_DIR = 'maven-build-scan-publisher';
@@ -38859,15 +38856,15 @@ async function publishBuildScan() {
 exports.publishBuildScan = publishBuildScan;
 function createMavenProjectStructure() {
     // Create Maven directory
-    if (!fs_1.default.existsSync(MAVEN_DIR)) {
+    if (!io.existsSync(MAVEN_DIR)) {
         core.debug(`Creating ${MAVEN_DIR}`);
-        fs_1.default.mkdirSync(MAVEN_DIR, { recursive: true });
+        io.mkdirSync(MAVEN_DIR, { recursive: true });
     }
     createFile(`${PROJECT_DIR}/pom.xml`, getPomContent());
     createFile(`${MAVEN_DIR}/gradle-enterprise.xml`, getGradleEnterpriseConfigurationContent());
 }
 function createFile(filename, content) {
-    fs_1.default.writeFileSync(filename, content);
+    io.writeContentToFileSync(filename, content);
 }
 function getPomContent() {
     return `
@@ -39025,20 +39022,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.loadBuildScanData = void 0;
-const fs = __importStar(__nccwpck_require__(7147));
-const path_1 = __importDefault(__nccwpck_require__(1017));
+exports.exportedForTesting = exports.loadBuildScanData = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const glob = __importStar(__nccwpck_require__(8090));
-const toolCache = __importStar(__nccwpck_require__(7784));
 const githubInternal = __importStar(__nccwpck_require__(9954));
 const params = __importStar(__nccwpck_require__(8839));
 const layout = __importStar(__nccwpck_require__(2410));
+const io = __importStar(__nccwpck_require__(6265));
 const BUILD_SCAN_DATA_ARTIFACT_NAME = 'maven-build-scan-data';
 const ZIP_EXTENSION = 'zip';
 async function loadBuildScanData() {
@@ -39061,19 +39053,18 @@ async function loadBuildScanData() {
         });
         // Create Build Scan directory
         const mavenBuildScanData = layout.mavenBuildScanData();
-        if (!fs.existsSync(mavenBuildScanData)) {
+        if (!io.existsSync(mavenBuildScanData)) {
             core.debug(`Creating ${mavenBuildScanData}`);
-            fs.mkdirSync(mavenBuildScanData, { recursive: true });
+            io.mkdirSync(mavenBuildScanData, { recursive: true });
         }
-        const downloadBuffer = download.data;
-        const downloadZip = path_1.default.resolve(mavenBuildScanData, `${BUILD_SCAN_DATA_ARTIFACT_NAME}.${ZIP_EXTENSION}`);
+        // Write artifact
+        const downloadZip = `${BUILD_SCAN_DATA_ARTIFACT_NAME}.${ZIP_EXTENSION}`;
         core.debug(`Writing data to ${downloadZip}`);
-        fs.writeFileSync(downloadZip, Buffer.from(downloadBuffer));
+        io.writeFileSync(mavenBuildScanData, downloadZip, download.data);
         // Expand the archive
-        const extractDir = path_1.default.resolve(mavenBuildScanData);
-        core.debug(`Extracting to ${extractDir}`);
-        const extracted = await toolCache.extractZip(downloadZip, extractDir);
-        core.debug(`Extracted Build Scan artifact to ${extracted}: ${fs.readdirSync(extracted)}`);
+        core.debug(`Extracting to ${mavenBuildScanData}`);
+        const extracted = await io.extractZip(downloadZip, mavenBuildScanData);
+        core.debug(`Extracted Build Scan artifact to ${extracted}: ${io.readdirSync(extracted)}`);
         // Collect pull-request number
         const globber = await glob.create(`${layout.mavenBuildScanData()}/**/pr-number.properties`);
         const prNumberFiles = await globber.glob();
@@ -39081,7 +39072,7 @@ async function loadBuildScanData() {
         if (!prNumberFile) {
             throw new Error(`Build Scan metadata not found`);
         }
-        const prNumberFileContent = fs.readFileSync(path_1.default.resolve(prNumberFile), 'utf-8');
+        const prNumberFileContent = io.readFileSync(prNumberFile);
         const prNumber = prNumberFileContent.split(/\r?\n/)?.at(0)?.split('=')?.at(1);
         core.debug(`Publishing Build Scans for Pull-request ${prNumber}`);
         return { prNumber: Number(prNumber), artifactId: buildScanArtifactId };
@@ -39097,9 +39088,7 @@ async function getArtifactIdForWorkflowRun(octokit) {
         repo: github.context.repo.repo,
         run_id: runId
     });
-    const matchArtifact = artifacts.data.artifacts.find(candidate => {
-        return candidate.name === BUILD_SCAN_DATA_ARTIFACT_NAME;
-    });
+    const matchArtifact = getBuildScanArtifact(artifacts);
     return matchArtifact?.id;
 }
 async function getArtifactIdForIssueComment(octokit) {
@@ -39118,25 +39107,29 @@ async function getArtifactIdForIssueComment(octokit) {
     })) {
         for (const run of runs.data) {
             core.debug(`Looking for artifacts for workflow ${run.id}`);
-            const artifacts = await octokit.paginate(octokit.rest.actions.listWorkflowRunArtifacts, {
+            const artifacts = await octokit.rest.actions.listWorkflowRunArtifacts({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 run_id: run.id
             });
-            if (!artifacts || artifacts.length === 0) {
-                continue;
+            const matchArtifact = getBuildScanArtifact(artifacts);
+            if (matchArtifact) {
+                return matchArtifact.id;
             }
-            const matchArtifact = artifacts.find(candidate => {
-                return candidate.name === BUILD_SCAN_DATA_ARTIFACT_NAME;
-            });
-            if (!matchArtifact) {
-                continue;
-            }
-            return matchArtifact.id;
         }
     }
     return undefined;
 }
+function getBuildScanArtifact(artifacts) {
+    // @ts-ignore
+    return artifacts.data.artifacts.find(candidate => {
+        return candidate.name === BUILD_SCAN_DATA_ARTIFACT_NAME;
+    });
+}
+exports.exportedForTesting = {
+    getArtifactIdForWorkflowRun,
+    getArtifactIdForIssueComment
+};
 
 
 /***/ }),
@@ -39316,6 +39309,74 @@ function isEventIssueWithTosAcceptanceComment() {
             github.context.payload?.comment?.body === params.getCommentTosAcceptanceRequest()));
 }
 exports.isEventIssueWithTosAcceptanceComment = isEventIssueWithTosAcceptanceComment;
+
+
+/***/ }),
+
+/***/ 6265:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.writeContentToFileSync = exports.writeFileSync = exports.readFileSync = exports.readdirSync = exports.mkdirSync = exports.extractZip = exports.existsSync = void 0;
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+const path_1 = __importDefault(__nccwpck_require__(1017));
+const toolCache = __importStar(__nccwpck_require__(7784));
+function existsSync(fileName) {
+    return fs_1.default.existsSync(fileName);
+}
+exports.existsSync = existsSync;
+async function extractZip(zipFileName, extractDir) {
+    return await toolCache.extractZip(zipFileName, extractDir);
+}
+exports.extractZip = extractZip;
+function mkdirSync(dirName, options) {
+    return fs_1.default.mkdirSync(dirName, options);
+}
+exports.mkdirSync = mkdirSync;
+function readdirSync(dirName) {
+    return fs_1.default.readdirSync(path_1.default.resolve(dirName));
+}
+exports.readdirSync = readdirSync;
+function readFileSync(fileName) {
+    return fs_1.default.readFileSync(path_1.default.resolve(fileName), 'utf-8');
+}
+exports.readFileSync = readFileSync;
+function writeFileSync(dirName, fileName, downloadBuffer) {
+    fs_1.default.writeFileSync(path_1.default.resolve(dirName, fileName), Buffer.from(downloadBuffer));
+}
+exports.writeFileSync = writeFileSync;
+function writeContentToFileSync(fileName, content) {
+    fs_1.default.writeFileSync(fileName, content);
+}
+exports.writeContentToFileSync = writeContentToFileSync;
 
 
 /***/ }),
