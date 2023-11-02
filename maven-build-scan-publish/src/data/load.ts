@@ -7,11 +7,17 @@ import * as githubInternal from '../shared/github'
 import * as params from '../shared/params'
 import * as layout from '../shared/layout'
 import * as io from '../shared/io'
+import {Contributor} from "../tos-acceptance/persistence";
 
 const BUILD_SCAN_DATA_ARTIFACT_NAME = 'maven-build-scan-data'
 const ZIP_EXTENSION = 'zip'
 
-export async function loadBuildScanData(): Promise<{prNumber?: number; artifactId?: number}> {
+export interface BuildScanData {
+    prNumber: number,
+    artifactId: number
+}
+
+export async function loadBuildScanData(): Promise<BuildScanData | null> {
     const octokit = githubInternal.getOctokit()
 
     let buildScanArtifactId
@@ -22,14 +28,25 @@ export async function loadBuildScanData(): Promise<{prNumber?: number; artifactI
     }
 
     if (buildScanArtifactId) {
-        // Download the Build Scan artifact
-        core.debug(`Downloading artifact ${buildScanArtifactId}`)
-        const download = await octokit.rest.actions.downloadArtifact({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            artifact_id: buildScanArtifactId,
-            archive_format: ZIP_EXTENSION
-        })
+        let download
+        try {
+            // Download the Build Scan artifact
+            core.debug(`Downloading artifact ${buildScanArtifactId}`)
+            download = await octokit.rest.actions.downloadArtifact({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                artifact_id: buildScanArtifactId,
+                archive_format: ZIP_EXTENSION
+            })
+        } catch (error) {
+            // @ts-ignore
+            if (error.status === 410) {
+                core.debug(`Artifact deleted or expired`)
+                return null
+            } else {
+                throw error;
+            }
+        }
 
         // Create Build Scan directory
         const mavenBuildScanData = layout.mavenBuildScanData()
@@ -64,7 +81,7 @@ export async function loadBuildScanData(): Promise<{prNumber?: number; artifactI
         return {prNumber: Number(prNumber), artifactId: buildScanArtifactId}
     }
 
-    return {prNumber: undefined, artifactId: undefined}
+    return null
 }
 
 async function getArtifactIdForWorkflowRun(octokit: InstanceType<typeof GitHub>): Promise<undefined | number> {
