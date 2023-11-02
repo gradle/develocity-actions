@@ -39,5 +39,9 @@ export async function run(): Promise<void> {
 }
 
 function isEventTriggerSupported(): boolean {
-    return githubInternal.isEventWorkflowRun() || githubInternal.isEventIssueWithTosAcceptanceComment()
+    return (
+        githubInternal.isEventWorkflowRun() ||
+        githubInternal.isEventIssueWithTosAcceptanceComment() ||
+        githubInternal.isEventIssueWithRecheckComment()
+    )
 }

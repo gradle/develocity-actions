@@ -17,6 +17,7 @@ const CONTRIBUTORS_POPULATED: persistence.Contributors = {
     sha: '42',
     list: [{id: 42, name: 'foo', pullRequestNo: 42, created_at: ''}]
 }
+const ACCEPTANCE_COMMENT = 'I have accepted the TOS'
 
 function contextWithoutComment() {
     Object.defineProperty(github, 'context', {
@@ -36,7 +37,7 @@ function contextWithTosAcceptanceComment() {
             eventName: 'issue_comment',
             payload: {
                 comment: {
-                    body: 'recheck'
+                    body: ACCEPTANCE_COMMENT
                 }
             },
             repo: {
@@ -72,6 +73,7 @@ describe('check', () => {
     beforeEach(() => {
         // @ts-ignore
         addUserMock = jest.spyOn(persistence, 'add').mockReturnValue(Promise.resolve())
+        jest.spyOn(params, 'getCommentTosAcceptanceRequest').mockReturnValue(ACCEPTANCE_COMMENT)
 
         const octokit = github.getOctokit('fake-token')
         jest.spyOn(githubInternal, 'getOctokit').mockReturnValue(octokit)
@@ -80,6 +82,9 @@ describe('check', () => {
             .mockImplementation(() => Promise.resolve({} as any))
         jest.spyOn(octokit.rest.issues, 'getComment').mockImplementation(() =>
             Promise.resolve({data: {user: {id: 42, login: 'foo'}}} as OctokitResponse<any, 200>)
+        )
+        jest.spyOn(octokit.rest.issues, 'listComments').mockImplementation(() =>
+            Promise.resolve({data: []} as OctokitResponse<any, 200>)
         )
         updateCommentMock = jest
             .spyOn(octokit.rest.issues, 'updateComment')

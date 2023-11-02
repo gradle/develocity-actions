@@ -14,7 +14,13 @@ export function isEventWorkflowRun(): boolean {
 export function isEventIssueWithTosAcceptanceComment(): boolean {
     return (
         github.context.eventName === 'issue_comment' &&
-        (github.context.payload?.comment?.body === 'recheck' ||
-            github.context.payload?.comment?.body === params.getCommentTosAcceptanceRequest())
+            github.context.payload?.comment?.body === params.getCommentTosAcceptanceRequest()
+    )
+}
+
+export function isEventIssueWithRecheckComment(): boolean {
+    return (
+        github.context.eventName === 'issue_comment' &&
+        github.context.payload?.comment?.body === 'recheck'
     )
 }
