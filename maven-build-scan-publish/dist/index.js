@@ -39043,14 +39043,27 @@ async function loadBuildScanData() {
         buildScanArtifactId = await getArtifactIdForIssueComment(octokit);
     }
     if (buildScanArtifactId) {
-        // Download the Build Scan artifact
-        core.debug(`Downloading artifact ${buildScanArtifactId}`);
-        const download = await octokit.rest.actions.downloadArtifact({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            artifact_id: buildScanArtifactId,
-            archive_format: ZIP_EXTENSION
-        });
+        let download;
+        try {
+            // Download the Build Scan artifact
+            core.debug(`Downloading artifact ${buildScanArtifactId}`);
+            download = await octokit.rest.actions.downloadArtifact({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                artifact_id: buildScanArtifactId,
+                archive_format: ZIP_EXTENSION
+            });
+        }
+        catch (error) {
+            // @ts-ignore
+            if (error.status === 410) {
+                core.debug(`Artifact deleted or expired`);
+                return null;
+            }
+            else {
+                throw error;
+            }
+        }
         // Create Build Scan directory
         const mavenBuildScanData = layout.mavenBuildScanData();
         if (!io.existsSync(mavenBuildScanData)) {
@@ -39077,7 +39090,7 @@ async function loadBuildScanData() {
         core.debug(`Publishing Build Scans for Pull-request ${prNumber}`);
         return { prNumber: Number(prNumber), artifactId: buildScanArtifactId };
     }
-    return { prNumber: undefined, artifactId: undefined };
+    return null;
 }
 exports.loadBuildScanData = loadBuildScanData;
 async function getArtifactIdForWorkflowRun(octokit) {
@@ -39178,12 +39191,12 @@ async function run() {
     try {
         if (isEventTriggerSupported()) {
             core.info(`Starting Publish Maven Build Scans action`);
-            const { prNumber, artifactId } = await loader.loadBuildScanData();
-            if (prNumber && artifactId) {
-                if (await tosAcceptance.isAccepted(prNumber)) {
+            const buildScanData = await loader.loadBuildScanData();
+            if (buildScanData) {
+                if (await tosAcceptance.isAccepted(buildScanData.prNumber)) {
                     const buildScanLinks = await buildScan.publishBuildScan();
-                    await pr.commentPullRequestWithBuildScanLinks(prNumber, buildScanLinks);
-                    await cleaner.deleteWorkflowArtifacts(artifactId);
+                    await pr.commentPullRequestWithBuildScanLinks(buildScanData.prNumber, buildScanLinks);
+                    await cleaner.deleteWorkflowArtifacts(buildScanData.artifactId);
                 }
                 else {
                     core.info('Skipping the publication: Terms of Service not accepted');

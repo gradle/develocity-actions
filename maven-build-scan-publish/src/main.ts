@@ -15,14 +15,14 @@ export async function run(): Promise<void> {
         if (isEventTriggerSupported()) {
             core.info(`Starting Publish Maven Build Scans action`)
 
-            const {prNumber, artifactId} = await loader.loadBuildScanData()
-            if (prNumber && artifactId) {
-                if (await tosAcceptance.isAccepted(prNumber)) {
+            const buildScanData = await loader.loadBuildScanData()
+            if (buildScanData) {
+                if (await tosAcceptance.isAccepted(buildScanData.prNumber)) {
                     const buildScanLinks = await buildScan.publishBuildScan()
 
-                    await pr.commentPullRequestWithBuildScanLinks(prNumber, buildScanLinks)
+                    await pr.commentPullRequestWithBuildScanLinks(buildScanData.prNumber, buildScanLinks)
 
-                    await cleaner.deleteWorkflowArtifacts(artifactId)
+                    await cleaner.deleteWorkflowArtifacts(buildScanData.artifactId)
                 } else {
                     core.info('Skipping the publication: Terms of Service not accepted')
                 }

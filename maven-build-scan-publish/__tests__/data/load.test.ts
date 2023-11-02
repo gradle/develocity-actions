@@ -92,12 +92,12 @@ describe('load', () => {
         jest.spyOn(githubInternal, 'isEventWorkflowRun').mockReturnValue(true)
 
         // when
-        const {prNumber, artifactId} = await load.loadBuildScanData()
+        const buildScanData = await load.loadBuildScanData()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(artifactId).toBe(mockedArtifactId)
-        expect(prNumber).toBe(mockedPrNumber)
+        expect(buildScanData?.artifactId).toBe(mockedArtifactId)
+        expect(buildScanData?.prNumber).toBe(mockedPrNumber)
     })
 
     it('load build scan metadata succeeds on issue comment event', async () => {
@@ -106,12 +106,12 @@ describe('load', () => {
         jest.spyOn(githubInternal, 'isEventWorkflowRun').mockReturnValue(false)
 
         // when
-        const {prNumber, artifactId} = await load.loadBuildScanData()
+        const buildScanData = await load.loadBuildScanData()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(artifactId).toBe(mockedArtifactId)
-        expect(prNumber).toBe(mockedPrNumber)
+        expect(buildScanData?.artifactId).toBe(mockedArtifactId)
+        expect(buildScanData?.prNumber).toBe(mockedPrNumber)
     })
 
     it('Load build scan metadata does nothing when build scan artifact is not found', async () => {
@@ -124,12 +124,12 @@ describe('load', () => {
         jest.spyOn(githubInternal, 'isEventWorkflowRun').mockReturnValue(true)
 
         // when
-        const {prNumber, artifactId} = await load.loadBuildScanData()
+        const buildScanData = await load.loadBuildScanData()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(artifactId).toBeUndefined()
-        expect(prNumber).toBeUndefined()
+        expect(buildScanData?.artifactId).toBeUndefined()
+        expect(buildScanData?.prNumber).toBeUndefined()
     })
 
     it('Load build scan metadata fails when file containing pull-request number is not found', async () => {
