@@ -19,6 +19,7 @@ async function isAcceptedFromWhitelist(prNumber: number): Promise<boolean> {
 
     return isContributorWhiteListed(currentContributor.name)
 }
+
 async function isAcceptedFromTos(prNumber: number): Promise<boolean> {
     let contributorsWithTosAccepted = await persistence.load()
 
@@ -52,7 +53,9 @@ async function isAcceptedFromTos(prNumber: number): Promise<boolean> {
     if (!isContributorWhiteListed(currentContributor.name) && !isContributorWithTosAccepted(contributorsWithTosAccepted, currentContributor.id)) {
         core.debug(`User did not accept the TOS`)
 
-        await commentPullRequestWithAcceptanceRequest(prNumber)
+        if(!await isPullRequestCommentedWithAcceptanceRequest(prNumber)) {
+            await commentPullRequestWithAcceptanceRequest(prNumber)
+        }
 
         return false
     }
@@ -122,5 +125,28 @@ async function commentPullRequestWithAcceptanceRequest(prNumber: number): Promis
         })
     } catch (error) {
         throw new Error(`Error creating a pull request comment: ${error}`)
+    }
+}
+
+async function isPullRequestCommentedWithAcceptanceRequest(prNumber: number) {
+    try {
+        const octokit = githubInternal.getOctokit();
+
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: prNumber,
+        })
+        core.info(`STRING = ${params.getCommentTosAcceptanceMissing()}`)
+        for(const comment of comments) {
+            core.info(`COMMENTS = ${comment.body}`)
+        }
+
+        // @ts-ignore
+        return comments.some((comment) =>
+            comment?.body && comment.body.startsWith(params.getCommentTosAcceptanceMissing())
+        )
+    } catch (error) {
+        throw new Error(`Error collecting pull request comments: ${error}`)
     }
 }

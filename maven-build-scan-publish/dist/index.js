@@ -39218,7 +39218,9 @@ async function run() {
 }
 exports.run = run;
 function isEventTriggerSupported() {
-    return githubInternal.isEventWorkflowRun() || githubInternal.isEventIssueWithTosAcceptanceComment();
+    return (githubInternal.isEventWorkflowRun() ||
+        githubInternal.isEventIssueWithTosAcceptanceComment() ||
+        githubInternal.isEventIssueWithRecheckComment());
 }
 
 
@@ -39305,7 +39307,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isEventIssueWithTosAcceptanceComment = exports.isEventWorkflowRun = exports.getOctokit = void 0;
+exports.isEventIssueWithRecheckComment = exports.isEventIssueWithTosAcceptanceComment = exports.isEventWorkflowRun = exports.getOctokit = void 0;
 const github = __importStar(__nccwpck_require__(5438));
 const params = __importStar(__nccwpck_require__(8839));
 function getOctokit() {
@@ -39318,10 +39320,14 @@ function isEventWorkflowRun() {
 exports.isEventWorkflowRun = isEventWorkflowRun;
 function isEventIssueWithTosAcceptanceComment() {
     return (github.context.eventName === 'issue_comment' &&
-        (github.context.payload?.comment?.body === 'recheck' ||
-            github.context.payload?.comment?.body === params.getCommentTosAcceptanceRequest()));
+        github.context.payload?.comment?.body === params.getCommentTosAcceptanceRequest());
 }
 exports.isEventIssueWithTosAcceptanceComment = isEventIssueWithTosAcceptanceComment;
+function isEventIssueWithRecheckComment() {
+    return (github.context.eventName === 'issue_comment' &&
+        github.context.payload?.comment?.body === 'recheck');
+}
+exports.isEventIssueWithRecheckComment = isEventIssueWithRecheckComment;
 
 
 /***/ }),
@@ -39587,7 +39593,9 @@ async function isAcceptedFromTos(prNumber) {
     }
     if (!isContributorWhiteListed(currentContributor.name) && !isContributorWithTosAccepted(contributorsWithTosAccepted, currentContributor.id)) {
         core.debug(`User did not accept the TOS`);
-        await commentPullRequestWithAcceptanceRequest(prNumber);
+        if (!await isPullRequestCommentedWithAcceptanceRequest(prNumber)) {
+            await commentPullRequestWithAcceptanceRequest(prNumber);
+        }
         return false;
     }
     core.debug(`User did accept the TOS`);
@@ -39646,6 +39654,25 @@ async function commentPullRequestWithAcceptanceRequest(prNumber) {
     }
     catch (error) {
         throw new Error(`Error creating a pull request comment: ${error}`);
+    }
+}
+async function isPullRequestCommentedWithAcceptanceRequest(prNumber) {
+    try {
+        const octokit = githubInternal.getOctokit();
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: prNumber,
+        });
+        core.info(`STRING = ${params.getCommentTosAcceptanceMissing()}`);
+        for (const comment of comments) {
+            core.info(`COMMENTS = ${comment.body}`);
+        }
+        // @ts-ignore
+        return comments.some((comment) => comment?.body && comment.body.startsWith(params.getCommentTosAcceptanceMissing()));
+    }
+    catch (error) {
+        throw new Error(`Error collecting pull request comments: ${error}`);
     }
 }
 
