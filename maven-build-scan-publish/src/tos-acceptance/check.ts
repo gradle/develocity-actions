@@ -7,6 +7,19 @@ import * as params from '../shared/params'
 import {Contributor, Contributors} from './persistence'
 
 export async function isAccepted(prNumber: number): Promise<boolean> {
+    if (params.isWhiteListOnly()) {
+        return isAcceptedFromWhitelist(prNumber)
+    } else {
+        return isAcceptedFromTos(prNumber)
+    }
+}
+
+async function isAcceptedFromWhitelist(prNumber: number): Promise<boolean> {
+    const currentContributor = await getPullRequestSubmitter(prNumber)
+
+    return isContributorWhiteListed(currentContributor.name)
+}
+async function isAcceptedFromTos(prNumber: number): Promise<boolean> {
     let contributorsWithTosAccepted = await persistence.load()
 
     const currentContributor = await getPullRequestSubmitter(prNumber)

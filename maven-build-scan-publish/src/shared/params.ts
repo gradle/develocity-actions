@@ -44,6 +44,10 @@ export function getWhiteList(): string {
     return core.getInput('white-list')
 }
 
+export function isWhiteListOnly(): boolean {
+    return getBooleanInput('white-list-only')
+}
+
 // Internal parameters
 export function getGithubToken(): string {
     return core.getInput('github-token', {required: true})
