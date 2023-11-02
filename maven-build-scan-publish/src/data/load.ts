@@ -7,7 +7,7 @@ import * as githubInternal from '../shared/github'
 import * as params from '../shared/params'
 import * as layout from '../shared/layout'
 import * as io from '../shared/io'
-import {Contributor} from "../tos-acceptance/persistence";
+import {OctokitResponse} from "@octokit/types"
 
 const BUILD_SCAN_DATA_ARTIFACT_NAME = 'maven-build-scan-data'
 const ZIP_EXTENSION = 'zip'
@@ -39,8 +39,8 @@ export async function loadBuildScanData(): Promise<BuildScanData | null> {
                 archive_format: ZIP_EXTENSION
             })
         } catch (error) {
-            // @ts-ignore
-            if (error.status === 410) {
+            const typedError = error as OctokitResponse<unknown>
+            if (typedError && typedError.status === 410) {
                 core.debug(`Artifact deleted or expired`)
                 return null
             } else {
@@ -137,8 +137,7 @@ async function getArtifactIdForIssueComment(octokit: InstanceType<typeof GitHub>
 }
 
 function getBuildScanArtifact(artifacts: any) {
-    // @ts-ignore
-    return artifacts.data.artifacts.find(candidate => {
+    return artifacts.data.artifacts.find((candidate: any) => {
         return candidate.name === BUILD_SCAN_DATA_ARTIFACT_NAME
     })
 }

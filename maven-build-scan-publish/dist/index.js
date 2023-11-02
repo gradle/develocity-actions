@@ -39055,8 +39055,8 @@ async function loadBuildScanData() {
             });
         }
         catch (error) {
-            // @ts-ignore
-            if (error.status === 410) {
+            const typedError = error;
+            if (typedError && typedError.status === 410) {
                 core.debug(`Artifact deleted or expired`);
                 return null;
             }
@@ -39134,8 +39134,7 @@ async function getArtifactIdForIssueComment(octokit) {
     return undefined;
 }
 function getBuildScanArtifact(artifacts) {
-    // @ts-ignore
-    return artifacts.data.artifacts.find(candidate => {
+    return artifacts.data.artifacts.find((candidate) => {
         return candidate.name === BUILD_SCAN_DATA_ARTIFACT_NAME;
     });
 }
@@ -39576,7 +39575,6 @@ async function isAcceptedFromTos(prNumber) {
         const result = await githubInternal.getOctokit().rest.issues.getComment({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
-            // @ts-ignore
             comment_id: github.context.payload.comment.id
         });
         core.debug(`TOS acceptance comment found`);
@@ -39585,9 +39583,7 @@ async function isAcceptedFromTos(prNumber) {
             !isContributorWithTosAccepted(contributorsWithTosAccepted, result.data.user?.id)) {
             core.debug(`Adding user to TOS acceptance file`);
             await persistence.add(currentContributor, prNumber);
-            await commentPullRequestWithAcceptanceConfirmation(currentContributor.name, 
-            // @ts-ignore
-            github.context.payload.comment.id);
+            await commentPullRequestWithAcceptanceConfirmation(currentContributor.name, github.context.payload.comment.id);
             contributorsWithTosAccepted = await persistence.load();
         }
     }
@@ -39664,11 +39660,6 @@ async function isPullRequestCommentedWithAcceptanceRequest(prNumber) {
             repo: github.context.repo.repo,
             issue_number: prNumber,
         });
-        core.info(`STRING = ${params.getCommentTosAcceptanceMissing()}`);
-        for (const comment of comments) {
-            core.info(`COMMENTS = ${comment.body}`);
-        }
-        // @ts-ignore
         return comments.some((comment) => comment?.body && comment.body.startsWith(params.getCommentTosAcceptanceMissing()));
     }
     catch (error) {
@@ -39723,23 +39714,24 @@ async function load() {
             path: params.getTosAcceptanceFile(),
             ref: params.getTosAcceptanceFileBranch()
         });
-        // @ts-ignore
-        const sha = result?.data?.sha;
-        // @ts-ignore
-        const tosAcceptanceFileAsString = Buffer.from(result.data.content.toString(), 'base64').toString();
-        let tosAcceptanceAsArray = JSON.parse(tosAcceptanceFileAsString);
-        if (!Array.isArray(tosAcceptanceAsArray)) {
-            core.info(`Initializing TOS acceptance data`);
-            tosAcceptanceAsArray = [];
+        if ('sha' in result.data && 'content' in result.data) {
+            const sha = result.data.sha;
+            const tosAcceptanceFileAsString = Buffer.from(result.data.content.toString(), 'base64').toString();
+            let tosAcceptanceAsArray = JSON.parse(tosAcceptanceFileAsString);
+            if (!Array.isArray(tosAcceptanceAsArray)) {
+                core.info(`Initializing TOS acceptance data`);
+                tosAcceptanceAsArray = [];
+            }
+            return {
+                sha,
+                list: tosAcceptanceAsArray
+            };
         }
-        return {
-            sha,
-            list: tosAcceptanceAsArray
-        };
+        return EMPTY_CONTRIBUTORS;
     }
     catch (error) {
-        // @ts-ignore
-        if (error.status === 404) {
+        const typedError = error;
+        if (typedError && typedError.status === 404) {
             await createOrUpdateTosAcceptanceFile(EMPTY_CONTRIBUTORS, 'Creating Terms Of Service acceptance file');
             return EMPTY_CONTRIBUTORS;
         }

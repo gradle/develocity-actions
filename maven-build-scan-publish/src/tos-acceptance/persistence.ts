@@ -3,6 +3,7 @@ import * as core from '@actions/core'
 
 import * as params from '../shared/params'
 import * as githubInternal from '../shared/github'
+import {OctokitResponse} from "@octokit/types";
 export interface Contributor {
     id: number
     name: string
@@ -30,25 +31,26 @@ export async function load(): Promise<Contributors> {
             ref: params.getTosAcceptanceFileBranch()
         })
 
-        // @ts-ignore
-        const sha = result?.data?.sha
+        if('sha' in result.data && 'content' in result.data) {
+            const sha = result.data.sha
 
-        // @ts-ignore
-        const tosAcceptanceFileAsString = Buffer.from(result.data.content.toString(), 'base64').toString()
-        let tosAcceptanceAsArray = JSON.parse(tosAcceptanceFileAsString)
+            const tosAcceptanceFileAsString = Buffer.from(result.data.content.toString(), 'base64').toString()
+            let tosAcceptanceAsArray = JSON.parse(tosAcceptanceFileAsString)
 
-        if (!Array.isArray(tosAcceptanceAsArray)) {
-            core.info(`Initializing TOS acceptance data`)
-            tosAcceptanceAsArray = []
+            if (!Array.isArray(tosAcceptanceAsArray)) {
+                core.info(`Initializing TOS acceptance data`)
+                tosAcceptanceAsArray = []
+            }
+
+            return {
+                sha,
+                list: tosAcceptanceAsArray
+            }
         }
-
-        return {
-            sha,
-            list: tosAcceptanceAsArray
-        }
+        return EMPTY_CONTRIBUTORS
     } catch (error) {
-        // @ts-ignore
-        if (error.status === 404) {
+        const typedError = error as OctokitResponse<unknown>
+        if (typedError && typedError.status === 404) {
             await createOrUpdateTosAcceptanceFile(EMPTY_CONTRIBUTORS, 'Creating Terms Of Service acceptance file')
             return EMPTY_CONTRIBUTORS
         } else {

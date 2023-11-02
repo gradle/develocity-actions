@@ -29,8 +29,7 @@ async function isAcceptedFromTos(prNumber: number): Promise<boolean> {
         const result = await githubInternal.getOctokit().rest.issues.getComment({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
-            // @ts-ignore
-            comment_id: github.context.payload.comment.id
+            comment_id: github.context.payload.comment!.id
         })
         core.debug(`TOS acceptance comment found`)
 
@@ -43,8 +42,7 @@ async function isAcceptedFromTos(prNumber: number): Promise<boolean> {
             await persistence.add(currentContributor, prNumber)
             await commentPullRequestWithAcceptanceConfirmation(
                 currentContributor.name,
-                // @ts-ignore
-                github.context.payload.comment.id
+                github.context.payload.comment!.id
             )
             contributorsWithTosAccepted = await persistence.load()
         }
@@ -137,12 +135,7 @@ async function isPullRequestCommentedWithAcceptanceRequest(prNumber: number) {
             repo: github.context.repo.repo,
             issue_number: prNumber,
         })
-        core.info(`STRING = ${params.getCommentTosAcceptanceMissing()}`)
-        for(const comment of comments) {
-            core.info(`COMMENTS = ${comment.body}`)
-        }
 
-        // @ts-ignore
         return comments.some((comment) =>
             comment?.body && comment.body.startsWith(params.getCommentTosAcceptanceMissing())
         )
