@@ -39431,7 +39431,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGithubToken = exports.getWhiteList = exports.getCommentTosAcceptanceValidation = exports.getCommentTosAcceptanceMissing = exports.getCommentTosAcceptanceRequest = exports.getBuildWorkflowFileName = exports.getTosLocation = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getTosAcceptanceFile = exports.getTosAcceptanceFileBranch = void 0;
+exports.getGithubToken = exports.isWhiteListOnly = exports.getWhiteList = exports.getCommentTosAcceptanceValidation = exports.getCommentTosAcceptanceMissing = exports.getCommentTosAcceptanceRequest = exports.getBuildWorkflowFileName = exports.getTosLocation = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getTosAcceptanceFile = exports.getTosAcceptanceFileBranch = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 function getTosAcceptanceFileBranch() {
     return core.getInput('tos-acceptance-file-branch');
@@ -39477,6 +39477,10 @@ function getWhiteList() {
     return core.getInput('white-list');
 }
 exports.getWhiteList = getWhiteList;
+function isWhiteListOnly() {
+    return getBooleanInput('white-list-only');
+}
+exports.isWhiteListOnly = isWhiteListOnly;
 // Internal parameters
 function getGithubToken() {
     return core.getInput('github-token', { required: true });
@@ -39534,6 +39538,19 @@ const persistence = __importStar(__nccwpck_require__(3905));
 const githubInternal = __importStar(__nccwpck_require__(9954));
 const params = __importStar(__nccwpck_require__(8839));
 async function isAccepted(prNumber) {
+    if (params.isWhiteListOnly()) {
+        return isAcceptedFromWhitelist(prNumber);
+    }
+    else {
+        return isAcceptedFromTos(prNumber);
+    }
+}
+exports.isAccepted = isAccepted;
+async function isAcceptedFromWhitelist(prNumber) {
+    const currentContributor = await getPullRequestSubmitter(prNumber);
+    return isContributorWhiteListed(currentContributor.name);
+}
+async function isAcceptedFromTos(prNumber) {
     let contributorsWithTosAccepted = await persistence.load();
     const currentContributor = await getPullRequestSubmitter(prNumber);
     if (githubInternal.isEventIssueWithTosAcceptanceComment()) {
@@ -39563,7 +39580,6 @@ async function isAccepted(prNumber) {
     core.debug(`User did accept the TOS`);
     return true;
 }
-exports.isAccepted = isAccepted;
 async function getPullRequestSubmitter(prNumber) {
     const result = await githubInternal.getOctokit().rest.pulls.get({
         owner: github.context.repo.owner,

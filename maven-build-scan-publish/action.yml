@@ -23,6 +23,10 @@ inputs:
   white-list:
     description: 'CSV List of users not required to accept the Terms of Service'
     default: ''
+  white-list-only:
+    description: 'Workflow succeeds only when user (PR submitter or commenter) is whitelisted'
+    default: 'false'
+    required: false
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}

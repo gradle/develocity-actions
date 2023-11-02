@@ -98,6 +98,7 @@ describe('check', () => {
         // given
         contextWithTosAcceptanceComment()
         jest.spyOn(persistence, 'load').mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_POPULATED))
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(false)
 
         // when
         const isAccepted = await check.isAccepted(42)
@@ -116,6 +117,7 @@ describe('check', () => {
         jest.spyOn(persistence, 'load')
             .mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_EMPTY))
             .mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_POPULATED))
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(false)
 
         // when
         const isAccepted = await check.isAccepted(42)
@@ -131,6 +133,7 @@ describe('check', () => {
         // given
         contextWithRandomComment()
         jest.spyOn(persistence, 'load').mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_EMPTY))
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(false)
 
         // when
         const isAccepted = await check.isAccepted(42)
@@ -147,6 +150,7 @@ describe('check', () => {
         // given
         contextWithoutComment()
         jest.spyOn(persistence, 'load').mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_POPULATED))
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(false)
 
         // when
         const isAccepted = await check.isAccepted(42)
@@ -163,6 +167,7 @@ describe('check', () => {
         contextWithoutComment()
         jest.spyOn(persistence, 'load').mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_EMPTY))
         jest.spyOn(params, 'getWhiteList').mockReturnValue('bar,foo,baz')
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(false)
 
         // when
         const isAccepted = await check.isAccepted(42)
@@ -172,5 +177,39 @@ describe('check', () => {
         expect(addUserMock).not.toBeCalled()
         expect(updateCommentMock).not.toBeCalled()
         expect(isAccepted).toBeTruthy()
+    })
+
+    it('Check acceptance is true when white-list-only strategy is set and user is white listed', async () => {
+        // given
+        contextWithoutComment()
+        jest.spyOn(persistence, 'load').mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_EMPTY))
+        jest.spyOn(params, 'getWhiteList').mockReturnValue('bar,foo,baz')
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(true)
+
+        // when
+        const isAccepted = await check.isAccepted(42)
+
+        // then
+        expect(runMock).toHaveReturned()
+        expect(addUserMock).not.toBeCalled()
+        expect(updateCommentMock).not.toBeCalled()
+        expect(isAccepted).toBeTruthy()
+    })
+
+    it('Check acceptance is false when white-list-only strategy is set and user is not white listed', async () => {
+        // given
+        contextWithoutComment()
+        jest.spyOn(persistence, 'load').mockReturnValueOnce(Promise.resolve(CONTRIBUTORS_EMPTY))
+        jest.spyOn(params, 'getWhiteList').mockReturnValue('bar,notfoo,baz')
+        jest.spyOn(params, 'isWhiteListOnly').mockReturnValue(true)
+
+        // when
+        const isAccepted = await check.isAccepted(42)
+
+        // then
+        expect(runMock).toHaveReturned()
+        expect(addUserMock).not.toBeCalled()
+        expect(updateCommentMock).not.toBeCalled()
+        expect(isAccepted).toBeFalsy()
     })
 })
