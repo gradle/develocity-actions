@@ -24,6 +24,8 @@ If not, a comment is made on the pull-request asking the user to accept and the 
 
 See the [cla-assistant-lite documentation](https://github.com/marketplace/actions/cla-assistant-lite) for more details.
 
+It is possible to skip the Terms of Service acceptance process with the `white-list-only` flag and only have the workflow to pass for whitelisted users. 
+
 **Dependencies**:
 
 - [cla-assistant-lite](https://github.com/marketplace/actions/cla-assistant-lite)
@@ -44,16 +46,17 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                                     | Description                                                                                    | Default                                                                                                                                                      |
-|------------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `tos-location`                           | Terms Of Service location (URL)                                                                |                                                                                                                                                              |
-| `signature-branch`                       | *Optional*: Git branch where the signature file will be stored                                 | `${{ github.event.repository.default_branch }}`                                                                                                              |
-| `signature-location`                     | *Optional*: Signature file location                                                            | `.github/develocity-tos.json`                                                                                                                                |
-| `pr-comment-tos-acceptance-missing`      | *Optional*: pull-request comment added when Terms of Service have not previously been accepted | `Please accept [Develocity Terms Of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:` |
-| `pr-comment-tos-acceptance-request`      | *Optional*: pull-request comment to accept the Terms of Service                                | `I have read Develocity Terms Of Service and I hereby accept the Terms`                                                                                      |
-| `pr-comment-tos-acceptance-confirmation` | *Optional*: pull-request comment added when Terms of Service are accepted                      | `All Contributors have accepted Develocity Terms Of Service.`                                                                                                |
-| `white-list`                             | *Optional*: CSV List of users not required to accept the Terms of Service                      | `''`                                                                                                                                                         |
-| `github-token`                           | *Optional*: Github token                                                                       | `${{ github.token }}`                                                                                                                                        |
+| Name                                     | Description                                                                                             | Default                                                                                                                                                      |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `tos-location`                           | Terms Of Service location (URL)                                                                         |                                                                                                                                                              |
+| `signature-branch`                       | *Optional*: Git branch where the signature file will be stored                                          | `${{ github.event.repository.default_branch }}`                                                                                                              |
+| `signature-location`                     | *Optional*: Signature file location                                                                     | `.github/develocity-tos.json`                                                                                                                                |
+| `pr-comment-tos-acceptance-missing`      | *Optional*: pull-request comment added when Terms of Service have not previously been accepted          | `Please accept [Develocity Terms Of Service]({0}) to get your pull-request Build Scan published by commenting this pull-request with the following message:` |
+| `pr-comment-tos-acceptance-request`      | *Optional*: pull-request comment to accept the Terms of Service                                         | `I have read Develocity Terms Of Service and I hereby accept the Terms`                                                                                      |
+| `pr-comment-tos-acceptance-confirmation` | *Optional*: pull-request comment added when Terms of Service are accepted                               | `All Contributors have accepted Develocity Terms Of Service.`                                                                                                |
+| `white-list`                             | *Optional*: CSV List of users not required to accept the Terms of Service                               | `''`                                                                                                                                                         |
+| `white-list-only`                        | *Optional*: Skip the Terms of Service process and only have the workflow to pass for whitelisted users  | `'false'`                                                                                                                                                    |
+| `github-token`                           | *Optional*: Github token                                                                                | `${{ github.token }}`                                                                                                                                        |
 
 **Usage**:
 
@@ -90,6 +93,7 @@ jobs:
           #signature-branch: 'main'
           #signature-location: '.github/develocity-tos.json'
           #white-list: 'bot1,bot2'
+          #white-list-only: 'false'
           #github-token: ${{ secrets.MY_PAT }}
 ```
 
@@ -102,6 +106,8 @@ Use this action in your existing pull-request workflows to allow Build Scan® to
 
 Since the Develocity Maven Extension only saves the Build Scan® data for the most recent Maven execution, a step using this action must be inserted after each Maven execution step in the workflow.
 
+Some optional inputs used for rendering the Build Scan® links as a PR comment can be overridden. If using a matrix strategy, the job name can for instance be combined with the matrix current value for clarification. 
+
 **Dependencies**:
 
 - [actions/upload-artifact](https://github.com/marketplace/actions/upload-a-build-artifact)
@@ -112,7 +118,11 @@ This composite action can be called from any workflow but the main use case is t
 
 **Action inputs**:
 
-N/A
+| Name              | Description                                             | Default                    |
+|-------------------|---------------------------------------------------------|----------------------------|
+| `workflow-name`   | *Optional*: Name of the workflow triggering the build   | `${{ github.workflow }}`   |
+| `job-name`        | *Optional*: Name of the job triggering the build        | `${{ github.job }}`        |
+| `job-status`      | *Optional*: Status of the build                         | `${{ job.status }}`        |
 
 **Usage**:
 
@@ -136,8 +146,72 @@ This action will publish all Maven Build Scans® that have been saved as workflo
 Use this action in a separate workflow with a `workflow_run` event trigger, that will run after an existing pull-request workflow has completed. The action will download any saved Build Scan® and publish them to Develocity.
 This event allows access to the repository secrets (_Develocity Access Key_) which is required to publish a Build Scan® to Gradle Enterprise when authentication is enabled.
 
-The Build Scan® publication requires the Gradle Terms of Service to be accepted, this can be achieved by adding a workflow using the `terms-of-service-acceptance/run` action.
+The Build Scan® publication requires the Gradle Terms of Service to be accepted (or the `white-list-only` strategy to be used), this can be achieved by adding a workflow using the `terms-of-service-acceptance/run` action.
 The `terms-of-service-acceptance/verify` action is used to ensure this workflow passed successfully. 
+
+The pull-request will be commented with published Build Scan® links:
+![PR Comment](./doc/pr-comment.png)
+
+It is however possible to disable the comment process and use the raw data to create a custom rendering.
+
+*$HOME/build-metadata.json*:
+```json
+{
+    "prNumber": 42,
+    "builds": [
+        {
+            "jobName": "build",
+            "status": "success",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/hrihtljo7zaoo"
+        },
+        {
+            "jobName": "build",
+            "status": "failure",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/ijuhncununz5m"
+        },
+        {
+            "jobName": "init",
+            "status": "success",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/j64m3gpnbyq7q"
+        },
+        {
+            "jobName": "init",
+            "status": "failure",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/4u745dhnfd3my"
+        },
+        {
+            "jobName": "test-matrix",
+            "status": "success",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/7nm72ypymd2f4"
+        },
+        {
+            "jobName": "test-matrix",
+            "status": "failure",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/m27g43ktfverc"
+        },
+        {
+            "jobName": "test-matrix",
+            "status": "success",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/mz3b4ux4vhcga"
+        },
+        {
+            "jobName": "test-matrix",
+            "status": "failure",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/anqfuhylzvnxc"
+        },
+        {
+            "jobName": "test-matrix",
+            "status": "success",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/hvt7ykrp2iiky"
+        },
+        {
+            "jobName": "test-matrix",
+            "status": "failure",
+            "buildScanLink": "https://<DEVELOCITY_URL>/s/swm52pxwdt4f4"
+        }
+    ]
+}
+```
 
 **Dependencies**:
 
@@ -155,12 +229,13 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                          | Description                                   | Default               |
-|-------------------------------|-----------------------------------------------|-----------------------|
-| `develocity-url`              | Develocity URL                                |                       |
-| `develocity-access-key`       | *Optional*: Develocity access key             |                       |
-| `develocity-allow-untrusted`  | *Optional*: Develocity allow-untrusted flag   | `false`               |
-| `github-token`                | *Optional*: Github token                      | `${{ github.token }}` |
+| Name                          | Description                                 | Default               |
+|-------------------------------|---------------------------------------------|-----------------------|
+| `develocity-url`              | Develocity URL                              |                       |
+| `develocity-access-key`       | *Optional*: Develocity access key           |                       |
+| `develocity-allow-untrusted`  | *Optional*: Develocity allow-untrusted flag | `false`               |
+| `skip-comment`                | *Optional*: Do not comment the PR           | `false`               |
+| `github-token`                | *Optional*: Github token                    | `${{ github.token }}` |
 
 **Usage**:
 

@@ -11,6 +11,11 @@ inputs:
   develocity-allow-untrusted:
     description: 'Develocity allow-untrusted flag'
     default: 'false'
+    required: false
+  skip-comment:
+    description: 'Do not comment pull-request with publication results if enabled'
+    default: 'false'
+    required: false
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}
@@ -27,22 +32,6 @@ runs:
         run_id: ${{ github.event.workflow_run.id }}
         name: ${{ env.ARTIFACT_NAME }}
         path: ${{ env.ARTIFACT_NAME }}
-    - name: Restore Build Scans
-      env:
-        ARTIFACT_NAME: 'maven-build-scan-data'
-        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
-      run: |
-        mkdir -p ${{ env.BUILD_SCAN_DIR }}
-        cp -r ${{ env.ARTIFACT_NAME }}/* ${{ env.BUILD_SCAN_DIR }}
-      shell: bash
-    - name: Collect pull-request number
-      id: pr
-      env:
-        BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
-      run: |
-        source $(find ${{ env.BUILD_SCAN_DIR }} -type f -name "pr-number.properties")
-        echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
-      shell: bash
     - name: Create Maven Project Structure
       env:
         PROJECT_DIR: 'maven-build-scan-publisher'
@@ -91,55 +80,85 @@ runs:
         BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
         GRADLE_ENTERPRISE_ACCESS_KEY: ${{ inputs.develocity-access-key }}
         PROJECT_DIR: 'maven-build-scan-publisher'
+        ARTIFACT_DIR: '../maven-build-scan-data'
       working-directory: ${{ env.PROJECT_DIR }}
       id: publish
       run: |
         set +e
-        scanLinks=""
+        
+        prNumber=""
+        scanResultsAsMarkdown=""
+        scanResultsAsJson=""
+        publishedScans=1
+        
+        scans=$(find ${{ env.ARTIFACT_DIR }} -type f -name "scan.scan")
+        nbScans=$(echo "${scans}" | wc -l)
 
-        if [ -d ${{ env.BUILD_SCAN_DIR }} ]; then
-          publishedScans=1
-          scans=$(find ${{ env.BUILD_SCAN_DIR }} -type f -name "scan.scan")
-          nbScans=$(echo "${scans}" | wc -l)
+        # iterate over Build Scans
+        for scan in ${scans}; do        
+          echo "Publishing Build Scan $((publishedScans++))/${nbScans}"
 
-          # iterate over Build Scans
-          for scan in ${scans}; do        
-            echo "Publishing Build Scan $((publishedScans++))/${nbScans}"
+          # assuming directory name is ${{ env.ARTIFACT_NAME }}/<VERSION>/previous/<UUID>/scan.scan
+          scanSourceDir=$(dirname ${scan})
+          scanId=$(basename ${scanSourceDir})
+          currentExtensionVersion=$(basename ${scan%/previous/*})
 
-            # assuming directory name is ${{ env.BUILD_SCAN_DIR }}/<VERSION>/previous/<UUID>/scan.scan
-            currentExtensionVersion=$(basename ${scan%/previous/*})
+          # copy scan to maven home
+          destDir=${{ env.BUILD_SCAN_DIR }}/${currentExtensionVersion}/previous/${scanId}/
+          mkdir -p ${destDir}
+          mv ${scanSourceDir}/* ${destDir}
 
-            # set current version in project
-            sed "s/REPLACE_ME/${currentExtensionVersion}/g" .mvn/extensions.xml.template > .mvn/extensions.xml
-               
-            # publish build scan
-            mvn gradle-enterprise:build-scan-publish-previous | tee build.out
+          # load metadata
+          metadataFile=$(find ${{ env.BUILD_SCAN_DIR }} -type f -name "build-metadata.properties")
+          prNumber=$(cat ${metadataFile} | grep PR_NUMBER | cut -d'=' -f2)
+          jobName=$(cat ${metadataFile} | grep JOB_NAME | cut -d'=' -f2)
+          jobStatus=$(cat ${metadataFile} | grep JOB_STATUS | cut -d'=' -f2)
 
-            # collect build scan link
-            scanLink=$(grep -A1 "Publishing build scan..." build.out  | tail -n 1  | sed 's/\[INFO\] //')
-            if [[ ! -z "$scanLink" ]]
-            then
-              scanLinks="${scanLinks},$scanLink"
-            fi        
-          done
-        fi
-        echo "SCAN_LINKS=$scanLinks" >> $GITHUB_OUTPUT
+          # set current version in project
+          sed "s/REPLACE_ME/${currentExtensionVersion}/g" .mvn/extensions.xml.template > .mvn/extensions.xml
+             
+          # publish build scan
+          mvn gradle-enterprise:build-scan-publish-previous | tee build.out
+
+          # remove scan files
+          rm -f ${destDir}/*
+
+          # collect build scan link
+          scanLink=$(grep -A1 "Publishing build scan..." build.out  | tail -n 1  | sed 's/\[INFO\] //')
+          if [[ ! -z "$scanLink" ]]
+          then
+            scanResultsAsMarkdown="${scanResultsAsMarkdown}| ${jobName} | ${jobStatus} | $scanLink |@SEP@"
+            scanResultsAsJson="${scanResultsAsJson} {\"jobName\": \"${jobName}\", \"status\": \"${jobStatus}\", \"buildScanLink\": \"$scanLink\"},"
+          fi        
+        done
+
+        echo "PR_NUMBER=$prNumber" >> $GITHUB_OUTPUT
+        echo "SCAN_RESULTS_AS_MARKDOWN=$scanResultsAsMarkdown" >> $GITHUB_OUTPUT
+        echo "SCAN_RESULTS_AS_JSON=$scanResultsAsJson" >> $GITHUB_OUTPUT
       shell: bash
     - name: Comment pull-request with Build Scan links
+      if: ${{ inputs.skip-comment != 'true' }}
       uses: actions/github-script@v6
       env:
-        PR: ${{ steps.pr.outputs.PR_NUMBER }}
-        SCAN_LINKS: ${{ steps.publish.outputs.SCAN_LINKS }}
+        PR: ${{ steps.publish.outputs.PR_NUMBER }}
+        SCAN_RESULTS: ${{ steps.publish.outputs.SCAN_RESULTS_AS_MARKDOWN }}
       with:
         github-token: ${{ inputs.github-token }}
         script: |
           const prNumber = Number(process.env.PR);
-          const scanLinks = process.env.SCAN_LINKS;
-          const extensionVersion = process.env.EXTENSION_VERSION;
+          const scanResults = process.env.SCAN_RESULTS;
           
-          if(scanLinks.length > 0) {
+          if(scanResults.length > 0) {
             const comment = `#### Explore the Build Scan(s): 
-            ${scanLinks.replace(/,/g,'\n')}
+  
+            | Job | Status | Link |
+            | --- | --- | --- |
+            ${scanResults
+              .replace(/\| success \|/g,'\| ✅ \|')
+              .replace(/\| failure \|/g,'\| ❌ \|')
+              .replace(/\| cancelled \|/g,'\| ⏹ \|')
+              .replace(/@SEP@/g,'\n')
+            }
           
             ###### Generated by gradle/github-actions/maven-build-scan/publish`;
           
@@ -150,3 +169,23 @@ runs:
               body: comment
             });
           }
+    - name: Dump workflow results in file
+      if: ${{ inputs.skip-comment == 'true' }}
+      env:
+        PUBLICATION_FILE: 'build-metadata.json'
+      run: |
+        if [ ! -z '${{ steps.publish.outputs.SCAN_RESULTS_AS_JSON }}' ]; then
+          SCAN_RESULTS_AS_JSON_WITHOUT_TRAILING_COMMA=$(echo '${{ steps.publish.outputs.SCAN_RESULTS_AS_JSON }}' | sed 's/,$//g')
+        
+          cat > ${{ env.PUBLICATION_FILE }} << EOF
+          {
+          "prNumber": ${{ steps.publish.outputs.PR_NUMBER }},
+          "builds": [
+          ${SCAN_RESULTS_AS_JSON_WITHOUT_TRAILING_COMMA}
+          ]
+          }
+        EOF
+
+          echo "Metadata dumped to ${{ env.PUBLICATION_FILE }}"
+        fi
+      shell: bash

@@ -1,16 +1,33 @@
 name: Save Maven Build Scan
 description: Save Maven Build Scan
 
+inputs:
+  workflow-name:
+    description: 'Name of the workflow triggering the build'
+    required: false
+    default: ${{ github.workflow }}
+  job-name:
+    description: 'Name of the job triggering the build'
+    required: false
+    default: ${{ github.job }}
+  job-status:
+    description: 'Status of the build'
+    required: false
+    default: ${{ job.status }}
+
 runs:
   using: composite
   steps:
-    - name: Dump pull-request number
+    - name: Dump metadata
       env:
         BUILD_SCAN_DIR: '~/.m2/.gradle-enterprise/build-scan-data/'
       run: |
         if [ -d ${{ env.BUILD_SCAN_DIR }} ]; then
           SCAN_DIR=$(find ${{ env.BUILD_SCAN_DIR }} -type f -name "scan.scan" -exec dirname {} \; -quit)
-          echo "PR_NUMBER=${{ github.event.number }}" > ${SCAN_DIR}/pr-number.properties
+          echo "PR_NUMBER=${{ github.event.number }}" > ${SCAN_DIR}/build-metadata.properties
+          echo "WORKFLOW_NAME=${{ inputs.workflow-name }}" >> ${SCAN_DIR}/build-metadata.properties
+          echo "JOB_NAME=${{ inputs.job-name }}" >> ${SCAN_DIR}/build-metadata.properties
+          echo "JOB_STATUS=${{ inputs.job-status }}" >> ${SCAN_DIR}/build-metadata.properties
         fi
       shell: bash
     - name: Upload Build Scan as workflow Artifact
