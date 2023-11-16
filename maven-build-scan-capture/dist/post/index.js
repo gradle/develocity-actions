@@ -40474,38 +40474,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.writeContentToFileSync = void 0;
+exports.copyFileSync = exports.writeContentToFileSync = void 0;
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 function writeContentToFileSync(fileName, content) {
     fs_1.default.writeFileSync(fileName, content);
 }
 exports.writeContentToFileSync = writeContentToFileSync;
+function copyFileSync(source, dest) {
+    fs_1.default.copyFileSync(source, dest);
+}
+exports.copyFileSync = copyFileSync;
 
 
 /***/ }),
 
 /***/ 3925:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.mavenBuildScanData = exports.home = exports.BUILD_SCAN_DIR = void 0;
-exports.BUILD_SCAN_DIR = '.m2/.gradle-enterprise/build-scan-data/';
-function home() {
-    // https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#file-systems
-    return process.env[`HOME`] || '';
-}
-exports.home = home;
-function mavenBuildScanData() {
-    return `${home()}/${exports.BUILD_SCAN_DIR}`;
-}
-exports.mavenBuildScanData = mavenBuildScanData;
-
-
-/***/ }),
-
-/***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -40537,58 +40520,201 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.run = void 0;
+exports.mavenBuildScanCaptureExtensionSource = exports.mavenBuildScanDataCopy = exports.mavenBuildScanDataOriginal = exports.mavenBuildScanCaptureExtensionTarget = void 0;
 const path_1 = __importDefault(__nccwpck_require__(1017));
+const params = __importStar(__nccwpck_require__(1873));
 const core = __importStar(__nccwpck_require__(2186));
-const github = __importStar(__nccwpck_require__(5438));
 const glob = __importStar(__nccwpck_require__(8090));
+const BUILD_SCAN_DIR_ORIGINAL = '.m2/.gradle-enterprise/build-scan-data/';
+const BUILD_SCAN_DIR_COPY = 'build-scan-data';
+const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension.jar';
+const LIB_EXT = '/lib/ext/';
+function home() {
+    // https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#file-systems
+    return process.env[`HOME`] || '';
+}
+async function mavenBuildScanCaptureExtensionTarget() {
+    const mavenHome = process.env['MAVEN_HOME'];
+    if (mavenHome) {
+        core.info(`Using MAVEN_HOME=${mavenHome}`);
+        return `${mavenHome}${LIB_EXT}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}`;
+    }
+    else {
+        core.info(`Searching maven home in ${params.getMavenHomeSearchPatterns()}`);
+        const globber = await glob.create(params.getMavenHomeSearchPatterns().replace(',', '\n'));
+        const mavenHome = await globber.glob();
+        if (mavenHome && mavenHome.at(0)) {
+            core.info(`Found maven home in ${mavenHome.at(0)}`);
+            return path_1.default.resolve(`${mavenHome.at(0)}${LIB_EXT}`, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION);
+        }
+    }
+    return '';
+}
+exports.mavenBuildScanCaptureExtensionTarget = mavenBuildScanCaptureExtensionTarget;
+function mavenBuildScanDataOriginal() {
+    return path_1.default.resolve(home(), BUILD_SCAN_DIR_ORIGINAL);
+}
+exports.mavenBuildScanDataOriginal = mavenBuildScanDataOriginal;
+function mavenBuildScanDataCopy() {
+    return path_1.default.resolve(BUILD_SCAN_DIR_COPY);
+}
+exports.mavenBuildScanDataCopy = mavenBuildScanDataCopy;
+function mavenBuildScanCaptureExtensionSource() {
+    return path_1.default.resolve(__dirname, '..', '..', '..', 'maven-build-scan-capture-extension', 'dist', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION);
+}
+exports.mavenBuildScanCaptureExtensionSource = mavenBuildScanCaptureExtensionSource;
+
+
+/***/ }),
+
+/***/ 1873:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getBuildScanCaptureLinkEnabled = exports.getBuildScanCaptureUnpublishedEnabled = exports.getBuildScanCaptureStrategy = exports.getMavenHomeSearchPatterns = exports.getJobName = exports.getWorkflowName = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+function getWorkflowName() {
+    return core.getInput('workflow-name');
+}
+exports.getWorkflowName = getWorkflowName;
+function getJobName() {
+    return core.getInput('job-name');
+}
+exports.getJobName = getJobName;
+function getMavenHomeSearchPatterns() {
+    return core.getInput('maven-home-search-patterns');
+}
+exports.getMavenHomeSearchPatterns = getMavenHomeSearchPatterns;
+function getBuildScanCaptureStrategy() {
+    return core.getInput('build-scan-capture-strategy');
+}
+exports.getBuildScanCaptureStrategy = getBuildScanCaptureStrategy;
+function getBuildScanCaptureUnpublishedEnabled() {
+    return core.getInput('build-scan-capture-unpublished-enabled');
+}
+exports.getBuildScanCaptureUnpublishedEnabled = getBuildScanCaptureUnpublishedEnabled;
+function getBuildScanCaptureLinkEnabled() {
+    return core.getInput('build-scan-capture-link-enabled');
+}
+exports.getBuildScanCaptureLinkEnabled = getBuildScanCaptureLinkEnabled;
+
+
+/***/ }),
+
+/***/ 7051:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.run = void 0;
+const core = __importStar(__nccwpck_require__(2186));
 const artifact_1 = __nccwpck_require__(2605);
-const layout = __importStar(__nccwpck_require__(3925));
+const glob = __importStar(__nccwpck_require__(8090));
+const github = __importStar(__nccwpck_require__(5438));
 const io = __importStar(__nccwpck_require__(8672));
+const params = __importStar(__nccwpck_require__(1873));
+const layout = __importStar(__nccwpck_require__(3925));
+// Catch and log any unhandled exceptions.
+process.on('uncaughtException', e => handleFailure(e));
 /**
- * Main entrypoint for the Save Maven Build Scan action
+ * The post-execution entry point for the action, called by Github Actions after completing all steps for the Job.
  */
 async function run() {
     try {
-        core.info(`Save Maven Build Scan action`);
         // Retrieve Build Scan Data files
         const buildScanDataFiles = await getBuildScanDataFiles();
         if (buildScanDataFiles && buildScanDataFiles.length) {
-            const buildScanFile = buildScanDataFiles.find(item => item.endsWith('scan.scan'));
-            if (buildScanFile) {
-                // Add Build Scan metadata
-                addBuildScanMetadata(buildScanDataFiles, path_1.default.dirname(buildScanFile));
-                // Upload Build Scan data as workflow artifact
-                uploadArtifacts(buildScanDataFiles);
-            }
+            // Create Build Scan metadata
+            const buildScanMetadataFile = createBuildScanMetadataFile();
+            // Add it to the list of files to upload
+            buildScanDataFiles.push(buildScanMetadataFile);
+            // Upload Build Scan data as workflow artifact
+            await uploadArtifacts(buildScanDataFiles);
         }
         else {
-            core.info(`No Build Scan to process`);
+            core.debug(`No Build Scan to process`);
         }
     }
     catch (error) {
-        // Fail the workflow run if an error occurs
-        if (error instanceof Error)
-            core.setFailed(error.message);
+        handleFailure(error);
     }
 }
 exports.run = run;
 async function getBuildScanDataFiles() {
-    const globber = await glob.create(`${layout.mavenBuildScanData()}/**`);
+    const globber = await glob.create(`${layout.mavenBuildScanDataCopy()}/**`);
     return await globber.glob();
 }
-function addBuildScanMetadata(buildScanDataFiles, buildScanDir) {
+function createBuildScanMetadataFile() {
     // Dump pull-request number
-    const pullRequestNumberFileName = `${buildScanDir}/pr-number.properties`;
-    core.info(`Adding metadata file ${pullRequestNumberFileName}`);
-    io.writeContentToFileSync(pullRequestNumberFileName, `PR_NUMBER=${github.context.issue.number}\n`);
-    buildScanDataFiles.push(pullRequestNumberFileName);
-    return buildScanDataFiles;
+    const buildScanMetadataFileName = `${layout.mavenBuildScanDataCopy()}/build-metadata.properties`;
+    const metadataContent = `
+        PR_NUMBER=${github.context.issue.number}
+        WORKFLOW_NAME=${params.getWorkflowName()}
+        JOB_NAME=${params.getJobName()}
+    `.replace(/$\s+/g, '');
+    io.writeContentToFileSync(buildScanMetadataFileName, metadataContent);
+    return buildScanMetadataFileName;
 }
-function uploadArtifacts(files) {
+async function uploadArtifacts(files) {
     const artifactClient = (0, artifact_1.create)();
-    artifactClient.uploadArtifact('maven-build-scan-data', files, layout.mavenBuildScanData(), { retentionDays: 1 });
+    await artifactClient.uploadArtifact('maven-build-scan-data', files, layout.mavenBuildScanDataCopy(), { retentionDays: 1 });
 }
+function handleFailure(error) {
+    core.warning(`Unhandled error in Gradle post-action - job will continue: ${error}`);
+    if (error instanceof Error && error.stack) {
+        core.info(error.stack);
+    }
+}
+run();
 
 
 /***/ }),
@@ -40879,21 +41005,12 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-var exports = __webpack_exports__;
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-/**
- * The entrypoint for the action.
- */
-const main_1 = __nccwpck_require__(399);
-(0, main_1.run)();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(7051);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;

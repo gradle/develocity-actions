@@ -24,7 +24,7 @@
     "format:test": "prettier --write __tests__/**/**.ts",
     "lint": "eslint src/**.ts",
     "test": "jest",
-    "package": "ncc build src/index.ts"
+    "package": "ncc build src/main.ts"
   },
   "license": "MIT",
   "jest": {

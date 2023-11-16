@@ -45,3 +45,5 @@ function isEventTriggerSupported(): boolean {
         githubInternal.isEventIssueWithRecheckComment()
     )
 }
+
+run()

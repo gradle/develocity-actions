@@ -1,6 +1,6 @@
 {
-  "name": "maven-build-scan-save",
-  "description": "Save Maven Build Scans",
+  "name": "maven-build-scan-capture",
+  "description": "Capture Maven Build Scans",
   "version": "1.0.0",
   "private": true,
   "repository": {
@@ -24,7 +24,9 @@
     "format:test": "prettier --write __tests__/**.ts",
     "lint": "eslint src/**.ts",
     "test": "jest",
-    "package": "ncc build src/index.ts"
+    "package": "npm run package-main && npm run package-post",
+    "package-main": "ncc build src/main.ts --out dist/main",
+    "package-post": "ncc build src/post.ts --out dist/post"
   },
   "license": "MIT",
   "jest": {
