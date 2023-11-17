@@ -24,10 +24,12 @@ runs:
       run: |
         if [ -d ${{ env.BUILD_SCAN_DIR }} ]; then
           SCAN_DIR=$(find ${{ env.BUILD_SCAN_DIR }} -type f -name "scan.scan" -exec dirname {} \; -quit)
-          echo "PR_NUMBER=${{ github.event.number }}" > ${SCAN_DIR}/build-metadata.properties
-          echo "WORKFLOW_NAME=${{ inputs.workflow-name }}" >> ${SCAN_DIR}/build-metadata.properties
-          echo "JOB_NAME=${{ inputs.job-name }}" >> ${SCAN_DIR}/build-metadata.properties
-          echo "JOB_STATUS=${{ inputs.job-status }}" >> ${SCAN_DIR}/build-metadata.properties
+          if [ ! -z "$SCAN_DIR" ]; then
+            echo "PR_NUMBER=${{ github.event.number }}" > ${SCAN_DIR}/build-metadata.properties
+            echo "WORKFLOW_NAME=${{ inputs.workflow-name }}" >> ${SCAN_DIR}/build-metadata.properties
+            echo "JOB_NAME=${{ inputs.job-name }}" >> ${SCAN_DIR}/build-metadata.properties
+            echo "JOB_STATUS=${{ inputs.job-status }}" >> ${SCAN_DIR}/build-metadata.properties
+          fi
         fi
       shell: bash
     - name: Upload Build Scan as workflow Artifact
