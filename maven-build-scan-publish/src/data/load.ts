@@ -1,148 +1,81 @@
 import * as core from '@actions/core'
-import * as github from '@actions/github'
 import * as glob from '@actions/glob'
-import {GitHub} from '@actions/github/lib/utils'
+import PropertiesReader from 'properties-reader'
 
-import * as githubInternal from '../shared/github'
-import * as params from '../shared/params'
-import * as layout from '../shared/layout'
-import * as io from '../shared/io'
-import {OctokitResponse} from "@octokit/types"
+import * as githubUtils from '../utils/github'
+import * as layout from '../utils/layout'
+import * as props from '../utils/properties'
 
-const BUILD_SCAN_DATA_ARTIFACT_NAME = 'maven-build-scan-data'
-const ZIP_EXTENSION = 'zip'
+const BUILD_SCAN_METADATA_FILENAME = 'build-scan-metadata.properties'
 
-export interface BuildScanData {
-    prNumber: number,
+export interface BuildArtifact {
+    prNumber: number
     artifactId: number
+    builds: BuildMetadata[]
 }
 
-export async function loadBuildScanData(): Promise<BuildScanData | null> {
-    const octokit = githubInternal.getOctokit()
+export interface BuildMetadata {
+    workflowName: string
+    jobName: string
+    mavenGoals: string
+    buildId: string
+    buildFailure: boolean
+    buildScanLink?: string
+}
 
-    let buildScanArtifactId
-    if (githubInternal.isEventWorkflowRun()) {
-        buildScanArtifactId = await getArtifactIdForWorkflowRun(octokit)
-    } else {
-        buildScanArtifactId = await getArtifactIdForIssueComment(octokit)
-    }
+export async function loadBuildScanData(): Promise<BuildArtifact | null> {
+    const artifactId = await githubUtils.getArtifactIdForWorkflowRun()
+    if (artifactId) {
+        const mavenBuildScanData = layout.mavenBuildScanData()
 
-    if (buildScanArtifactId) {
-        let download
-        try {
-            // Download the Build Scan artifact
-            core.debug(`Downloading artifact ${buildScanArtifactId}`)
-            download = await octokit.rest.actions.downloadArtifact({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                artifact_id: buildScanArtifactId,
-                archive_format: ZIP_EXTENSION
-            })
-        } catch (error) {
-            const typedError = error as OctokitResponse<unknown>
-            if (typedError && typedError.status === 410) {
-                core.debug(`Artifact deleted or expired`)
-                return null
-            } else {
-                throw error;
+        // Download artifact
+        if (await githubUtils.extractArtifactToDirectory(artifactId, mavenBuildScanData)) {
+            // Collect build scan metadata
+            const globber = await glob.create(`${layout.mavenBuildScanData()}/**/${BUILD_SCAN_METADATA_FILENAME}`)
+            const metadataFiles = await globber.glob()
+            if (!metadataFiles || metadataFiles.length === 0) {
+                throw new Error(`Build Scan metadata not found`)
+            }
+
+            let prNumber = 0
+            const builds: BuildMetadata[] = []
+            for (const metadataFile of metadataFiles) {
+                const currentMetadata = toMetadataObject(metadataFile)
+                builds.push(currentMetadata.buildMetadata)
+                prNumber = currentMetadata.prNumber
+            }
+
+            return {
+                prNumber,
+                artifactId,
+                builds
             }
         }
-
-        // Create Build Scan directory
-        const mavenBuildScanData = layout.mavenBuildScanData()
-        if (!io.existsSync(mavenBuildScanData)) {
-            core.debug(`Creating ${mavenBuildScanData}`)
-            io.mkdirSync(mavenBuildScanData, {recursive: true})
-        }
-
-        // Write artifact
-        const downloadZip = `${BUILD_SCAN_DATA_ARTIFACT_NAME}.${ZIP_EXTENSION}`
-        core.debug(`Writing data to ${downloadZip}`)
-        io.writeFileSync(mavenBuildScanData, downloadZip, download.data as ArrayBuffer)
-
-        // Expand the archive
-        core.debug(`Extracting to ${mavenBuildScanData}`)
-        const extracted = await io.extractZip(downloadZip, mavenBuildScanData)
-        core.debug(`Extracted Build Scan artifact to ${extracted}: ${io.readdirSync(extracted)}`)
-
-        // Collect pull-request number
-        const globber = await glob.create(`${layout.mavenBuildScanData()}/**/pr-number.properties`)
-        const prNumberFiles = await globber.glob()
-        const prNumberFile = prNumberFiles?.at(0)
-        if (!prNumberFile) {
-            throw new Error(`Build Scan metadata not found`)
-        }
-
-        const prNumberFileContent = io.readFileSync(prNumberFile)
-        const prNumber = prNumberFileContent.split(/\r?\n/)?.at(0)?.split('=')?.at(1)
-
-        core.debug(`Publishing Build Scans for Pull-request ${prNumber}`)
-
-        return {prNumber: Number(prNumber), artifactId: buildScanArtifactId}
     }
 
     return null
 }
 
-async function getArtifactIdForWorkflowRun(octokit: InstanceType<typeof GitHub>): Promise<undefined | number> {
-    const runId = github.context.payload.workflow_run.id
-
-    // Find the workflow run artifacts named 'maven-build-scan-data'
-    const artifacts = await octokit.rest.actions.listWorkflowRunArtifacts({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        run_id: runId
-    })
-
-    const matchArtifact = getBuildScanArtifact(artifacts)
-
-    return matchArtifact?.id
-}
-
-async function getArtifactIdForIssueComment(octokit: InstanceType<typeof GitHub>): Promise<undefined | number> {
-    const pull = await octokit.rest.pulls.get({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        pull_number: github.context.issue.number
-    })
-    const commit = pull.data.head.sha
-
-    core.debug(
-        `Looking for workflow runs matching ${github.context.repo.owner}/${
-            github.context.repo.repo
-        }/${params.getBuildWorkflowFileName()}/${commit}`
-    )
-    for await (const runs of octokit.paginate.iterator(octokit.rest.actions.listWorkflowRuns, {
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        workflow_id: params.getBuildWorkflowFileName(),
-        head_sha: commit
-    })) {
-        for (const run of runs.data) {
-            core.debug(`Looking for artifacts for workflow ${run.id}`)
-            const artifacts = await octokit.rest.actions.listWorkflowRunArtifacts({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                run_id: run.id
-            })
-
-            const matchArtifact = getBuildScanArtifact(artifacts)
-            if (matchArtifact) {
-                return matchArtifact.id
-            }
-        }
+function toMetadataObject(metadataFile: string): {buildMetadata: BuildMetadata; prNumber: number} {
+    const buildId = layout.parseScanDumpPath(metadataFile).buildId
+    const metadataReader = props.create(metadataFile)
+    const prNumber = Number((metadataReader as PropertiesReader.Reader).get('PR_NUMBER'))
+    const workflowName = (metadataReader as PropertiesReader.Reader).get('WORKFLOW_NAME') as string
+    const jobName = (metadataReader as PropertiesReader.Reader).get('JOB_NAME') as string
+    const mavenGoals = (metadataReader as PropertiesReader.Reader).get('GOAL') as string
+    const buildFailure = (metadataReader as PropertiesReader.Reader).get('BUILD_FAILURE')?.valueOf() as boolean
+    if (!prNumber || !workflowName || !jobName || !mavenGoals) {
+        core.info(`Unexpected Build Scan metadata content [${prNumber},${workflowName},${jobName},${mavenGoals}]`)
     }
 
-    return undefined
-}
-
-function getBuildScanArtifact(artifacts: any) {
-    return artifacts.data.artifacts.find((candidate: any) => {
-        return candidate.name === BUILD_SCAN_DATA_ARTIFACT_NAME
-    })
-}
-
-export const exportedForTesting = {
-    getArtifactIdForWorkflowRun,
-    getArtifactIdForIssueComment
+    return {
+        buildMetadata: {
+            workflowName,
+            jobName,
+            mavenGoals,
+            buildId,
+            buildFailure
+        },
+        prNumber
+    }
 }

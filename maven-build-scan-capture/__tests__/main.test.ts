@@ -1,77 +1,64 @@
 import * as github from '@actions/github'
-import * as glob from '@actions/glob'
-import * as artifact from '@actions/artifact'
 
 import * as main from '../src/main'
-import * as io from '../src/io'
+import * as io from '../src/utils/io'
+import * as layout from '../src/utils/layout'
 
 const runMock = jest.spyOn(main, 'run')
 
-describe('save', () => {
-    beforeEach(() => {
-        Object.defineProperty(github, 'context', {
-            value: {
-                repo: {
-                    owner: 'foo',
-                    repo: 'bar'
-                },
-                issue: {
-                    number: 42
-                }
+function githubContext() {
+    Object.defineProperty(github, 'context', {
+        value: {
+            repo: {
+                owner: 'foo',
+                repo: 'bar'
+            },
+            issue: {
+                number: 42
             }
-        })
+        }
     })
+}
 
+describe('capture', () => {
     afterEach(() => {
         jest.clearAllMocks()
     })
 
-    it('Save build scan succeeds', async () => {
-        // given
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return ['foo/scan.scan', 'bar/scan.scan']
-                }
-            })
-        )
-        jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
-        const uploadArtifactMock = jest.fn()
-        const mockArtifactClient: Partial<artifact.ArtifactClient> = {
-            uploadArtifact: uploadArtifactMock
-        }
-        jest.spyOn(artifact, 'create').mockReturnValue(mockArtifactClient as artifact.ArtifactClient)
+    it('Setup build scan capture succeeds', async () => {
+        // Given
+        githubContext()
+        const layoutSourceMock = jest
+            .spyOn(layout, 'mavenBuildScanCaptureExtensionSource')
+            .mockReturnValue('sourceFileName')
+        const layoutTargetMock = jest
+            .spyOn(layout, 'mavenBuildScanCaptureExtensionTarget')
+            .mockReturnValue(Promise.resolve('targetFileName'))
+        const ioMock = jest.spyOn(io, 'copyFileSync').mockReturnValue()
 
         // when
         await main.run()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(uploadArtifactMock).toHaveBeenCalled()
+        expect(layoutSourceMock).toHaveBeenCalled()
+        expect(layoutTargetMock).toHaveBeenCalled()
+        expect(ioMock).toHaveBeenCalled()
     })
 
-    it('Save build scan does nothing without build scan', async () => {
-        // given
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return ['foo/foo', 'bar/bar']
-                }
-            })
-        )
-        const uploadArtifactMock = jest.fn()
-        const mockArtifactClient: Partial<artifact.ArtifactClient> = {
-            uploadArtifact: uploadArtifactMock
-        }
-        jest.spyOn(artifact, 'create').mockReturnValue(mockArtifactClient as artifact.ArtifactClient)
+    it('Setup when Maven home is not found fails', async () => {
+        // Given
+        githubContext()
+        const errorMsg = 'Maven home not found'
+        const layoutTargetMock = jest.spyOn(layout, 'mavenBuildScanCaptureExtensionTarget').mockRejectedValue(errorMsg)
+        const ioMock = jest.spyOn(io, 'copyFileSync').mockReturnValue()
 
         // when
         await main.run()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(uploadArtifactMock).not.toHaveBeenCalled()
+        expect(layoutTargetMock).rejects.toEqual(errorMsg)
+        expect(ioMock).not.toHaveBeenCalled()
     })
 })

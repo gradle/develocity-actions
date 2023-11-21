@@ -1,32 +1,35 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 
-import * as params from "./params"
-import * as layout from './layout'
-import * as io from './io'
-import {mavenBuildScanCaptureExtensionTarget} from "./layout";
+import * as input from './utils/input'
+import * as layout from './utils/layout'
+import * as io from './utils/io'
+import * as errorHandler from './utils/error'
 
 /**
- * Main entrypoint for the Save Maven Build Scan action
+ * Main entrypoint for the action
  */
 export async function run(): Promise<void> {
     try {
         // Propagate environment variables to subsequent steps
-        core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_STRATEGY', params.getBuildScanCaptureStrategy())
-        core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED', params.getBuildScanCaptureUnpublishedEnabled())
-        core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_LINK_ENABLED', params.getBuildScanCaptureLinkEnabled())
+        core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_STRATEGY', input.getBuildScanCaptureStrategy())
+        core.exportVariable(
+            'INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED',
+            input.getBuildScanCaptureUnpublishedEnabled()
+        )
+        core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_LINK_ENABLED', input.getBuildScanCaptureLinkEnabled())
+        core.exportVariable('INPUT_WORKFLOW_NAME', input.getWorkflowName())
+        core.exportVariable('INPUT_JOB_NAME', input.getJobName())
+        core.exportVariable('PR_NUMBER', github.context.issue.number)
 
-        // Retrieve Maven lib/ext folder
+        // Retrieve extension target filename (in Maven lib/ext folder)
         const mavenBuildScanCaptureExtensionTarget = await layout.mavenBuildScanCaptureExtensionTarget()
-        if(!mavenBuildScanCaptureExtensionTarget) {
-            throw new Error(`Maven home not found`)
-        }
 
         // copy Maven extension in $MAVEN_HOME/lib/ext
         core.debug(`Copy ${layout.mavenBuildScanCaptureExtensionSource()} to ${mavenBuildScanCaptureExtensionTarget}`)
         io.copyFileSync(layout.mavenBuildScanCaptureExtensionSource(), mavenBuildScanCaptureExtensionTarget)
     } catch (error) {
-        // Fail the workflow run if an error occurs
-        if (error instanceof Error) core.setFailed(error.message)
+        errorHandler.handle(error)
     }
 }
 

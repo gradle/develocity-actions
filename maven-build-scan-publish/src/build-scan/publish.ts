@@ -1,16 +1,17 @@
 import * as core from '@actions/core'
-import {getExecOutput} from '@actions/exec'
+import * as exec from '@actions/exec'
 import * as glob from '@actions/glob'
 
-import * as io from '../shared/io'
-import * as params from '../shared/params'
-import * as layout from '../shared/layout'
+import * as io from '../utils/io'
+import * as input from '../utils/input'
+import * as layout from '../utils/layout'
 
 const PROJECT_DIR = 'maven-build-scan-publisher'
 const MAVEN_DIR = `${PROJECT_DIR}/.mvn`
 const REPLACE_ME_TOKEN = `REPLACE_ME`
+const SCAN_FILENAME = `scan.scan`
 
-export async function publishBuildScan(): Promise<string[]> {
+export async function publishBuildScan(): Promise<void> {
     createMavenProjectStructure()
 
     return await publishBuildScans()
@@ -62,62 +63,56 @@ function getGradleEnterpriseConfigurationContent(): string {
         <gradleEnterprise
             xmlns="https://www.gradle.com/gradle-enterprise-maven" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.gradle.com/gradle-enterprise-maven https://www.gradle.com/schema/gradle-enterprise-maven.xsd">
             <server>
-                <url>${params.getDevelocityUrl()}</url>
-                <allowUntrusted>${params.isDevelocityAllowUntrusted()}</allowUntrusted>
+                <url>${input.getDevelocityUrl()}</url>
+                <allowUntrusted>${input.isDevelocityAllowUntrusted()}</allowUntrusted>
             </server>
         </gradleEnterprise>
     `.replace(/  +/g, '')
 }
 
-async function publishBuildScans(): Promise<string[]> {
-    const buildScanLinks = []
-
+async function publishBuildScans(): Promise<void> {
     // Display Java version
-    let res = await getExecOutput('java', ['-version'], {cwd: PROJECT_DIR})
+    let res = await exec.getExecOutput('java', ['-version'], {cwd: PROJECT_DIR})
     if (res.stderr !== '' && res.exitCode) {
         throw new Error(`Java execution failed: ${res.stderr}`)
     }
 
     // Display Maven version
-    res = await getExecOutput('mvn', ['-version'], {cwd: PROJECT_DIR})
+    res = await exec.getExecOutput('mvn', ['-version'], {cwd: PROJECT_DIR})
     if (res.stderr !== '' && res.exitCode) {
         throw new Error(`Maven execution failed: ${res.stderr}`)
     }
 
-    const globber = await glob.create(`${layout.mavenBuildScanData()}/**/scan.scan`)
+    const globber = await glob.create(`${layout.mavenBuildScanData()}/**/${SCAN_FILENAME}`)
     const scanFiles = await globber.glob()
 
-    for (const scanFile of scanFiles) {
+    // Iterate file in reverse order to match build-scan-publish-previous sort
+    for (const scanFile of scanFiles.sort().reverse()) {
         // parse current version
-        core.debug(`Publishing ${scanFile}`)
+        core.info(`Publishing ${scanFile}`)
 
-        // capture extension version assuming scan name is ${HOME}/.m2/build-scan-data/<VERSION>/previous/<UUID>/scan.scan
-        const versionMatch = scanFile.match(/^.*\/build-scan-data\/(.*)\/previous\/.*$/)
-        const version = versionMatch?.at(1)
-        if (!version) {
-            throw new Error(`Version could not be parsed in : ${scanFile}`)
-        }
-        core.debug(`Extension version = ${version}`)
+        try {
+            const scanFileData = layout.parseScanDumpPath(scanFile)
 
-        // replace version in template
-        createFile(`${MAVEN_DIR}/extensions.xml`, getExtensionsContent().replace(REPLACE_ME_TOKEN, version))
+            // replace version in template
+            createFile(
+                `${MAVEN_DIR}/extensions.xml`,
+                getExtensionsContent().replace(REPLACE_ME_TOKEN, scanFileData.version)
+            )
 
-        // Run Maven build
-        res = await getExecOutput('mvn', ['gradle-enterprise:build-scan-publish-previous'], {
-            cwd: PROJECT_DIR,
-            env: {GRADLE_ENTERPRISE_ACCESS_KEY: params.getDevelocityAccessKey()}
-        })
-        if (res.stderr !== '' && res.exitCode) {
-            throw new Error(`Maven execution failed: ${res.stderr}`)
-        }
-
-        const buildScanLinkMatch = res.stdout.match(/^.*Publishing build scan.*$\n^.*(http.*)$/m)
-        const buildScanLink = buildScanLinkMatch?.at(1)
-        if (buildScanLink) {
-            core.debug(`Found Build Scan Link ${buildScanLink}`)
-            buildScanLinks.push(buildScanLink)
+            // Run Maven build
+            res = await exec.getExecOutput('mvn', ['gradle-enterprise:build-scan-publish-previous'], {
+                cwd: PROJECT_DIR,
+                env: {
+                    GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
+                    BUILD_ID: scanFileData.buildId
+                }
+            })
+            if (res.stderr !== '' && res.exitCode) {
+                core.warning(`Maven publication job failed for build id ${scanFileData.buildId}: ${res.stderr}`)
+            }
+        } catch (error) {
+            core.warning(`Could not trigger Maven publication job: ${error}`)
         }
     }
-
-    return buildScanLinks
 }

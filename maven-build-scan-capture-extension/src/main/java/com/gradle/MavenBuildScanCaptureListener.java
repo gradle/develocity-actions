@@ -2,8 +2,6 @@ package com.gradle;
 
 import com.gradle.maven.extension.api.GradleEnterpriseApi;
 import com.gradle.maven.extension.api.GradleEnterpriseListener;
-import com.gradle.maven.extension.api.scan.PublishedBuildScan;
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.execution.MavenSession;
 import org.codehaus.plexus.component.annotations.Component;
 import org.slf4j.Logger;
@@ -11,10 +9,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @SuppressWarnings("unused")
@@ -29,28 +26,45 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
     private static final String USER_HOME_SYSTEM_PROPERTY = "user.home";
     private static final String BUILD_SCAN_DATA_ORIGINAL_DIR = ".m2/.gradle-enterprise/build-scan-data/";
     private static final String BUILD_SCAN_DATA_COPY_DIR = "./build-scan-data";
-    private static final String SCAN_DUMP_FILE_NAME = "scan.scan";
-    private static final String BUILD_SCAN_LINKS_FILENAME = "build-scan-links.txt";
+    private static final String SCAN_DUMP_REGEX = ".*/build-scan-data/.*/previous/.*/scan.scan";
+    private static final String BUILD_SCAN_METADATA_FILENAME = "build-scan-metadata.properties";
+    private static final String BUILD_SCAN_LINK_FILENAME = "build-scan-links.properties";
 
-    private static final Configuration configuration = Configuration.get();
+    private final BuildState buildState = new BuildState();
+    private Configuration configuration = DefaultConfiguration.get();
+    private FileManager fileManager = new DefaultFileManager();
+
+    public void setConfiguration(Configuration configuration) {
+        this.configuration = configuration;
+    }
+    public void setFileManager(FileManager fileManager) {
+        this.fileManager = fileManager;
+    }
 
     @Override
     public void configure(GradleEnterpriseApi gradleEnterpriseApi, MavenSession session) {
         LOGGER.info("Configuring extension: " + getClass().getSimpleName());
+        LOGGER.debug(configuration.toString());
 
-        // Capture Build result
+        // Set Maven goals
+        buildState.setMavenGoals(String.join(" ", session.getRequest().getGoals()));
+
+        // Capture build result
         gradleEnterpriseApi.getBuildScan().buildFinished(buildResult -> {
             if(!buildResult.getFailures().isEmpty()) {
                 LOGGER.debug("Marking build failure");
-                configuration.setBuildFailure();
+                buildState.setBuildFailure();
             }
         });
 
-        // The buildFinished callback is called too early to collect the previous build scan
-        //gradleEnterpriseApi.getBuildScan().buildFinished(buildResult -> captureUnpublishedBuildScanDump("build finished hook"));
-        Runtime.getRuntime().addShutdownHook(new Thread(this::captureUnpublishedBuildScan));
+        // Capture build scan link
+        gradleEnterpriseApi.getBuildScan().buildScanPublished(buildScan -> {
+            captureBuildScanLink(buildScan.getBuildScanUri().toString());
+        });
 
-        gradleEnterpriseApi.getBuildScan().buildScanPublished(this::captureBuildScanLink);
+        // Capture unpublished build scan with a shutdown hook
+        // The gradleEnterpriseApi.getBuildScan().buildFinished callback is called too early to collect the previous build scan
+        Runtime.getRuntime().addShutdownHook(new Thread(this::captureUnpublishedBuildScan));
     }
 
     private String getUserHome() {
@@ -61,20 +75,23 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         return BUILD_SCAN_DATA_COPY_DIR;
     }
 
-    private void captureUnpublishedBuildScan() {
-      LOGGER.debug(configuration.toString());
-      if(configuration.isBuildScanCaptureUnpublishedEnabled()) {
+    void captureUnpublishedBuildScan() {
+      if(configuration.isBuildScanCaptureUnpublishedEnabled(buildState.isBuildFailure())) {
           LOGGER.info("Configuring unpublished Build Scan capture");
 
           File buildScanDirectory = new File(getUserHome(), BUILD_SCAN_DATA_ORIGINAL_DIR);
 
-          try (Stream<Path> pathStream = Files.find(Paths.get(getUserHome(), BUILD_SCAN_DATA_ORIGINAL_DIR),
+          try (Stream<Path> pathStream = fileManager.find(Paths.get(getUserHome(), BUILD_SCAN_DATA_ORIGINAL_DIR),
                   Integer.MAX_VALUE,
-                  (filePath, fileAttr) -> filePath.getFileName().toString().equals(SCAN_DUMP_FILE_NAME) && fileAttr.isRegularFile())) {
-              if (pathStream.findAny().isPresent()) {
+                  (filePath, fileAttr) -> filePath.toString().replace("\\","/").matches(SCAN_DUMP_REGEX) && fileAttr.isRegularFile())) {
+              Optional<Path> scanDumpPath = pathStream.findFirst();
+              if (scanDumpPath.isPresent()) {
+                  LOGGER.debug("Capturing Build Scan metadata for " + scanDumpPath.get());
+                  captureBuildScanMetadata(scanDumpPath.get().getParent().toString());
+
                   LOGGER.debug("Saving unpublished build scan");
                   File destinationDirectory = new File(getBuildScanDataCopyDir());
-                  FileUtils.copyDirectory(buildScanDirectory, destinationDirectory);
+                  fileManager.copyDirectory(buildScanDirectory, destinationDirectory);
               } else {
                   LOGGER.debug("No unpublished build scan found");
               }
@@ -86,15 +103,35 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
       }
     }
 
-    private void captureBuildScanLink(PublishedBuildScan buildScan) {
-        if(configuration.isBuildScanCaptureLinkEnabled()) {
-            LOGGER.info("Configuring Build Scan link capture");
+    void captureBuildScanMetadata(String scanDumpDir) {
+        try {
+            LOGGER.debug("Capturing [" + buildState.getMavenGoals() + "] in " + scanDumpDir);
+
+            String summary =
+                    String.format("PR_NUMBER=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nGOAL=%s\nBUILD_FAILURE=%s\n",
+                        configuration.getPrNumber(),
+                        configuration.getWorkflowName(),
+                        configuration.getJobName(),
+                        buildState.getMavenGoals(),
+                        buildState.isBuildFailure()
+                    );
+            fileManager.writeContent(Paths.get(scanDumpDir, BUILD_SCAN_METADATA_FILENAME), summary);
+        } catch (IOException e) {
+            LOGGER.warn("Could not create build metadata file", e);
+        }
+    }
+
+    void captureBuildScanLink(String buildScanLink) {
+        if(configuration.isBuildScanCaptureLinkEnabled(buildState.isBuildFailure())) {
+            LOGGER.info("Capturing Build Scan link");
+            buildState.setBuildScanLink(buildScanLink);
 
             try {
-                LOGGER.debug("Adding build scan link: " + buildScan.getBuildScanUri());
-                Files.write(Paths.get(BUILD_SCAN_LINKS_FILENAME), (buildScan.getBuildScanUri() + "\n").getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                LOGGER.debug("Adding to Build Scan link file " + configuration.getBuildId() + "=" + buildState.getBuildScanLink());
+                String content = String.format("%s=%s\n", configuration.getBuildId(), buildState.getBuildScanLink());
+                fileManager.writeContent(Paths.get(getUserHome(), BUILD_SCAN_LINK_FILENAME), content);
             } catch (IOException e) {
-                LOGGER.warn("Could not add build scan link: " + buildScan.getBuildScanUri(), e);
+                LOGGER.warn("Could not add build scan link to build summary", e);
             }
         } else {
             LOGGER.debug("Build scan link capture disabled");
