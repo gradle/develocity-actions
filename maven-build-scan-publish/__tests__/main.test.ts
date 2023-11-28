@@ -17,7 +17,7 @@ describe('main', () => {
         jest.spyOn(githubUtils, 'isPublicationAllowed').mockReturnValue(true)
         jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(
             Promise.resolve(
-        {artifactId: 4242, builds: [{jobName:'foo',buildFailure:false,mavenGoals:'clean package',workflowName:'bar', buildId:'foo'}], prNumber:42}
+        {artifactId: 4242, builds: [{jobName:'foo',buildFailure:false,mavenGoals:'clean package',workflowName:'bar', buildId:'foo', mavenVersion:'3.9'}], prNumber:42}
             )
         )
         const publishMock = jest.spyOn(buildScan, 'publishBuildScan').mockReturnValue(Promise.resolve())

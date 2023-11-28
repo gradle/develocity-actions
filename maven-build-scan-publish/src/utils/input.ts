@@ -16,6 +16,10 @@ export function isSkipComment(): boolean {
     return getBooleanInput('skip-comment')
 }
 
+export function isSkipSummary(): boolean {
+    return getBooleanInput('skip-summary')
+}
+
 export function getAuthorizedList(): string {
     return core.getInput('authorized-list')
 }

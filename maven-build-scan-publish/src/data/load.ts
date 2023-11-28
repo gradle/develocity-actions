@@ -17,6 +17,7 @@ export interface BuildArtifact {
 export interface BuildMetadata {
     workflowName: string
     jobName: string
+    mavenVersion: string
     mavenGoals: string
     buildId: string
     buildFailure: boolean
@@ -62,6 +63,7 @@ function toMetadataObject(metadataFile: string): {buildMetadata: BuildMetadata; 
     const prNumber = Number((metadataReader as PropertiesReader.Reader).get('PR_NUMBER'))
     const workflowName = (metadataReader as PropertiesReader.Reader).get('WORKFLOW_NAME') as string
     const jobName = (metadataReader as PropertiesReader.Reader).get('JOB_NAME') as string
+    const mavenVersion = (metadataReader as PropertiesReader.Reader).get('MAVEN_VERSION') as string
     const mavenGoals = (metadataReader as PropertiesReader.Reader).get('GOAL') as string
     const buildFailure = (metadataReader as PropertiesReader.Reader).get('BUILD_FAILURE')?.valueOf() as boolean
     if (!prNumber || !workflowName || !jobName || !mavenGoals) {
@@ -72,6 +74,7 @@ function toMetadataObject(metadataFile: string): {buildMetadata: BuildMetadata; 
         buildMetadata: {
             workflowName,
             jobName,
+            mavenVersion,
             mavenGoals,
             buildId,
             buildFailure

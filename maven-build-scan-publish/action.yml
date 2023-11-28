@@ -15,6 +15,9 @@ inputs:
   skip-comment:
     description: 'Whether to comment or not the pull-request with Build Scan links'
     default: 'false'
+  skip-summary:
+    description: 'Whether to add or not a summary to the GitHub workflow'
+    default: 'false'
   authorized-list:
     description: 'CSV List of users allowed to publish Build Scans'
     default: ''

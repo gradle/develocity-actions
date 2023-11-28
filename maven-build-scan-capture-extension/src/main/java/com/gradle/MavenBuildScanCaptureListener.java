@@ -3,12 +3,14 @@ package com.gradle;
 import com.gradle.maven.extension.api.GradleEnterpriseApi;
 import com.gradle.maven.extension.api.GradleEnterpriseListener;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.rtinfo.internal.DefaultRuntimeInformation;
 import org.codehaus.plexus.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -47,6 +49,7 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         LOGGER.debug(configuration.toString());
 
         // Set Maven goals
+        buildState.setMavenVersion(getMavenVersion());
         buildState.setMavenGoals(String.join(" ", session.getRequest().getGoals()));
 
         // Capture build result
@@ -65,6 +68,20 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         // Capture unpublished build scan with a shutdown hook
         // The gradleEnterpriseApi.getBuildScan().buildFinished callback is called too early to collect the previous build scan
         Runtime.getRuntime().addShutdownHook(new Thread(this::captureUnpublishedBuildScan));
+    }
+
+    private static String getMavenVersion() {
+        try {
+            // trying to fetch Maven version from internal class
+            Class<?> rtInfoClass = Class.forName("org.apache.maven.rtinfo.internal.DefaultRuntimeInformation", true, MavenBuildScanCaptureListener.class.getClassLoader());
+            DefaultRuntimeInformation rtInfo = (DefaultRuntimeInformation) rtInfoClass.getDeclaredConstructor().newInstance();
+            return rtInfo.getMavenVersion();
+        } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
+            LOGGER.info("Unable to fetch Maven version " + e.getMessage());
+        }
+
+        return "unknown";
     }
 
     private String getUserHome() {
@@ -108,10 +125,11 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
             LOGGER.debug("Capturing [" + buildState.getMavenGoals() + "] in " + scanDumpDir);
 
             String summary =
-                    String.format("PR_NUMBER=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nGOAL=%s\nBUILD_FAILURE=%s\n",
+                    String.format("PR_NUMBER=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nMAVEN_VERSION=%s\nGOAL=%s\nBUILD_FAILURE=%s\n",
                         configuration.getPrNumber(),
                         configuration.getWorkflowName(),
                         configuration.getJobName(),
+                        buildState.getMavenVersion(),
                         buildState.getMavenGoals(),
                         buildState.isBuildFailure()
                     );

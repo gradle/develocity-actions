@@ -126,44 +126,49 @@ jobs:
 
 The action will download any saved Build Scan® and publish them to Develocity.
 
-The list of pull-request submitter allowed to publish a Build Scan® can be specified by the csv parameter `authorized-list`. The action will only succeed and publish a Build Scan® for users belonging to the list.
+The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-list`. 
+The action will publish Build Scans® if the initial pull-request author belongs to the list.
 
-By default, the pull-request will be commented with a summary like in the example below:
+By default, the pull-request will be commented with a summary:
 
-![Architecture](./doc/pull-request-summary.png)
+![comment](./doc/summary-comment.png)
 
 This comment will not be created if `skip-comment` is set to `true`, the summary details will in this case be accessible in `$HOME/build-metadata.json` with the format below:
 
 ```json
 {
   "prNumber": 42,
-  "artifactId": 1069498081,
+  "artifactId": 1080352553,
   "builds": [
     {
       "workflowName": "PR Build",
-      "jobName": "build",
-      "mavenGoals": "clean package",
-      "buildId": "1700747945029-0e6945b4-431d-40db-9a6a-64a6947cec50",
+      "jobName": "test-matrix",
+      "mavenVersion": "3.8.8",
+      "mavenGoals": "clean build",
+      "buildId": "1701252758489-c27ff62b-3ab5-45f4-b7e4-2b362cf5220e",
       "buildFailure": false,
-      "buildScanLink": "https://<DEVELOCITY_URL>/s/nox6mtd7bzp26"
+      "buildScanLink": "https://<DEVELOCITY_URL>/s/itg2ytkifb6wa"
     },
     {
       "workflowName": "PR Build",
-      "jobName": "install",
+      "jobName": "test-matrix",
+      "mavenVersion": "3.8.8",
       "mavenGoals": "install",
-      "buildId": "1700747947170-98549978-cc9f-4555-89ad-aa8b982cb498",
+      "buildId": "1701252760831-89e3583d-3c3c-4a64-a958-e61aa791f4f4",
       "buildFailure": true,
-      "buildScanLink": "https://<DEVELOCITY_URL>/s/otlbnuziojvjk"
+      "buildScanLink": "https://<DEVELOCITY_URL>/s/dxqnlj5hgybq4"
     }
   ]
 }
 ```
+By default, a summary will be added to the GitHub workflow calling the action (can be skipped with `skip-summary` is set to `true`):
+
+![workflow](./doc/summary-workflow.png)
+
 
 **Event Triggers**:
 
-- `workflow_run`: to run after the build workflow
-
-- This event allows access to the repository secrets (_Develocity Access Key_) which is required to publish a Build Scan® to Develocity when authentication is enabled.
+- `workflow_run`: to run after the build workflow. This event allows access to the repository secrets (_Develocity Access Key_) which is required to publish a Build Scan® to Develocity when authentication is enabled.
 
 **Permissions**:
 
@@ -179,7 +184,8 @@ The following permissions are required for this action to operate:
 | `develocity-access-key`      | *Optional*: Develocity access key                                            |                          |
 | `develocity-allow-untrusted` | *Optional*: Develocity allow-untrusted flag                                  | `false`                  |
 | `skip-comment`               | *Optional*: Whether to comment or not the pull-request with Build Scan links | `false`                  |
-| `authorized-list`            | *Optional*: CSV List of users allowed to publish Build Scanss                | `''`                     |
+| `skip-summary`               | *Optional*: Whether to add or not a summary to the GitHub workflow           | `false`                  |
+| `authorized-list`            | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                     |
 | `github-token`               | *Optional*: Github token                                                     | `${{ github.token }}`    |
 
 **Usage**:
