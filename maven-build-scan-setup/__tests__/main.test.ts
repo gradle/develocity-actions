@@ -1,10 +1,12 @@
 import * as github from '@actions/github'
 
+// required before main is loaded
+process.env['GITHUB_REPOSITORY'] = 'foo/bar';
+process.env['MAVEN_HOME'] = '/tmp';
+
 import * as main from '../src/main'
 import * as io from '../src/utils/io'
 import * as layout from '../src/utils/layout'
-
-const runMock = jest.spyOn(main, 'run')
 
 function githubContext() {
     Object.defineProperty(github, 'context', {
@@ -19,15 +21,19 @@ function githubContext() {
         }
     })
 }
+const runMock = jest.spyOn(main, 'run')
 
-describe('capture', () => {
+describe('setup', () => {
+    beforeEach(() => {
+        githubContext()
+    })
+
     afterEach(() => {
         jest.clearAllMocks()
     })
 
-    it('Setup build scan capture succeeds', async () => {
+    it('Setup build scan action succeeds', async () => {
         // Given
-        githubContext()
         const layoutSourceMock = jest
             .spyOn(layout, 'mavenBuildScanCaptureExtensionSource')
             .mockReturnValue('sourceFileName')
@@ -48,7 +54,6 @@ describe('capture', () => {
 
     it('Setup when Maven home is not found fails', async () => {
         // Given
-        githubContext()
         const errorMsg = 'Maven home not found'
         const layoutTargetMock = jest.spyOn(layout, 'mavenBuildScanCaptureExtensionTarget').mockRejectedValue(errorMsg)
         const ioMock = jest.spyOn(io, 'copyFileSync').mockReturnValue()
@@ -58,7 +63,7 @@ describe('capture', () => {
 
         // then
         expect(runMock).toHaveReturned()
-        expect(layoutTargetMock).rejects.toEqual(errorMsg)
+        await expect(layoutTargetMock).rejects.toEqual(errorMsg)
         expect(ioMock).not.toHaveBeenCalled()
     })
 })

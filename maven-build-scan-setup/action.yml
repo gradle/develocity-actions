@@ -1,5 +1,5 @@
-name: Maven Build Scan Capture action
-description: Maven Build Scan Capture action
+name: Maven Build Scan setup action
+description: Setup action to capture Build Scans metadata
 author: Gradle team
 
 inputs:

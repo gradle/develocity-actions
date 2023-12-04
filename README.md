@@ -20,14 +20,14 @@ The `Approve and Run` manual step documented [here](https://docs.github.com/en/a
 
 **Usage**:
 
-In the GitHub workflow called to validate a pull-request, insert the `Setup build scan capture` once in each job having steps invoking Maven.
+In the GitHub workflow called to validate a pull-request, insert the `Setup Maven Build Scan dump capture` once in each job having steps invoking Maven.
 
 ```yaml
 name: PR Build
 jobs:
   build:  
-      - name: Setup Build Scan dump capture
-        uses: gradle/github-actions/maven-build-scan-capture@v1-beta
+      - name: Setup Maven Build Scan dump capture
+        uses: gradle/github-actions/maven-build-scan-setup@v1-beta
       - name: Build with Maven
         run: mvn clean package
 [...]
@@ -52,7 +52,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/github-actions/maven-build-scan-capture@v1-beta
+        uses: gradle/github-actions/maven-build-scan-setup@v1-beta
       - name: Publish Build Scans
         uses: gradle/github-actions/maven-build-scan-publish@v1-beta
         with:
@@ -68,7 +68,7 @@ Some parameters need to be adjusted here:
 
 ### Implementation details
 
-#### maven-build-scan-capture
+#### maven-build-scan-setup
 
 The action addresses two use cases:
 - Save unpublished Build Scan® data as a workflow artifact with name `maven-build-scan-data`, which can then be published in a dependent workflow.
@@ -87,7 +87,7 @@ The process is handled by a [Maven extension](https://maven.apache.org/guides/mi
 The extension must be registered at the beginning of the GitHub workflow job, by copying it in `$MAVEN_HOME/lib/ext/`.
 The `MAVEN_HOME` environment variable is used if present, otherwise, the csv list of folders `maven-home-search-patterns` is searched. This variable van be configured.
 
-`workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-build-scan-capture` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
+`workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-build-scan-publish` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
 
 **Event Triggers**:
 
@@ -107,7 +107,7 @@ The `MAVEN_HOME` environment variable is used if present, otherwise, the csv lis
 
 **Usage**:
 
-Insert the `Setup build scan capture` once in each job having steps invoking Maven.
+Insert the `Setup Maven Build Scan dump capture` once in each job having steps invoking Maven.
 
 ```yaml
 name: PR Build
@@ -115,8 +115,8 @@ jobs:
   [...]
   build:
     [...]
-    - name: Setup Build Scan dump capture
-      uses: gradle/github-actions/maven-build-scan-capture@v1-beta
+    - name: Setup Maven Build Scan dump capture
+      uses: gradle/github-actions/maven-build-scan-setup@v1-beta
     - name: Build with Maven
       run: mvn clean package
   [...]
@@ -212,8 +212,8 @@ jobs:
       actions: write
       pull-requests: write
     steps:
-      - name: Setup Build Scan link capture
-        uses: gradle/github-actions/maven-build-scan-capture@v1-beta
+      - name: Setup Maven Build Scan link capture
+        uses: gradle/github-actions/maven-build-scan-setup@v1-beta
       - name: Publish Build Scans
         uses: gradle/github-actions/maven-build-scan-publish@v1-beta
         with:

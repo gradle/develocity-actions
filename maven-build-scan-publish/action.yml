@@ -1,5 +1,5 @@
 name: Publish Maven Build Scans action
-description: Publish Maven Build Scans previously saved with the Maven Build Scan capture action
+description: Publish Maven Build Scans previously saved with the Maven Build Scan setup action
 author: Gradle team
 
 inputs:

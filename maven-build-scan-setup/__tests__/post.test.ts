@@ -21,7 +21,7 @@ function githubContext() {
     })
 }
 
-describe('capture', () => {
+describe('post', () => {
     afterEach(() => {
         jest.clearAllMocks()
     })
