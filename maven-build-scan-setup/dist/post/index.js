@@ -32298,7 +32298,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 7393:
+/***/ 9949:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -32331,8 +32331,8 @@ exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const artifact_1 = __nccwpck_require__(2605);
 const glob = __importStar(__nccwpck_require__(8090));
-const layout = __importStar(__nccwpck_require__(3460));
-const errorHandler = __importStar(__nccwpck_require__(7183));
+const layout = __importStar(__nccwpck_require__(5932));
+const errorHandler = __importStar(__nccwpck_require__(9581));
 const BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data';
 // Catch and log any unhandled exceptions.
 process.on('uncaughtException', e => errorHandler.handle(e));
@@ -32371,7 +32371,7 @@ run();
 
 /***/ }),
 
-/***/ 7183:
+/***/ 9581:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -32413,7 +32413,7 @@ exports.handle = handle;
 
 /***/ }),
 
-/***/ 2121:
+/***/ 6921:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -32472,7 +32472,30 @@ exports.getBuildScanCaptureLinkEnabled = getBuildScanCaptureLinkEnabled;
 
 /***/ }),
 
-/***/ 3460:
+/***/ 9126:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.mkdirSync = exports.copyFileSync = void 0;
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+function copyFileSync(source, dest) {
+    fs_1.default.copyFileSync(source, dest);
+}
+exports.copyFileSync = copyFileSync;
+function mkdirSync(dir) {
+    fs_1.default.mkdirSync(dir, { recursive: true });
+}
+exports.mkdirSync = mkdirSync;
+
+
+/***/ }),
+
+/***/ 5932:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -32506,9 +32529,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.mavenBuildScanDataCopy = exports.mavenBuildScanDataOriginal = exports.mavenBuildScanCaptureExtensionTarget = exports.mavenBuildScanCaptureExtensionSource = void 0;
 const path_1 = __importDefault(__nccwpck_require__(1017));
-const params = __importStar(__nccwpck_require__(2121));
 const core = __importStar(__nccwpck_require__(2186));
 const glob = __importStar(__nccwpck_require__(8090));
+const params = __importStar(__nccwpck_require__(6921));
+const io = __importStar(__nccwpck_require__(9126));
 const ENV_KEY_HOME = 'HOME';
 const ENV_KEY_MAVEN_HOME = 'MAVEN_HOME';
 const BUILD_SCAN_DIR_ORIGINAL = '.m2/.gradle-enterprise/build-scan-data/';
@@ -32527,11 +32551,15 @@ async function mavenBuildScanCaptureExtensionTarget() {
     const mavenHome = process.env[ENV_KEY_MAVEN_HOME];
     if (mavenHome) {
         core.info(`Using MAVEN_HOME=${mavenHome}`);
-        return `${mavenHome}${LIB_EXT}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR}`;
+        const libExtDir = `${mavenHome}${LIB_EXT}`;
+        // Create folder if missing
+        core.info(`Creating ${libExtDir}`);
+        io.mkdirSync(libExtDir);
+        return `${libExtDir}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR}`;
     }
     else {
         core.info(`Searching maven home in ${params.getMavenHomeSearchPatterns()}`);
-        const globber = await glob.create(params.getMavenHomeSearchPatterns().replace(',', '\n'));
+        const globber = await glob.create(params.getMavenHomeSearchPatterns().replaceAll(',', '\n'));
         const mavenHomeGlob = await globber.glob();
         if (mavenHomeGlob && mavenHomeGlob.at(0)) {
             core.info(`Found maven home in ${mavenHomeGlob.at(0)}`);
@@ -34438,7 +34466,7 @@ module.exports = parseParams
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
-/******/ 	var __webpack_exports__ = __nccwpck_require__(7393);
+/******/ 	var __webpack_exports__ = __nccwpck_require__(9949);
 /******/ 	module.exports = __webpack_exports__;
 /******/ 	
 /******/ })()

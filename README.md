@@ -65,7 +65,8 @@ Some parameters need to be adjusted here:
 - The workflow name (here `PR Build`) triggered when a pull-request is submitted
 - The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)
 - The secret name holding the Develocity access key (here `<DEVELOCITY_ACCESS_KEY>`)
-
+- If using the [Maven wrapper](https://maven.apache.org/wrapper/), check the [relevant section](#Usage with Maven Wrapper)
+ 
 ### Implementation details
 
 #### maven-build-scan-setup
@@ -96,14 +97,14 @@ The `MAVEN_HOME` environment variable is used if present, otherwise, the csv lis
 
 **Action inputs**:
 
-| Name                                     | Description                                                             | Default                                                                            |
-|------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| `workflow-filename`                      | *Optional*: Name of the workflow triggering the build                   | `${{ github.workflow }}`                                                           |
-| `job-filename`                           | *Optional*: Name of the job triggering the build                        | `${{ github.job }}`                                                                |
-| `maven-home-search-patterns`             | *Optional*: List of patterns to search for maven home (csv format)      | `/usr/share/apache-maven-*/,C:/ProgramData/chocolatey/lib/maven/apache-maven-*/`   |
-| `build-scan-capture-strategy`            | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS`                                                                           |
-| `build-scan-capture-unpublished-enabled` | *Optional*: Flag to enable unpublished Build Scan capture               | `true`                                                                             |
-| `build-scan-capture-link-enabled`        | *Optional*: Flag to enable Build Scan link capture                      | `true`                                                                             |
+| Name                                     | Description                                                             | Default                                                                                                                                                                                                       |
+|------------------------------------------|-------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `workflow-filename`                      | *Optional*: Name of the workflow triggering the build                   | `${{ github.workflow }}`                                                                                                                                                                                      |
+| `job-filename`                           | *Optional*: Name of the job triggering the build                        | `${{ github.job }}`                                                                                                                                                                                           |
+| `maven-home-search-patterns`             | *Optional*: List of patterns to search for maven home (csv format)      | `~/.m2/wrapper/dists/apache-maven-*/*/apache-maven-*/,/usr/share/apache-maven-*/,C:/Users/runneradmin/.m2/wrapper/dists/apache-maven-*/*/apache-maven-*/,C:/ProgramData/chocolatey/lib/maven/apache-maven-*/` |
+| `build-scan-capture-strategy`            | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS`                                                                                                                                                                                                      |
+| `build-scan-capture-unpublished-enabled` | *Optional*: Flag to enable unpublished Build Scan capture               | `true`                                                                                                                                                                                                        |
+| `build-scan-capture-link-enabled`        | *Optional*: Flag to enable Build Scan link capture                      | `true`                                                                                                                                                                                                        |
 
 **Usage**:
 
@@ -119,6 +120,31 @@ jobs:
       uses: gradle/github-actions/maven-build-scan-setup@v1-beta
     - name: Build with Maven
       run: mvn clean package
+  [...]
+```
+
+#### Usage with Maven Wrapper
+
+When using the Maven wrapper, the Maven extension can't be registered once at the beginning of the build by copying it to `$MAVEN_HOME/lib/ext` as the folder is created on first `mvnw` invocation (and emptied if already present).
+
+There are two options in this situation:
+1. Add a minimal `mvnw help` step at the beginning of the job and reference `gradle/github-actions/maven-build-scan-setup` step after
+2. Register the Maven extension as a Maven CLI argument (`-Dmaven.ext.class.path`)
+
+In details, the approach 2. which copies the Maven extension in `./maven-build-scan-capture/lib/ext` (using a relative path makes this approach compatible with Windows OS):
+```yaml
+name: PR Build
+jobs:
+  [...]
+  build:
+  [...]
+  - name: Setup Develocity Build Scan capture
+    uses: gradle/github-actions/maven-build-scan-setup@v0.2.1
+    env:
+      MAVEN_HOME: maven-build-scan-capture
+      job-name: "Initial JDK 17 Build"
+  - name: Build with Maven
+    run: ./mvnw clean package -Dmaven.ext.class.path=maven-build-scan-capture/lib/ext/maven-build-scan-capture-extension.jar
   [...]
 ```
 
