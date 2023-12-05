@@ -1,8 +1,10 @@
 import path from 'path'
 
-import * as params from './input'
 import * as core from '@actions/core'
 import * as glob from '@actions/glob'
+
+import * as params from './input'
+import * as io from './io'
 
 const ENV_KEY_HOME = 'HOME'
 const ENV_KEY_MAVEN_HOME = 'MAVEN_HOME'
@@ -34,10 +36,17 @@ export async function mavenBuildScanCaptureExtensionTarget(): Promise<string> {
 
     if (mavenHome) {
         core.info(`Using MAVEN_HOME=${mavenHome}`)
-        return `${mavenHome}${LIB_EXT}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR}`
+
+        const libExtDir = `${mavenHome}${LIB_EXT}`
+
+        // Create folder if missing
+        core.info(`Creating ${libExtDir}`)
+        io.mkdirSync(libExtDir)
+
+        return `${libExtDir}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR}`
     } else {
         core.info(`Searching maven home in ${params.getMavenHomeSearchPatterns()}`)
-        const globber = await glob.create(params.getMavenHomeSearchPatterns().replace(',', '\n'))
+        const globber = await glob.create(params.getMavenHomeSearchPatterns().replaceAll(',', '\n'))
         const mavenHomeGlob = await globber.glob()
         if (mavenHomeGlob && mavenHomeGlob.at(0)) {
             core.info(`Found maven home in ${mavenHomeGlob.at(0)}`)
