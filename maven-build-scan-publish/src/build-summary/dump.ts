@@ -3,8 +3,8 @@ import * as core from '@actions/core'
 
 import * as githubUtils from '../utils/github'
 import * as input from '../utils/input'
-import * as io from '../utils/io'
-import * as layout from '../utils/layout'
+import * as io from '../../../maven-build-scan-shared/src/io'
+import * as layout from '../../../maven-build-scan-shared/src/layout'
 import {BuildArtifact, BuildMetadata} from '../data/load'
 
 const BUILD_SCAN_LINK_FILE = 'build-scan-links.properties'

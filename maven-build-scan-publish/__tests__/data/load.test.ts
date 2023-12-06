@@ -3,7 +3,7 @@ import * as PropertiesReader from 'properties-reader'
 
 import * as load from '../../src/data/load'
 import * as githubUtils from '../../src/utils/github'
-import * as layout from '../../src/utils/layout'
+import * as layout from '../../../maven-build-scan-shared/src/layout'
 import * as props from '../../src/utils/properties'
 
 const loadMock = jest.spyOn(load, 'loadBuildScanData')

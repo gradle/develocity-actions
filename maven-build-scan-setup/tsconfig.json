@@ -3,7 +3,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
-    "rootDir": "./src",
+    "rootDirs": ["./src", "../maven-build-scan-shared/src"],
     "moduleResolution": "NodeNext",
     "baseUrl": "./",
     "sourceMap": true,

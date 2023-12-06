@@ -10,8 +10,8 @@ export async function extractZip(zipFileName: string, extractDir: string): Promi
     return await toolCache.extractZip(zipFileName, extractDir)
 }
 
-export function mkdirSync(dirName: string, options: any): string | undefined {
-    return fs.mkdirSync(dirName, options)
+export function mkdirSync(dir: string): void {
+    fs.mkdirSync(dir, {recursive: true})
 }
 
 export function readdirSync(dirName: string): string[] {
@@ -27,4 +27,8 @@ export function writeFileSync(dirName: string, fileName: string, downloadBuffer:
 
 export function writeContentToFileSync(fileName: string, content: string): void {
     fs.writeFileSync(fileName, content)
+}
+
+export function copyFileSync(source: string, dest: string): void {
+    fs.copyFileSync(source, dest)
 }

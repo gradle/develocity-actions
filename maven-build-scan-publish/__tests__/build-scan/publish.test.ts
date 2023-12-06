@@ -2,7 +2,7 @@ import * as glob from '@actions/glob'
 import * as exec from '@actions/exec'
 
 import * as publish from '../../src/build-scan/publish'
-import * as io from '../../src/utils/io'
+import * as io from '../../../maven-build-scan-shared/src/io'
 
 const runMock = jest.spyOn(publish, 'publishBuildScan')
 

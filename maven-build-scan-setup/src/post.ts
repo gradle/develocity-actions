@@ -2,10 +2,9 @@ import * as core from '@actions/core'
 import {create} from '@actions/artifact'
 import * as glob from '@actions/glob'
 
-import * as layout from './utils/layout'
-import * as errorHandler from './utils/error'
-
-const BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data'
+import * as constant from '../../maven-build-scan-shared/src/constant'
+import * as layout from '../../maven-build-scan-shared/src/layout'
+import * as errorHandler from '../../maven-build-scan-shared/src/error'
 
 // Catch and log any unhandled exceptions.
 process.on('uncaughtException', e => errorHandler.handle(e))
@@ -36,7 +35,7 @@ async function getBuildScanDataFiles(): Promise<string[]> {
 async function uploadArtifacts(files: string[]): Promise<void> {
     const artifactClient = create()
 
-    await artifactClient.uploadArtifact(BUILD_SCAN_ARTIFACT_NAME, files, layout.mavenBuildScanDataCopy(), {
+    await artifactClient.uploadArtifact(constant.BUILD_SCAN_ARTIFACT_NAME, files, layout.mavenBuildScanDataCopy(), {
         retentionDays: 1
     })
 }

@@ -2,9 +2,9 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import * as glob from '@actions/glob'
 
-import * as io from '../utils/io'
+import * as io from '../../../maven-build-scan-shared/src/io'
 import * as input from '../utils/input'
-import * as layout from '../utils/layout'
+import * as layout from '../../../maven-build-scan-shared/src/layout'
 
 const PROJECT_DIR = 'maven-build-scan-publisher'
 const MAVEN_DIR = `${PROJECT_DIR}/.mvn`
@@ -21,7 +21,7 @@ function createMavenProjectStructure(): void {
     // Create Maven directory
     if (!io.existsSync(MAVEN_DIR)) {
         core.debug(`Creating ${MAVEN_DIR}`)
-        io.mkdirSync(MAVEN_DIR, {recursive: true})
+        io.mkdirSync(MAVEN_DIR)
     }
 
     createFile(`${PROJECT_DIR}/pom.xml`, getPomContent())

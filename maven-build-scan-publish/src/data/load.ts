@@ -3,7 +3,7 @@ import * as glob from '@actions/glob'
 import PropertiesReader from 'properties-reader'
 
 import * as githubUtils from '../utils/github'
-import * as layout from '../utils/layout'
+import * as layout from '../../../maven-build-scan-shared/src/layout'
 import * as props from '../utils/properties'
 
 const BUILD_SCAN_METADATA_FILENAME = 'build-scan-metadata.properties'

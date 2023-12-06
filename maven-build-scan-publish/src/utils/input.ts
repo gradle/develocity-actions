@@ -1,43 +1,34 @@
-import * as core from '@actions/core'
+import * as sharedInput from '../../../maven-build-scan-shared/src/input'
+
+export function getBuildScanCaptureStrategy(): boolean {
+    return sharedInput.getBooleanInput('develocity-allow-untrusted')
+}
 
 export function isDevelocityAllowUntrusted(): boolean {
-    return getBooleanInput('develocity-allow-untrusted')
+    return sharedInput.getBooleanInput('develocity-allow-untrusted')
 }
 
 export function getDevelocityUrl(): string {
-    return core.getInput('develocity-url')
+    return sharedInput.getInput('develocity-url')
 }
 
 export function getDevelocityAccessKey(): string {
-    return core.getInput('develocity-access-key')
+    return sharedInput.getInput('develocity-access-key')
 }
 
 export function isSkipComment(): boolean {
-    return getBooleanInput('skip-comment')
+    return sharedInput.getBooleanInput('skip-comment')
 }
 
 export function isSkipSummary(): boolean {
-    return getBooleanInput('skip-summary')
+    return sharedInput.getBooleanInput('skip-summary')
 }
 
 export function getAuthorizedList(): string {
-    return core.getInput('authorized-list')
+    return sharedInput.getInput('authorized-list')
 }
 
 // Internal parameters
 export function getGithubToken(): string {
-    return core.getInput('github-token', {required: true})
-}
-
-function getBooleanInput(paramName: string, paramDefault = false): boolean {
-    const paramValue = core.getInput(paramName)
-    switch (paramValue.toLowerCase().trim()) {
-        case '':
-            return paramDefault
-        case 'false':
-            return false
-        case 'true':
-            return true
-    }
-    throw TypeError(`The value '${paramValue} is not valid for '${paramName}. Valid values are: [true, false]`)
+    return sharedInput.getInput('github-token', {required: true})
 }

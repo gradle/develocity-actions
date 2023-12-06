@@ -5,7 +5,7 @@ import * as loader from './data/load'
 import * as buildScan from './build-scan/publish'
 import * as buildSummary from './build-summary/dump'
 import * as cleaner from './data/cleanup'
-import * as errorHandler from './utils/error'
+import * as errorHandler from '../../maven-build-scan-shared/src/error'
 
 /**
  * Main entrypoint for the action

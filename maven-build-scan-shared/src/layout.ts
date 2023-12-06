@@ -15,7 +15,7 @@ const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension'
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`
 const LIB_EXT = '/lib/ext/'
 
-function home(): string {
+export function home(): string {
     return process.env[ENV_KEY_HOME] || ''
 }
 
@@ -31,12 +31,11 @@ export function mavenBuildScanCaptureExtensionSource(): string {
     )
 }
 
-export async function mavenBuildScanCaptureExtensionTarget(): Promise<string> {
+export async function mavenBuildScanCaptureExtensionTarget(mavenHomeSearchPatterns: string): Promise<string> {
     const mavenHome = process.env[ENV_KEY_MAVEN_HOME]
 
     if (mavenHome) {
         core.info(`Using MAVEN_HOME=${mavenHome}`)
-
         const libExtDir = `${mavenHome}${LIB_EXT}`
 
         // Create folder if missing
@@ -45,8 +44,8 @@ export async function mavenBuildScanCaptureExtensionTarget(): Promise<string> {
 
         return `${libExtDir}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR}`
     } else {
-        core.info(`Searching maven home in ${params.getMavenHomeSearchPatterns()}`)
-        const globber = await glob.create(params.getMavenHomeSearchPatterns().replaceAll(',', '\n'))
+        core.info(`Searching maven home in ${mavenHomeSearchPatterns}`)
+        const globber = await glob.create(mavenHomeSearchPatterns.replaceAll(',', '\n'))
         const mavenHomeGlob = await globber.glob()
         if (mavenHomeGlob && mavenHomeGlob.at(0)) {
             core.info(`Found maven home in ${mavenHomeGlob.at(0)}`)
@@ -57,10 +56,25 @@ export async function mavenBuildScanCaptureExtensionTarget(): Promise<string> {
     throw new Error(`Maven home not found`)
 }
 
-export function mavenBuildScanDataOriginal(): string {
+export function mavenBuildScanData(): string {
     return path.resolve(home(), BUILD_SCAN_DIR_ORIGINAL)
 }
 
 export function mavenBuildScanDataCopy(): string {
     return path.resolve(BUILD_SCAN_DIR_COPY)
+}
+
+export function parseScanDumpPath(scanDumpPath: string): {version: string; buildId: string} {
+    // capture extension version and buildId assuming scan name is ${HOME}/.m2/build-scan-data/<version>/previous/<buildId>/scan.scan
+    const scanDumpPathMatch = scanDumpPath.match(/^.*\/build-scan-data\/(.*)\/previous\/(.*)\/.*$/)
+    const version = scanDumpPathMatch?.at(1)
+    const buildId = scanDumpPathMatch?.at(2)
+    if (!version || !buildId) {
+        throw new Error(`Could not parse scan dump path : ${scanDumpPath}`)
+    }
+
+    return {
+        version,
+        buildId
+    }
 }

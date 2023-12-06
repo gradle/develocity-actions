@@ -2,9 +2,9 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 
 import * as input from './utils/input'
-import * as layout from './utils/layout'
-import * as io from './utils/io'
-import * as errorHandler from './utils/error'
+import * as layout from '../../maven-build-scan-shared/src/layout'
+import * as io from '../../maven-build-scan-shared/src/io'
+import * as errorHandler from '../../maven-build-scan-shared/src/error'
 
 /**
  * Main entrypoint for the action
@@ -23,7 +23,7 @@ export async function run(): Promise<void> {
         core.exportVariable('PR_NUMBER', github.context.issue.number)
 
         // Retrieve extension target filename (in Maven lib/ext folder)
-        const mavenBuildScanCaptureExtensionTarget = await layout.mavenBuildScanCaptureExtensionTarget()
+        const mavenBuildScanCaptureExtensionTarget = await layout.mavenBuildScanCaptureExtensionTarget(input.getMavenHomeSearchPatterns())
 
         // copy Maven extension in $MAVEN_HOME/lib/ext
         core.debug(`Copy ${layout.mavenBuildScanCaptureExtensionSource()} to ${mavenBuildScanCaptureExtensionTarget}`)

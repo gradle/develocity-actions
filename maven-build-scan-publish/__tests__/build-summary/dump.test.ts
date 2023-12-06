@@ -1,6 +1,6 @@
 import * as output from '../../src/build-summary/dump'
 import * as input from '../../src/utils/input'
-import * as io from '../../src/utils/io'
+import * as io from '../../../maven-build-scan-shared/src/io'
 import * as githubUtils from '../../src/utils/github'
 
 const outputMock = jest.spyOn(output, 'dump')

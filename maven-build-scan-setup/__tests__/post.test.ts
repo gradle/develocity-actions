@@ -3,7 +3,7 @@ import * as glob from '@actions/glob'
 import * as github from '@actions/github'
 
 import * as post from '../src/post'
-import * as layout from '../src/utils/layout'
+import * as layout from '../../maven-build-scan-shared/src/layout'
 
 const runMock = jest.spyOn(post, 'run')
 

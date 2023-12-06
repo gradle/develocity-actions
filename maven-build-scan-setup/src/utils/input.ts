@@ -1,25 +1,25 @@
-import * as core from '@actions/core'
+import * as sharedInput from '../../../maven-build-scan-shared/src/input'
 
 export function getWorkflowName(): string {
-    return core.getInput('workflow-name')
+    return sharedInput.getInput('workflow-name')
 }
 
 export function getJobName(): string {
-    return core.getInput('job-name')
+    return sharedInput.getInput('job-name')
 }
 
 export function getMavenHomeSearchPatterns(): string {
-    return core.getInput('maven-home-search-patterns')
+    return sharedInput.getInput('maven-home-search-patterns')
 }
 
 export function getBuildScanCaptureStrategy(): string {
-    return core.getInput('build-scan-capture-strategy')
+    return sharedInput.getInput('build-scan-capture-strategy')
 }
 
 export function getBuildScanCaptureUnpublishedEnabled(): string {
-    return core.getInput('build-scan-capture-unpublished-enabled')
+    return sharedInput.getInput('build-scan-capture-unpublished-enabled')
 }
 
 export function getBuildScanCaptureLinkEnabled(): string {
-    return core.getInput('build-scan-capture-link-enabled')
+    return sharedInput.getInput('build-scan-capture-link-enabled')
 }

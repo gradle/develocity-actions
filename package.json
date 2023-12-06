@@ -47,6 +47,7 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
+      "/maven-build-scan-shared/",
       "/dist/"
     ],
     "transform": {

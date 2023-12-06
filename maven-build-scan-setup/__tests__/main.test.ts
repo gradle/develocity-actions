@@ -5,8 +5,8 @@ process.env['GITHUB_REPOSITORY'] = 'foo/bar';
 process.env['MAVEN_HOME'] = '/tmp';
 
 import * as main from '../src/main'
-import * as io from '../src/utils/io'
-import * as layout from '../src/utils/layout'
+import * as io from '../../maven-build-scan-shared/src/io'
+import * as layout from '../../maven-build-scan-shared/src/layout'
 
 function githubContext() {
     Object.defineProperty(github, 'context', {
