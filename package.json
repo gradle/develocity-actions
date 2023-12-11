@@ -24,13 +24,19 @@
     "format:test": "prettier --write **/__tests__/**/*.ts",
     "lint": "eslint */src/**/*.ts",
     "package-maven-build-scan-capture-extension": "mvn clean package -f maven-build-scan-capture-extension/pom.xml",
-    "package-maven-build-scan-setup-main": "ncc build maven-build-scan-setup/src/main.ts --out maven-build-scan-setup/dist/main",
-    "package-maven-build-scan-setup-post": "ncc build maven-build-scan-setup/src/post.ts --out maven-build-scan-setup/dist/post",
-    "package-maven-build-scan-setup": "npm run package-maven-build-scan-setup-main && npm run package-maven-build-scan-setup-post && npm run package-maven-build-scan-capture-extension",
-    "package-maven-build-scan-publish": "ncc build maven-build-scan-publish/src/main.ts --out maven-build-scan-publish/dist",
-    "package": "npm run package-maven-build-scan-setup && npm run package-maven-build-scan-publish",
+    "package-build-scan-setup-gradle-main": "ncc build build-scan-setup-gradle/src/main.ts --out build-scan-setup-gradle/dist/main",
+    "package-build-scan-setup-gradle-post": "ncc build build-scan-setup-gradle/src/post.ts --out build-scan-setup-gradle/dist/post",
+    "package-build-scan-setup-maven-main": "ncc build build-scan-setup-maven/src/main.ts --out build-scan-setup-maven/dist/main",
+    "package-build-scan-setup-maven-post": "ncc build build-scan-setup-maven/src/post.ts --out build-scan-setup-maven/dist/post",
+    "package-build-scan-setup-maven": "npm run package-build-scan-setup-maven-main && npm run package-build-scan-setup-maven-post && npm run package-maven-build-scan-capture-extension",
+    "package-build-scan-setup-gradle": "npm run package-build-scan-setup-gradle-main && npm run package-build-scan-setup-gradle-post",
+    "package-build-scan-setup": "npm run package-build-scan-setup-gradle && npm run package-build-scan-setup-maven",
+    "package-build-scan-publish-gradle": "ncc build build-scan-publish-gradle/src/main.ts --out build-scan-publish-gradle/dist",
+    "package-build-scan-publish-maven": "ncc build build-scan-publish-maven/src/main.ts --out build-scan-publish-maven/dist",
+    "package-build-scan-publish": "npm run package-build-scan-publish-gradle && npm run package-build-scan-publish-maven",
+    "package-build-scan": "npm run package-build-scan-setup && npm run package-build-scan-publish",
     "test": "jest",
-    "all": "npm run format:write && npm run lint && npm run package && npm run test"
+    "all": "npm run format:write && npm run lint && npm run package-build-scan && npm run test"
   },
   "license": "MIT",
   "jest": {
@@ -47,7 +53,6 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/maven-build-scan-shared/",
       "/dist/"
     ],
     "transform": {

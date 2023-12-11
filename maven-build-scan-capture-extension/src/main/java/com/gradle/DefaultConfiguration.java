@@ -10,13 +10,13 @@ class DefaultConfiguration implements Configuration {
     }
 
     static final String CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY = "INPUT_BUILD_SCAN_CAPTURE_STRATEGY";
-    static final CaptureStrategy CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY_DEFAULT = CaptureStrategy.ALWAYS;
     static final String CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED = "CAPTURE_BUILD_SCAN";
-    static final boolean CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED_DEFAULT = false;
     static final String CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED = "INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED";
-    static final boolean CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED_DEFAULT = true;
     static final String CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED = "INPUT_BUILD_SCAN_CAPTURE_LINK_ENABLED";
-    static final boolean CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED_DEFAULT = true;
+    static final String CONFIG_KEY_BUILD_SCAN_DATA_DIR = "BUILD_SCAN_DATA_DIR";
+    static final String CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR = "BUILD_SCAN_DATA_COPY_DIR";
+    static final String BUILD_SCAN_LINK_FILE = "BUILD_SCAN_LINK_FILE";
+    static final String BUILD_SCAN_METADATA_FILENAME = "BUILD_SCAN_METADATA_FILENAME";
     static final String CONFIG_KEY_JOB_NAME = "INPUT_JOB_NAME";
     static final String CONFIG_KEY_WORKFLOW_NAME = "INPUT_WORKFLOW_NAME";
     static final String CONFIG_KEY_PR_NUMBER = "PR_NUMBER";
@@ -33,17 +33,25 @@ class DefaultConfiguration implements Configuration {
         instance.configuration.put(CONFIG_KEY_JOB_NAME, getEnvOrDefault(CONFIG_KEY_JOB_NAME, "unknown job name"));
         instance.configuration.put(CONFIG_KEY_PR_NUMBER, getEnvOrDefault(CONFIG_KEY_PR_NUMBER, "0"));
         instance.configuration.put(CONFIG_KEY_BUILD_ID, getEnvOrDefault(CONFIG_KEY_BUILD_ID, "0"));
-        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY, CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY_DEFAULT.name()));
-        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED, String.valueOf(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED_DEFAULT)));
-        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED, String.valueOf(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED_DEFAULT)));
-        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED, String.valueOf(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED_DEFAULT)));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_STRATEGY, CaptureStrategy.ALWAYS.name()));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED, String.valueOf(true)));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED, String.valueOf(true)));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED, String.valueOf(false)));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_DATA_DIR, getEnv(CONFIG_KEY_BUILD_SCAN_DATA_DIR));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR, getEnv(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR));
+        instance.configuration.put(BUILD_SCAN_LINK_FILE, getEnv(BUILD_SCAN_LINK_FILE));
+        instance.configuration.put(BUILD_SCAN_METADATA_FILENAME, getEnv(BUILD_SCAN_METADATA_FILENAME));
 
         return instance;
     }
 
     private static String getEnvOrDefault(String key, String defaultValue) {
-        String value = System.getenv(key);
+        String value = getEnv(key);
         return value != null ? value : defaultValue;
+    }
+
+    private static String getEnv(String key) {
+        return System.getenv(key);
     }
 
     private CaptureStrategy getCaptureStrategy() {
@@ -78,6 +86,22 @@ class DefaultConfiguration implements Configuration {
         return getCaptureStrategy().equals(CaptureStrategy.ALWAYS)
                 || (isBuildFailure && getCaptureStrategy().equals(CaptureStrategy.ON_FAILURE))
                 || (Boolean.parseBoolean(configuration.get(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED)) && getCaptureStrategy().equals(CaptureStrategy.ON_DEMAND));
+    }
+
+    public String getBuildScanDataDir() {
+        return configuration.get(CONFIG_KEY_BUILD_SCAN_DATA_DIR);
+    }
+
+    public String getBuildScanDataCopyDir() {
+        return configuration.get(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR);
+    }
+
+    public String getBuildScanLinkFile() {
+        return configuration.get(BUILD_SCAN_LINK_FILE);
+    }
+
+    public String getBuildScanMetadataFilename() {
+        return configuration.get(BUILD_SCAN_METADATA_FILENAME);
     }
 
     @Override

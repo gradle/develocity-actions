@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -18,7 +16,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class MavenBuildScanCaptureListenerTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MavenBuildScanCaptureListenerTest.class);
     private final MavenBuildScanCaptureListener underTest = new MavenBuildScanCaptureListener();
 
     @Mock
@@ -30,6 +27,9 @@ public class MavenBuildScanCaptureListenerTest {
     void captureUnpublishedBuildScan_success() throws Exception {
         // given
         when(configurationMock.isBuildScanCaptureUnpublishedEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.getBuildScanDataCopyDir()).thenReturn("copyDir");
+        when(configurationMock.getBuildScanDataDir()).thenReturn("dataDir");
+        when(configurationMock.getBuildScanMetadataFilename()).thenReturn("metadataFile");
         Path[] paths = {Path.of("foo", "bar"), Path.of("bar", "baz")};
         when(fileManagerMock.find(any(Path.class),anyInt(),any(BiPredicate.class))).thenReturn(Arrays.stream(paths));
         underTest.setConfiguration(configurationMock);
@@ -60,6 +60,7 @@ public class MavenBuildScanCaptureListenerTest {
     void captureUnpublishedBuildScan_withoutScanDump_doesNothing() throws Exception {
         // given
         when(configurationMock.isBuildScanCaptureUnpublishedEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.getBuildScanDataDir()).thenReturn("dataDir");
         when(fileManagerMock.find(any(Path.class),anyInt(),any(BiPredicate.class))).thenReturn(Arrays.stream(new Path[]{}));
         underTest.setFileManager(fileManagerMock);
         underTest.setConfiguration(configurationMock);
@@ -75,6 +76,7 @@ public class MavenBuildScanCaptureListenerTest {
     void captureBuildScanLink_success() throws Exception {
         // given
         when(configurationMock.isBuildScanCaptureLinkEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.getBuildScanLinkFile()).thenReturn("linkFile");
         underTest.setConfiguration(configurationMock);
         underTest.setFileManager(fileManagerMock);
 
