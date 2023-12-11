@@ -27,7 +27,6 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
     private static final Logger LOGGER = LoggerFactory.getLogger(MavenBuildScanCaptureListener.class);
     private static final String USER_HOME_SYSTEM_PROPERTY = "user.home";
     private static final String BUILD_SCAN_DATA_ORIGINAL_DIR = ".m2/.gradle-enterprise/build-scan-data/";
-    private static final String BUILD_SCAN_DATA_COPY_DIR = "./build-scan-data";
     private static final String SCAN_DUMP_REGEX = ".*/build-scan-data/.*/previous/.*/scan.scan";
     private static final String BUILD_SCAN_METADATA_FILENAME = "build-scan-metadata.properties";
     private static final String BUILD_SCAN_LINK_FILENAME = "build-scan-links.properties";
@@ -88,10 +87,6 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         return System.getProperty(USER_HOME_SYSTEM_PROPERTY);
     }
 
-    private String getBuildScanDataCopyDir() {
-        return BUILD_SCAN_DATA_COPY_DIR;
-    }
-
     void captureUnpublishedBuildScan() {
       if(configuration.isBuildScanCaptureUnpublishedEnabled(buildState.isBuildFailure())) {
           LOGGER.info("Configuring unpublished Build Scan capture");
@@ -106,8 +101,8 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
                   LOGGER.debug("Capturing Build Scan metadata for " + scanDumpPath.get());
                   captureBuildScanMetadata(scanDumpPath.get().getParent().toString());
 
-                  LOGGER.debug("Saving unpublished build scan");
-                  File destinationDirectory = new File(getBuildScanDataCopyDir());
+                  File destinationDirectory = new File(configuration.getBuildScanDataCopyDir());
+                  LOGGER.debug("Saving unpublished build scan to " + destinationDirectory.getAbsolutePath());
                   fileManager.copyDirectory(buildScanDirectory, destinationDirectory);
               } else {
                   LOGGER.debug("No unpublished build scan found");

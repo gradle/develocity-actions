@@ -18,7 +18,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class MavenBuildScanCaptureListenerTest {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MavenBuildScanCaptureListenerTest.class);
     private final MavenBuildScanCaptureListener underTest = new MavenBuildScanCaptureListener();
 
     @Mock
@@ -30,6 +29,7 @@ public class MavenBuildScanCaptureListenerTest {
     void captureUnpublishedBuildScan_success() throws Exception {
         // given
         when(configurationMock.isBuildScanCaptureUnpublishedEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.getBuildScanDataCopyDir()).thenReturn("copyDir");
         Path[] paths = {Path.of("foo", "bar"), Path.of("bar", "baz")};
         when(fileManagerMock.find(any(Path.class),anyInt(),any(BiPredicate.class))).thenReturn(Arrays.stream(paths));
         underTest.setConfiguration(configurationMock);

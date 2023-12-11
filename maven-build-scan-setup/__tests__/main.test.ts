@@ -3,6 +3,7 @@ import * as github from '@actions/github'
 // required before main is loaded
 process.env['GITHUB_REPOSITORY'] = 'foo/bar';
 process.env['MAVEN_HOME'] = '/tmp';
+process.env['RUNNER_TEMP'] = '/tmp';
 
 import * as main from '../src/main'
 import * as io from '../src/utils/io'

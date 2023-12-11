@@ -34881,6 +34881,7 @@ async function run() {
         core.exportVariable('INPUT_WORKFLOW_NAME', input.getWorkflowName());
         core.exportVariable('INPUT_JOB_NAME', input.getJobName());
         core.exportVariable('PR_NUMBER', github.context.issue.number);
+        core.exportVariable('BUILD_SCAN_DATA_COPY_DIR', layout.mavenBuildScanDataCopy());
         // init wrapper if needed
         await maven.initWrapper();
         // Retrieve extension target filename (in Maven lib/ext folder)
@@ -35083,8 +35084,9 @@ const params = __importStar(__nccwpck_require__(6921));
 const io = __importStar(__nccwpck_require__(9126));
 const ENV_KEY_HOME = 'HOME';
 const ENV_KEY_MAVEN_HOME = 'MAVEN_HOME';
+const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP';
 const BUILD_SCAN_DIR_ORIGINAL = '.m2/.gradle-enterprise/build-scan-data/';
-const BUILD_SCAN_DIR_COPY = 'build-scan-data';
+const BUILD_SCAN_DIR_COPY = 'build-scan-data-copy';
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension';
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
 const LIB_EXT = '/lib/ext/';
@@ -35122,7 +35124,11 @@ function mavenBuildScanDataOriginal() {
 }
 exports.mavenBuildScanDataOriginal = mavenBuildScanDataOriginal;
 function mavenBuildScanDataCopy() {
-    return path_1.default.resolve(BUILD_SCAN_DIR_COPY);
+    const tmpDir = process.env[ENV_KEY_RUNNER_TMP];
+    if (!tmpDir) {
+        throw new Error(`tmp directory not found`);
+    }
+    return path_1.default.resolve(tmpDir, BUILD_SCAN_DIR_COPY);
 }
 exports.mavenBuildScanDataCopy = mavenBuildScanDataCopy;
 

@@ -21,7 +21,7 @@ export async function run(): Promise<void> {
             // Upload Build Scan data as workflow artifact
             await uploadArtifacts(buildScanDataFiles)
         } else {
-            core.debug(`No Build Scan to process`)
+            core.info(`No Build Scan to process`)
         }
     } catch (error) {
         errorHandler.handle(error)
@@ -29,6 +29,7 @@ export async function run(): Promise<void> {
 }
 
 async function getBuildScanDataFiles(): Promise<string[]> {
+    core.debug(`Collecting build scans in ${layout.mavenBuildScanDataCopy()}/**`)
     const globber = await glob.create(`${layout.mavenBuildScanDataCopy()}/**`)
     return await globber.glob()
 }

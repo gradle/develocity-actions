@@ -17,6 +17,7 @@ class DefaultConfiguration implements Configuration {
     static final boolean CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED_DEFAULT = true;
     static final String CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED = "INPUT_BUILD_SCAN_CAPTURE_LINK_ENABLED";
     static final boolean CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED_DEFAULT = true;
+    static final String CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR = "BUILD_SCAN_DATA_COPY_DIR";
     static final String CONFIG_KEY_JOB_NAME = "INPUT_JOB_NAME";
     static final String CONFIG_KEY_WORKFLOW_NAME = "INPUT_WORKFLOW_NAME";
     static final String CONFIG_KEY_PR_NUMBER = "PR_NUMBER";
@@ -37,6 +38,7 @@ class DefaultConfiguration implements Configuration {
         instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED, String.valueOf(CONFIG_KEY_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED_DEFAULT)));
         instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED, String.valueOf(CONFIG_KEY_BUILD_SCAN_CAPTURE_LINK_ENABLED_DEFAULT)));
         instance.configuration.put(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED, String.valueOf(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED_DEFAULT)));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR, getEnvOrDefault(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR, CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR));
 
         return instance;
     }
@@ -78,6 +80,10 @@ class DefaultConfiguration implements Configuration {
         return getCaptureStrategy().equals(CaptureStrategy.ALWAYS)
                 || (isBuildFailure && getCaptureStrategy().equals(CaptureStrategy.ON_FAILURE))
                 || (Boolean.parseBoolean(configuration.get(CONFIG_KEY_BUILD_SCAN_CAPTURE_CURRENT_ENABLED)) && getCaptureStrategy().equals(CaptureStrategy.ON_DEMAND));
+    }
+
+    public String getBuildScanDataCopyDir() {
+        return configuration.get(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR);
     }
 
     @Override

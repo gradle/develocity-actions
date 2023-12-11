@@ -22,6 +22,7 @@ export async function run(): Promise<void> {
         core.exportVariable('INPUT_WORKFLOW_NAME', input.getWorkflowName())
         core.exportVariable('INPUT_JOB_NAME', input.getJobName())
         core.exportVariable('PR_NUMBER', github.context.issue.number)
+        core.exportVariable('BUILD_SCAN_DATA_COPY_DIR', layout.mavenBuildScanDataCopy() )
 
         // init wrapper if needed
         await maven.initWrapper()

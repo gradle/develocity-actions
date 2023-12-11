@@ -8,9 +8,10 @@ import * as io from './io'
 
 const ENV_KEY_HOME = 'HOME'
 const ENV_KEY_MAVEN_HOME = 'MAVEN_HOME'
+const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP'
 
 const BUILD_SCAN_DIR_ORIGINAL = '.m2/.gradle-enterprise/build-scan-data/'
-const BUILD_SCAN_DIR_COPY = 'build-scan-data'
+const BUILD_SCAN_DIR_COPY = 'build-scan-data-copy'
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension'
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`
 const LIB_EXT = '/lib/ext/'
@@ -62,5 +63,10 @@ export function mavenBuildScanDataOriginal(): string {
 }
 
 export function mavenBuildScanDataCopy(): string {
-    return path.resolve(BUILD_SCAN_DIR_COPY)
+    const tmpDir = process.env[ENV_KEY_RUNNER_TMP]
+    if (!tmpDir) {
+        throw new Error(`tmp directory not found`)
+    }
+
+    return path.resolve(tmpDir, BUILD_SCAN_DIR_COPY)
 }

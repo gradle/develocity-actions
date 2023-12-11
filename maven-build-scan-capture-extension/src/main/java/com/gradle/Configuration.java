@@ -14,4 +14,6 @@ interface Configuration {
 
     boolean isBuildScanCaptureLinkEnabled(boolean isBuildFailure);
 
+    String getBuildScanDataCopyDir();
+
 }

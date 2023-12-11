@@ -32348,7 +32348,7 @@ async function run() {
             await uploadArtifacts(buildScanDataFiles);
         }
         else {
-            core.debug(`No Build Scan to process`);
+            core.info(`No Build Scan to process`);
         }
     }
     catch (error) {
@@ -32357,6 +32357,7 @@ async function run() {
 }
 exports.run = run;
 async function getBuildScanDataFiles() {
+    core.debug(`Collecting build scans in ${layout.mavenBuildScanDataCopy()}/**`);
     const globber = await glob.create(`${layout.mavenBuildScanDataCopy()}/**`);
     return await globber.glob();
 }
@@ -32555,8 +32556,9 @@ const params = __importStar(__nccwpck_require__(6921));
 const io = __importStar(__nccwpck_require__(9126));
 const ENV_KEY_HOME = 'HOME';
 const ENV_KEY_MAVEN_HOME = 'MAVEN_HOME';
+const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP';
 const BUILD_SCAN_DIR_ORIGINAL = '.m2/.gradle-enterprise/build-scan-data/';
-const BUILD_SCAN_DIR_COPY = 'build-scan-data';
+const BUILD_SCAN_DIR_COPY = 'build-scan-data-copy';
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension';
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
 const LIB_EXT = '/lib/ext/';
@@ -32594,7 +32596,11 @@ function mavenBuildScanDataOriginal() {
 }
 exports.mavenBuildScanDataOriginal = mavenBuildScanDataOriginal;
 function mavenBuildScanDataCopy() {
-    return path_1.default.resolve(BUILD_SCAN_DIR_COPY);
+    const tmpDir = process.env[ENV_KEY_RUNNER_TMP];
+    if (!tmpDir) {
+        throw new Error(`tmp directory not found`);
+    }
+    return path_1.default.resolve(tmpDir, BUILD_SCAN_DIR_COPY);
 }
 exports.mavenBuildScanDataCopy = mavenBuildScanDataCopy;
 
