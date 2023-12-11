@@ -32442,7 +32442,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getBuildScanCaptureLinkEnabled = exports.getBuildScanCaptureUnpublishedEnabled = exports.getBuildScanCaptureStrategy = exports.getMavenHomeSearchPatterns = exports.getJobName = exports.getWorkflowName = void 0;
+exports.getWrapperPath = exports.isWrapperInit = exports.getBuildScanCaptureLinkEnabled = exports.getBuildScanCaptureUnpublishedEnabled = exports.getBuildScanCaptureStrategy = exports.getMavenHomeSearchPatterns = exports.getJobName = exports.getWorkflowName = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 function getWorkflowName() {
     return core.getInput('workflow-name');
@@ -32468,6 +32468,26 @@ function getBuildScanCaptureLinkEnabled() {
     return core.getInput('build-scan-capture-link-enabled');
 }
 exports.getBuildScanCaptureLinkEnabled = getBuildScanCaptureLinkEnabled;
+function isWrapperInit() {
+    return getBooleanInput('wrapper-init');
+}
+exports.isWrapperInit = isWrapperInit;
+function getWrapperPath() {
+    return core.getInput('wrapper-path');
+}
+exports.getWrapperPath = getWrapperPath;
+function getBooleanInput(paramName, paramDefault = false) {
+    const paramValue = core.getInput(paramName);
+    switch (paramValue.toLowerCase().trim()) {
+        case '':
+            return paramDefault;
+        case 'false':
+            return false;
+        case 'true':
+            return true;
+    }
+    throw TypeError(`The value '${paramValue} is not valid for '${paramName}. Valid values are: [true, false]`);
+}
 
 
 /***/ }),

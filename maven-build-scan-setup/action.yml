@@ -27,6 +27,14 @@ inputs:
     description: 'Flag to enable Build Scan link capture'
     required: false
     default: true
+  wrapper-init:
+    description: 'Flag to enable the Maven wrapper by running it (with -version) in order to trigger local installation'
+    required: false
+    default: false
+  wrapper-path:
+    description: 'Path to mvnw script (used in combination with wrapper-init)'
+    required: false
+    default: ''
 
 runs:
   using: node20

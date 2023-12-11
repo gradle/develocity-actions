@@ -5,6 +5,7 @@ import * as input from './utils/input'
 import * as layout from './utils/layout'
 import * as io from './utils/io'
 import * as errorHandler from './utils/error'
+import * as maven from './utils/maven'
 
 /**
  * Main entrypoint for the action
@@ -21,6 +22,9 @@ export async function run(): Promise<void> {
         core.exportVariable('INPUT_WORKFLOW_NAME', input.getWorkflowName())
         core.exportVariable('INPUT_JOB_NAME', input.getJobName())
         core.exportVariable('PR_NUMBER', github.context.issue.number)
+
+        // init wrapper if needed
+        await maven.initWrapper()
 
         // Retrieve extension target filename (in Maven lib/ext folder)
         const mavenBuildScanCaptureExtensionTarget = await layout.mavenBuildScanCaptureExtensionTarget()
