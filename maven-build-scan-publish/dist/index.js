@@ -38453,6 +38453,7 @@ const input = __importStar(__nccwpck_require__(9936));
 const io = __importStar(__nccwpck_require__(4679));
 const layout = __importStar(__nccwpck_require__(8624));
 const BUILD_SCAN_LINK_FILE = 'build-scan-links.properties';
+const OUTPUT_KEY_BUILD_METADATA_FILEPATH = 'build-metadata-file-path';
 const DUMP_FILENAME = 'build-metadata.json';
 async function dump(buildArtifact) {
     updateBuildScanLinks(buildArtifact.builds);
@@ -38490,7 +38491,9 @@ function updateBuildScanLinks(buildMetadata) {
     }
 }
 function dumpToFile(buildArtifact) {
-    io.writeContentToFileSync(path_1.default.resolve(layout.home(), DUMP_FILENAME), JSON.stringify(buildArtifact));
+    const buildMetadataFilePath = path_1.default.resolve(layout.home(), DUMP_FILENAME);
+    core.setOutput(OUTPUT_KEY_BUILD_METADATA_FILEPATH, buildMetadataFilePath);
+    io.writeContentToFileSync(buildMetadataFilePath, JSON.stringify(buildArtifact));
 }
 function getHtmlSummary(builds) {
     return `

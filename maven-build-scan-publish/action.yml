@@ -27,6 +27,10 @@ inputs:
     default: ${{ github.token }}
     required: false
 
+outputs:
+  build-metadata-file-path:
+    description: 'Path to build metadata file.'
+
 runs:
   using: node20
   main: dist/index.js

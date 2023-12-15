@@ -8,6 +8,7 @@ import * as layout from '../utils/layout'
 import {BuildArtifact, BuildMetadata} from '../data/load'
 
 const BUILD_SCAN_LINK_FILE = 'build-scan-links.properties'
+const OUTPUT_KEY_BUILD_METADATA_FILEPATH = 'build-metadata-file-path'
 const DUMP_FILENAME = 'build-metadata.json'
 
 export async function dump(buildArtifact: BuildArtifact): Promise<void> {
@@ -48,7 +49,9 @@ function updateBuildScanLinks(buildMetadata: BuildMetadata[]): void {
 }
 
 function dumpToFile(buildArtifact: BuildArtifact): void {
-    io.writeContentToFileSync(path.resolve(layout.home(), DUMP_FILENAME), JSON.stringify(buildArtifact))
+    const buildMetadataFilePath = path.resolve(layout.home(), DUMP_FILENAME)
+    core.setOutput(OUTPUT_KEY_BUILD_METADATA_FILEPATH, buildMetadataFilePath)
+    io.writeContentToFileSync(buildMetadataFilePath, JSON.stringify(buildArtifact))
 }
 
 function getHtmlSummary(builds: BuildMetadata[]): string {
