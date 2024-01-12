@@ -65,7 +65,7 @@ Some parameters need to be adjusted here:
 - The workflow name (here `PR Build`) triggered when a pull-request is submitted
 - The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)
 - The secret name holding the Develocity access key (here `<DEVELOCITY_ACCESS_KEY>`)
-- If using the [Maven wrapper](https://maven.apache.org/wrapper/), check the [relevant section](#Usage with Maven Wrapper)
+- If using the [Maven wrapper](https://maven.apache.org/wrapper/), check the [relevant section](#usage-with-maven-wrapper)
  
 #### Implementation details
 
