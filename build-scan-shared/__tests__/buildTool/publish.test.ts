@@ -5,10 +5,10 @@ process.env['RUNNER_TEMP'] = '/tmp';
 
 import * as commonBuildTool from '../../src/buildTool/common'
 import * as github from '@actions/github'
-import * as gradle from '../../src/buildTool/gradle'
+import * as maven from '../../src/buildTool/maven'
 import * as io from '../../src/io'
 
-const buildTool = gradle.gradleBuildTool
+const buildTool = maven.mavenBuildTool
 
 describe('publish', () => {
     let execMock: any
@@ -27,8 +27,8 @@ describe('publish', () => {
                 }
             }
         })
-        createPublisherProjectMock = jest.spyOn(commonBuildTool.BuildTool.prototype, 'createPublisherProjectStructure').mockReturnValue()
-        createPluginDescriptorMock = jest.spyOn(commonBuildTool.BuildTool.prototype, 'createPluginDescriptorFileWithCurrentVersion').mockReturnValue()
+        createPublisherProjectMock = jest.spyOn(buildTool, 'createPublisherProjectStructure').mockReturnValue()
+        createPluginDescriptorMock = jest.spyOn(buildTool, 'createPluginDescriptorFileWithCurrentVersion').mockReturnValue()
     })
 
     afterEach(() => {
@@ -93,6 +93,7 @@ describe('publish', () => {
             .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Java 1.0'}))
             .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Maven 1.0'}))
             .mockReturnValueOnce(Promise.resolve({stderr: 'mvn publication failed', exitCode: 1, stdout: ''}))
+            .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Build Scan published'}))
 
         // @ts-ignore
         jest.spyOn(glob, 'create').mockReturnValue(

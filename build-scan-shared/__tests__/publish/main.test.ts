@@ -1,4 +1,4 @@
-import * as gradle from '../../src/buildTool/gradle'
+import * as maven from '../../src/buildTool/maven'
 
 process.env['RUNNER_TEMP'] = '/tmp'
 
@@ -9,7 +9,7 @@ import * as loader from '../../src/publish/data/load'
 import * as main from '../../src/publish/main'
 import * as output from '../../src/publish/summary/dump'
 
-const buildTool = gradle.gradleBuildTool
+const buildTool = maven.mavenBuildTool
 
 describe('main', () => {
 
