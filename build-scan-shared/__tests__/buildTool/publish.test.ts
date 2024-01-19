@@ -1,7 +1,7 @@
 import * as glob from '@actions/glob'
 import * as exec from '@actions/exec'
 
-process.env['RUNNER_TEMP'] = '/tmp';
+process.env['RUNNER_TEMP'] = '/tmp'
 
 import * as commonBuildTool from '../../src/buildTool/common'
 import * as github from '@actions/github'
@@ -28,7 +28,9 @@ describe('publish', () => {
             }
         })
         createPublisherProjectMock = jest.spyOn(buildTool, 'createPublisherProjectStructure').mockReturnValue()
-        createPluginDescriptorMock = jest.spyOn(buildTool, 'createPluginDescriptorFileWithCurrentVersion').mockReturnValue()
+        createPluginDescriptorMock = jest
+            .spyOn(buildTool, 'createPluginDescriptorFileWithCurrentVersion')
+            .mockReturnValue()
     })
 
     afterEach(() => {
