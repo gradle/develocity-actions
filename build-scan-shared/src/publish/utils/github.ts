@@ -2,6 +2,7 @@ import * as github from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
 import {OctokitResponse} from '@octokit/types' // eslint-disable-line import/named
 import * as core from '@actions/core'
+import { DefaultArtifactClient } from '@actions/artifact'
 
 import * as input from '../input'
 import * as io from '../../io'
@@ -18,12 +19,63 @@ export function isPublicationAllowed(): boolean {
     return isEventSupported() && isUserAuthorized()
 }
 function isEventSupported(): boolean {
-    return github.context.eventName === 'workflow_run'
+    return github.context.eventName === 'workflow_run' || isUnderTest()
+}
+
+function isUnderTest(): boolean {
+    // Some end-to-end tests are run on the pull_request workflow and requires some special treatment
+    return github.context.eventName === 'pull_request' && (github.context.repo.owner === 'gradle' && github.context.repo.repo === 'github-actions')
+}
+
+function getRunActor(): string {
+    return isUnderTest() ? getRunActorForTest() : getRunActorForWorkflowRun()
+}
+
+function getRunActorForWorkflowRun(): string {
+    return github.context.payload.workflow_run.actor.login
+}
+
+function getRunActorForTest(): string {
+    return github.context.actor
+}
+
+function getListArtifactsOptions(): any {
+    return isUnderTest() ? getListArtifactsOptionsForTest() : getListArtifactsOptionsForWorkflowRun()
+}
+
+function getListArtifactsOptionsForWorkflowRun(): any {
+    const runId = github.context.payload.workflow_run.id
+
+    return {
+        workflowRunId: runId,
+        repositoryName: github.context.repo.repo,
+        repositoryOwner: github.context.repo.owner,
+    }
+}
+
+function getListArtifactsOptionsForTest(): any {
+    return {
+        latest: true
+    }
+}
+
+export async function getArtifactIdForWorkflowRun(artifactName: string): Promise<undefined | number> {
+    const artifactClient = new DefaultArtifactClient()
+
+    const artifacts = await artifactClient.listArtifacts(
+        getListArtifactsOptions()
+    )
+
+    core.info(`${JSON.stringify(artifacts)}`)
+
+    const matchArtifact = getBuildScanArtifact(artifactName, artifacts?.artifacts)
+
+    return matchArtifact?.id
 }
 
 function isUserAuthorized(): boolean {
     const authorizedUsersList = input.getAuthorizedUsersList().trim()
-    const prSubmitter = github.context.payload.workflow_run.actor.login
+    const prSubmitter = getRunActor()
 
     core.debug(`prSubmitter = ${prSubmitter}`)
     if (authorizedUsersList && !authorizedUsersList.split(',').includes(prSubmitter)) {
@@ -81,23 +133,8 @@ export async function extractArtifactToDirectory(artifactName: string, artifactI
     return isDownLoadArtifactToFile
 }
 
-export async function getArtifactIdForWorkflowRun(artifactName: string): Promise<undefined | number> {
-    const runId = github.context.payload.workflow_run.id
-
-    // Find the workflow run artifacts named 'maven-build-scan-data'
-    const artifacts = await getOctokit().rest.actions.listWorkflowRunArtifacts({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        run_id: runId
-    })
-
-    const matchArtifact = getBuildScanArtifact(artifactName, artifacts)
-
-    return matchArtifact?.id
-}
-
 function getBuildScanArtifact(artifactName: string, artifacts: any): any {
-    return artifacts.data.artifacts.find((candidate: any) => {
+    return artifacts.find((candidate: any) => {
         return candidate.name === artifactName
     })
 }

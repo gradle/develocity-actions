@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
-import {create} from '@actions/artifact'
 import * as glob from '@actions/glob'
+import {DefaultArtifactClient} from '@actions/artifact'
 
 import * as commonBuildTool from '../buildTool/common'
 
@@ -17,7 +17,7 @@ export async function uploadBuildScanDataFiles(buildTool: commonBuildTool.BuildT
 
 async function getBuildScanDataFiles(buildScanDataFolder: string): Promise<string[]> {
     core.debug(`Collecting build scans in ${buildScanDataFolder}/**`)
-    const globber = await glob.create(`${buildScanDataFolder}/**`)
+    const globber = await glob.create(`${buildScanDataFolder}/**`, {matchDirectories: false})
     return await globber.glob()
 }
 
@@ -26,7 +26,7 @@ async function uploadArtifacts(
     buildScanDataFolder: string,
     buildScanArtifactName: string
 ): Promise<void> {
-    const artifactClient = create()
+    const artifactClient = new DefaultArtifactClient()
 
     await artifactClient.uploadArtifact(buildScanArtifactName, files, buildScanDataFolder, {
         retentionDays: 1

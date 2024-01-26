@@ -1,7 +1,10 @@
 import * as github from '@actions/github'
+
+process.env['GITHUB_REPOSITORY'] = 'foo/bar'
+process.env['RUNNER_TEMP'] = '/tmp'
+
 import * as main from '../src/main'
 
-process.env['RUNNER_TEMP'] = '/tmp'
 
 const runMock = jest.spyOn(main, 'run')
 

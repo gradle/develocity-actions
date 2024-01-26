@@ -8,6 +8,8 @@ import * as post from '../src/post'
 
 const runMock = jest.spyOn(post, 'run')
 
+jest.mock('@actions/artifact')
+
 describe('Post Setup Maven', () => {
     beforeEach(() => {
         Object.defineProperty(github, 'context', {
@@ -37,11 +39,13 @@ describe('Post Setup Maven', () => {
                 }
             })
         )
-        const uploadArtifactMock = jest.fn()
-        const mockArtifactClient: Partial<artifact.ArtifactClient> = {
-            uploadArtifact: uploadArtifactMock
-        }
-        jest.spyOn(artifact, 'create').mockReturnValue(mockArtifactClient as artifact.ArtifactClient)
+        jest
+            .spyOn(artifact, 'DefaultArtifactClient')
+            .mockImplementation()
+        const uploadArtifactMock = jest
+            .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
+            .mockImplementation()
+
 
         // when
         await post.run()
@@ -61,11 +65,12 @@ describe('Post Setup Maven', () => {
                 }
             })
         )
-        const uploadArtifactMock = jest.fn()
-        const mockArtifactClient: Partial<artifact.ArtifactClient> = {
-            uploadArtifact: uploadArtifactMock
-        }
-        jest.spyOn(artifact, 'create').mockReturnValue(mockArtifactClient as artifact.ArtifactClient)
+        jest
+            .spyOn(artifact, 'DefaultArtifactClient')
+            .mockImplementation()
+        const uploadArtifactMock = jest
+            .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
+            .mockImplementation()
 
         // when
         await post.run()

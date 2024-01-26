@@ -37666,6 +37666,7 @@ class BuildTool {
                 res = await exec.getExecOutput(buildToolCmd, this.getPublishTask(), {
                     cwd: publisherProjectDir,
                     env: {
+                        MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
                         GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
                         INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED: 'false',
