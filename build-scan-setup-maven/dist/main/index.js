@@ -37463,7 +37463,7 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
-/***/ 2091:
+/***/ 2558:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -37495,172 +37495,52 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.mavenBuildScanCaptureExtensionTarget = exports.mavenBuildScanCaptureExtensionSource = void 0;
-const path_1 = __importDefault(__nccwpck_require__(1017));
-const core = __importStar(__nccwpck_require__(2186));
-const glob = __importStar(__nccwpck_require__(8090));
-const io = __importStar(__nccwpck_require__(1422));
-const sharedInput = __importStar(__nccwpck_require__(169));
-const ENV_KEY_MAVEN_HOME = 'MAVEN_HOME';
-const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension';
-const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
-const MAVEN_LIB_EXT = '/lib/ext/';
-function mavenBuildScanCaptureExtensionSource() {
-    return path_1.default.resolve(__dirname, '..', '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, 'dist', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
-}
-exports.mavenBuildScanCaptureExtensionSource = mavenBuildScanCaptureExtensionSource;
-async function mavenBuildScanCaptureExtensionTarget() {
-    const mavenHome = await getBuildToolHome(getMavenHomeSearchPatterns());
-    // Retrieve $MAVEN_HOME/lib/ext
-    const mavenHomeLibExtDir = `${mavenHome}${MAVEN_LIB_EXT}`;
-    // Create folder if missing
-    if (!io.existsSync(mavenHomeLibExtDir)) {
-        core.info(`Creating ${mavenHomeLibExtDir}`);
-        io.mkdirSync(mavenHomeLibExtDir);
-    }
-    return `${mavenHomeLibExtDir}${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR}`;
-}
-exports.mavenBuildScanCaptureExtensionTarget = mavenBuildScanCaptureExtensionTarget;
-async function getBuildToolHome(mavenHomeSearchPatterns) {
-    const mavenHome = process.env[ENV_KEY_MAVEN_HOME];
-    if (mavenHome) {
-        core.info(`Using MAVEN_HOME=${mavenHome}`);
-        return `${mavenHome}`;
-    }
-    else {
-        core.info(`Searching maven home in ${mavenHomeSearchPatterns}`);
-        const globber = await glob.create(mavenHomeSearchPatterns.replaceAll(',', '\n'));
-        const mavenHomeGlob = await globber.glob();
-        if (mavenHomeGlob && mavenHomeGlob.at(0)) {
-            core.info(`Found maven home in ${mavenHomeGlob.at(0)}`);
-            return mavenHomeGlob.at(0);
-        }
-    }
-    throw new Error(`Maven home not found`);
-}
-function getMavenHomeSearchPatterns() {
-    return sharedInput.getInput('maven-home-search-patterns');
-}
-
-
-/***/ }),
-
-/***/ 2558:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = void 0;
 const core = __importStar(__nccwpck_require__(2186));
+const path_1 = __importDefault(__nccwpck_require__(1017));
 const errorHandler = __importStar(__nccwpck_require__(2766));
 const input = __importStar(__nccwpck_require__(4758));
-const io = __importStar(__nccwpck_require__(1422));
-const layout = __importStar(__nccwpck_require__(2091));
 const maven = __importStar(__nccwpck_require__(37));
-const wrapper = __importStar(__nccwpck_require__(384));
+const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension';
+const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
+const ENV_KEY_MAVEN_OPTS = 'MAVEN_OPTS';
+const MAVEN_OPTS_EXT_CLASS_PATH = '-Dmaven.ext.class.path';
 /**
  * Main entrypoint for the action
  */
-async function run() {
+function run() {
     try {
-        // Init wrapper if needed
-        await wrapper.init();
+        // Configure environment to inject capture extension on Maven builds
+        configureEnvironment();
         // Propagate environment variables to subsequent steps
         input.exportVariables(maven.mavenBuildTool);
-        // Copy Maven capture extension
-        await copyMavenCaptureExtensionToMavenHome();
     }
     catch (error) {
         errorHandler.handle(error);
     }
 }
 exports.run = run;
-async function copyMavenCaptureExtensionToMavenHome() {
-    // Retrieve extension source and target
-    const captureExtensionFilePath = layout.mavenBuildScanCaptureExtensionSource();
-    const mavenHomeLibExtPath = await layout.mavenBuildScanCaptureExtensionTarget();
-    // Copy Maven extension in $MAVEN_HOME/lib/ext
-    core.debug(`Copy ${captureExtensionFilePath} to ${mavenHomeLibExtPath}`);
-    io.copyFileSync(captureExtensionFilePath, mavenHomeLibExtPath);
-}
-run();
-
-
-/***/ }),
-
-/***/ 384:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.init = void 0;
-const core = __importStar(__nccwpck_require__(2186));
-const exec = __importStar(__nccwpck_require__(1514));
-const sharedInput = __importStar(__nccwpck_require__(169));
-function isWrapperInit() {
-    return sharedInput.getBooleanInput('wrapper-init');
-}
-function getWrapperPath() {
-    return sharedInput.getInput('wrapper-path');
-}
-async function init() {
-    if (isWrapperInit()) {
-        core.info(`Initialize Maven wrapper`);
-        const res = await exec.getExecOutput('./mvnw', ['-version'], { cwd: getWrapperPath() });
-        if (res.stderr !== '' && res.exitCode) {
-            throw new Error(`Maven Wrapper initialization failed: ${res.stderr}`);
+function configureEnvironment() {
+    const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, 'dist', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
+    const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS];
+    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}`;
+    if (mavenOptsCurrent) {
+        const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`);
+        if (extClassPathIndex !== -1) {
+            // MAVEN_OPTS already configured with -Dmaven.ext.class.path
+            mavenOptsNew = mavenOptsCurrent.substring(0, extClassPathIndex) + mavenOptsNew + path_1.default.delimiter + mavenOptsCurrent.substring(extClassPathIndex + `${MAVEN_OPTS_EXT_CLASS_PATH}=`.length);
+        }
+        else {
+            // MAVEN_OPTS already configured without -Dmaven.ext.class.path
+            mavenOptsNew = `${mavenOptsCurrent} ${mavenOptsNew}`;
         }
     }
+    else {
+        // MAVEN_OPTS not configured
+    }
+    core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew);
 }
-exports.init = init;
+run();
 
 
 /***/ }),

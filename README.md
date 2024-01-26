@@ -10,7 +10,7 @@ as workflows from forked repositories do not have access to secrets although an 
 
 This repository contains some actions which can be combined to solve this.
 
-_Note:_
+_Note:_<br>
 The `Approve and Run` manual step documented [here](https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks) must be enabled on the GitHub repository configuration to meet legal requirements (this is the default configuration).
 
 ### Maven workflow
@@ -60,12 +60,11 @@ jobs:
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
 ```
 
-_Note:_
+_Note:_<br>
 Some parameters need to be adjusted here:
 - The workflow name (here `PR Build`) triggered when a pull-request is submitted
 - The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)
 - The secret name holding the Develocity access key (here `<DEVELOCITY_ACCESS_KEY>`)
-- If using the [Maven wrapper](https://maven.apache.org/wrapper/), check the [relevant section](#usage-with-maven-wrapper)
  
 #### Implementation details
 
@@ -85,8 +84,11 @@ The _capture_ can be _enabled_/_disabled_ separately:
 - `build-scan-capture-link-enabled`: to disable Build Scan® link capture
 
 The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
-The extension must be registered at the beginning of the GitHub workflow job, by copying it in `$MAVEN_HOME/lib/ext/`.
-The `MAVEN_HOME` environment variable is used if present, otherwise, the csv list of folders `maven-home-search-patterns` is searched. This variable van be configured.
+The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
+
+_Note:_<br>
+If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered. 
+Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
 `workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-build-scan-publish` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
 
@@ -101,12 +103,9 @@ The `MAVEN_HOME` environment variable is used if present, otherwise, the csv lis
 |------------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `workflow-filename`                      | *Optional*: Name of the workflow triggering the build                                                               | `${{ github.workflow }}`                                                                                                                                                                                      |
 | `job-filename`                           | *Optional*: Name of the job triggering the build                                                                    | `${{ github.job }}`                                                                                                                                                                                           |
-| `maven-home-search-patterns`             | *Optional*: List of patterns to search for maven home (csv format)                                                  | `~/.m2/wrapper/dists/apache-maven-*/*/apache-maven-*/,/usr/share/apache-maven-*/,C:/Users/runneradmin/.m2/wrapper/dists/apache-maven-*/*/apache-maven-*/,C:/ProgramData/chocolatey/lib/maven/apache-maven-*/` |
 | `build-scan-capture-strategy`            | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                                             | `ALWAYS`                                                                                                                                                                                                      |
 | `build-scan-capture-unpublished-enabled` | *Optional*: Flag to enable unpublished Build Scan capture                                                           | `true`                                                                                                                                                                                                        |
 | `build-scan-capture-link-enabled`        | *Optional*: Flag to enable Build Scan link capture                                                                  | `true`                                                                                                                                                                                                        |
-| `wrapper-init`                           | *Optional*: Flag to enable the Maven wrapper by running it (with `-version`) in order to trigger local installation | `false`                                                                                                                                                                                                       |
-| `wrapper-path`                           | *Optional*: Path to mvnw script (used in combination with `wrapper-init`)                                           | ``                                                                                                                                                                                                            |
 
 **Usage**:
 
@@ -124,15 +123,6 @@ jobs:
       run: ./mvnw clean package
   [...]
 ```
-
-##### Usage with Maven Wrapper
-
-When using the Maven wrapper, the Maven extension can't be registered once at the beginning of the build by copying it to `$MAVEN_HOME/lib/ext` as the folder is created on first `mvnw` invocation (and emptied if already present).
-
-There are three options in this situation (by order of preference):
-1. Set `wrapper-init: true` to trigger the installation of Maven when running the `gradle/github-actions/build-scan-setup-maven` step
-2. Register the Maven extension as a Maven CLI argument (`-Dmaven.ext.class.path`) 
-3. Add a previous step calling `mvnw` and reference `gradle/github-actions/build-scan-setup-maven` step after
 
 ##### build-scan-publish-maven
 
@@ -202,7 +192,7 @@ The following permissions are required for this action to operate:
 
 **Usage**:
 
-_Note:_
+_Note:_<br>
 Some parameters need to be adjusted here:
 - The workflow name (here `PR Build`) triggered when a pull-request is submitted
 - The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)

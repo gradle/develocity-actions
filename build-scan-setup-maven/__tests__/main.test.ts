@@ -1,14 +1,7 @@
 import * as github from '@actions/github'
-import * as exec from '@actions/exec'
-
-process.env['GITHUB_REPOSITORY'] = 'foo/bar'
-process.env['MAVEN_HOME'] = '/tmp'
-process.env['RUNNER_TEMP'] = '/tmp'
-
-import * as io from '../../build-scan-shared/src/io'
-import * as layout from '../src/layout'
 import * as main from '../src/main'
-import * as sharedInput from '../../build-scan-shared/src/input'
+
+process.env['RUNNER_TEMP'] = '/tmp'
 
 const runMock = jest.spyOn(main, 'run')
 
@@ -31,63 +24,40 @@ describe('Main Setup Maven', () => {
         jest.clearAllMocks()
     })
 
-    it('Setup build scan action succeeds', async () => {
-        // Given
-        const layoutSourceMock = jest
-            .spyOn(layout, 'mavenBuildScanCaptureExtensionSource')
-            .mockReturnValue('sourceFileName')
-        const layoutTargetMock = jest
-            .spyOn(layout, 'mavenBuildScanCaptureExtensionTarget')
-            .mockReturnValue(Promise.resolve('targetFileName'))
-        const ioMock = jest.spyOn(io, 'copyFileSync').mockReturnValue()
+    it('Setup build scan action adds MAVEN_OPTS when not configured', async () => {
+        // given
+        process.env['MAVEN_OPTS'] = ''
 
         // when
         await main.run()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(layoutSourceMock).toHaveBeenCalled()
-        expect(layoutTargetMock).toHaveBeenCalled()
-        expect(ioMock).toHaveBeenCalled()
+        expect(process.env['MAVEN_OPTS']).toMatch(/^-Dmaven.ext.class.path=.*$/)
     })
 
-    it('Setup when Maven home is not found fails', async () => {
-        // Given
-        const errorMsg = 'Maven home not found'
-        const layoutTargetMock = jest.spyOn(layout, 'mavenBuildScanCaptureExtensionTarget').mockRejectedValue(errorMsg)
-        const ioMock = jest.spyOn(io, 'copyFileSync').mockReturnValue()
+    it('Setup build scan action extends MAVEN_OPTS when already configured', async () => {
+        // given
+        process.env['MAVEN_OPTS'] = 'foo bar'
 
         // when
         await main.run()
 
         // then
         expect(runMock).toHaveReturned()
-        await expect(layoutTargetMock).rejects.toEqual(errorMsg)
-        expect(ioMock).not.toHaveBeenCalled()
+        expect(process.env['MAVEN_OPTS']).toMatch(/^foo bar -Dmaven.ext.class.path=.*$/)
     })
 
-    it('Setup when Maven wrapper init is set succeeds', async () => {
-        // Given
-        jest.spyOn(sharedInput, 'getBooleanInput').mockReturnValue(true)
-        const execMock = jest
-            .spyOn(exec, 'getExecOutput')
-            .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Maven wrapper executed'}))
-        const layoutSourceMock = jest
-            .spyOn(layout, 'mavenBuildScanCaptureExtensionSource')
-            .mockReturnValue('sourceFileName')
-        const layoutTargetMock = jest
-            .spyOn(layout, 'mavenBuildScanCaptureExtensionTarget')
-            .mockReturnValue(Promise.resolve('targetFileName'))
-        const ioMock = jest.spyOn(io, 'copyFileSync').mockReturnValue()
+    it('Setup build scan action merges MAVEN_OPTS when already configured with -Dmaven.ext.class.path', async () => {
+        // given
+        process.env['MAVEN_OPTS'] = 'foo -Dmaven.ext.class.path=a:b:c bar'
 
         // when
         await main.run()
 
         // then
         expect(runMock).toHaveReturned()
-        expect(execMock).toHaveBeenCalledTimes(1)
-        expect(layoutSourceMock).toHaveBeenCalled()
-        expect(layoutTargetMock).toHaveBeenCalled()
-        expect(ioMock).toHaveBeenCalled()
+        expect(process.env['MAVEN_OPTS']).toMatch(/^foo -Dmaven.ext.class.path=.*:a:b:c bar$/)
     })
+
 })
