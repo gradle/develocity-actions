@@ -36288,6 +36288,9 @@ class BuildTool {
         const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version);
         io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent);
     }
+    getType() {
+        return this.type;
+    }
     getBuildScanWorkDir() {
         return path_1.default.resolve(getWorkDir(), this.getArtifactName());
     }
@@ -36688,7 +36691,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGithubToken = exports.getAuthorizedList = exports.isSkipSummary = exports.isSkipComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
+exports.getGithubToken = exports.getAuthorizedList = exports.isSkipProjectId = exports.isSkipSummary = exports.isSkipComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
 const sharedInput = __importStar(__nccwpck_require__(169));
 function getBuildScanCaptureStrategy() {
     return sharedInput.getBooleanInput('develocity-allow-untrusted');
@@ -36714,6 +36717,10 @@ function isSkipSummary() {
     return sharedInput.getBooleanInput('skip-summary');
 }
 exports.isSkipSummary = isSkipSummary;
+function isSkipProjectId() {
+    return sharedInput.getBooleanInput('skip-project-id');
+}
+exports.isSkipProjectId = isSkipProjectId;
 function getAuthorizedList() {
     return sharedInput.getInput('authorized-list');
 }

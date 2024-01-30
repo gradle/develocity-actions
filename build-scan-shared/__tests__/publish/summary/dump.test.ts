@@ -1,9 +1,11 @@
-process.env['RUNNER_TEMP'] = '/tmp';
+process.env['RUNNER_TEMP'] = '/tmp'
 
 import * as githubUtils from '../../../src/publish/utils/github'
 import * as input from '../../../src/publish/input'
 import * as io from '../../../src/io'
 import * as output from '../../../src/publish/summary/dump'
+import {BuildToolType} from '../../../src/buildTool/common'
+
 
 const outputMock = jest.spyOn(output, 'dump')
 
@@ -27,9 +29,10 @@ describe('dump', () => {
 
         // when
         await output.dump({
+            buildToolType: BuildToolType.MAVEN,
             artifactId: 0,
             builds: [
-                {jobName: 'foo', buildFailure: false, requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
+                {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
             prNumber: 42
         }, '')
@@ -57,9 +60,10 @@ describe('dump', () => {
 
         // when
         await output.dump({
+            buildToolType: BuildToolType.MAVEN,
             artifactId: 0,
             builds: [
-                {jobName: 'foo', buildFailure: false, requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
+                {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
             prNumber: 42
         }, '')
@@ -83,9 +87,10 @@ describe('dump', () => {
 
         // when
         await output.dump({
+            buildToolType: BuildToolType.MAVEN,
             artifactId: 0,
             builds: [
-                {jobName: 'foo', buildFailure: false, requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
+                {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
             prNumber: 42
         }, '')
@@ -110,7 +115,7 @@ describe('dump', () => {
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()
@@ -133,7 +138,7 @@ describe('dump', () => {
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()

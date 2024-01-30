@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 class BuildState {
 
     private final AtomicReference<String> mavenVersion = new AtomicReference<>();
+    private final AtomicReference<String> artifactId = new AtomicReference<>();
     private final AtomicReference<String> mavenGoals = new AtomicReference<>();
     private final AtomicBoolean isBuildFailure = new AtomicBoolean(false);
     private final AtomicReference<String> buildScanLink = new AtomicReference<>();
@@ -16,6 +17,14 @@ class BuildState {
 
     void setMavenVersion(String mavenVersion) {
         this.mavenVersion.set(mavenVersion);
+    }
+
+    String getArtifactId() {
+        return artifactId.get();
+    }
+
+    void setArtifactId(String artifactId) {
+        this.artifactId.set(artifactId);
     }
 
     String getMavenGoals() {
@@ -46,6 +55,7 @@ class BuildState {
     public String toString() {
         return "BuildState{" +
                 "mavenVersion=" + mavenVersion +
+                ", artifactId=" + artifactId +
                 ", mavenGoals=" + mavenGoals +
                 ", isBuildFailure=" + isBuildFailure +
                 ", buildScanLink=" + buildScanLink +

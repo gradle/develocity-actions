@@ -6,6 +6,7 @@ import * as githubUtils from '../utils/github'
 import * as input from '../input'
 import * as io from '../../io'
 import * as sharedInput from '../../input'
+import {BuildToolType} from '../../buildTool/common'
 
 const DUMP_FILENAME = 'build-metadata.json'
 
@@ -13,7 +14,7 @@ export async function dump(buildArtifact: BuildArtifact, buildScanWorkDir: strin
     updateBuildScanLinks(buildArtifact.builds, buildScanWorkDir)
 
     if (buildArtifact.builds.length > 0) {
-        const htmlSummary = getHtmlSummary(buildArtifact.builds)
+        const htmlSummary = getHtmlSummary(buildArtifact)
 
         if (input.isSkipComment()) {
             dumpToFile(buildArtifact, buildScanWorkDir)
@@ -50,23 +51,34 @@ function dumpToFile(buildArtifact: BuildArtifact, buildScanWorkDir: string): voi
     io.writeContentToFileSync(path.resolve(buildScanWorkDir, DUMP_FILENAME), JSON.stringify(buildArtifact))
 }
 
-function getHtmlSummary(builds: BuildMetadata[]): string {
+function getHtmlSummary(buildArtifact: BuildArtifact): string {
     return `
 <table>
-    <tr>
-        <th>Project</th>
-        <th>Requested Tasks</th>
+    <tr>${input.isSkipProjectId() ? '' : `
+        <th>Project</th>`}
+        <th>Job</th>
+        <th>Requested ${getWorkUnitName(buildArtifact.buildToolType)}</th>
         <th>Build Tool Version</th>
         <th>Build Outcome</th>
         <th>Build Scan®</th>
-    </tr>${builds.map(build => renderBuildResultRow(build)).join('')}
+    </tr>${buildArtifact.builds.map(build => renderBuildResultRow(build)).join('')}
 </table>
     `
 }
 
+function getWorkUnitName(buildToolType: BuildToolType): string {
+    switch (buildToolType) {
+        case BuildToolType.GRADLE:
+            return 'tasks'
+        case BuildToolType.MAVEN:
+            return 'goals'
+    }
+}
+
 function renderBuildResultRow(build: BuildMetadata): string {
     return `
-    <tr>
+    <tr>${input.isSkipProjectId() ? '' : `        
+        <td>${build.projectId}</td>`}
         <td>${build.jobName}</td>
         <td>${build.requestedTasks}</td>
         <td align='center'>${build.buildToolVersion}</td>

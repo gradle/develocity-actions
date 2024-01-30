@@ -5,6 +5,7 @@ import * as commonBuildTool from '../../../src/buildTool/common'
 import * as githubUtils from '../../../src/publish/utils/github'
 import * as load from '../../../src/publish/data/load'
 import * as props from '../../../src/publish/data/properties'
+import {BuildToolType} from '../../../src/buildTool/common'
 
 const loadMock = jest.spyOn(load, 'loadBuildScanData')
 
@@ -48,7 +49,7 @@ describe('load', () => {
         jest.spyOn(commonBuildTool, 'parseScanDumpPath').mockReturnValue({buildId: 'foo', version: '1.42'})
 
         // when
-        const buildScanData = await load.loadBuildScanData('artifactName','buildScanDataDir')
+        const buildScanData = await load.loadBuildScanData(BuildToolType.MAVEN,'artifactName','buildScanDataDir')
 
         // then
         expect(loadMock).toHaveReturned()
@@ -62,7 +63,7 @@ describe('load', () => {
         jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve(false))
 
         // when
-        const buildScanData = await load.loadBuildScanData('artifactName','buildScanDataDir')
+        const buildScanData = await load.loadBuildScanData(BuildToolType.MAVEN,'artifactName','buildScanDataDir')
 
         // then
         expect(loadMock).toHaveReturned()
@@ -85,6 +86,6 @@ describe('load', () => {
         )
 
         // when / then
-        await expect(async () => await load.loadBuildScanData('artifactName','buildScanDataDir')).rejects.toThrow(Error)
+        await expect(async () => await load.loadBuildScanData(BuildToolType.MAVEN, 'artifactName','buildScanDataDir')).rejects.toThrow(Error)
     })
 })

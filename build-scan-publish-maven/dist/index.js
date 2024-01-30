@@ -38407,6 +38407,9 @@ class BuildTool {
         const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version);
         io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent);
     }
+    getType() {
+        return this.type;
+    }
     getBuildScanWorkDir() {
         return path_1.default.resolve(getWorkDir(), this.getArtifactName());
     }
@@ -38853,7 +38856,7 @@ const commonBuildTool = __importStar(__nccwpck_require__(1869));
 const githubUtils = __importStar(__nccwpck_require__(3349));
 const props = __importStar(__nccwpck_require__(5317));
 const sharedInput = __importStar(__nccwpck_require__(169));
-async function loadBuildScanData(artifactName, buildScanDataDir) {
+async function loadBuildScanData(buildToolType, artifactName, buildScanDataDir) {
     const artifactId = await githubUtils.getArtifactIdForWorkflowRun(artifactName);
     if (artifactId) {
         // Download artifact
@@ -38872,6 +38875,7 @@ async function loadBuildScanData(artifactName, buildScanDataDir) {
                 prNumber = currentMetadata.prNumber;
             }
             return {
+                buildToolType,
                 prNumber,
                 artifactId,
                 builds
@@ -38885,6 +38889,7 @@ function toBuildMetadata(metadataFile) {
     const buildId = commonBuildTool.parseScanDumpPath(metadataFile).buildId;
     const metadataReader = props.create(metadataFile);
     const prNumber = Number(metadataReader.get('PR_NUMBER'));
+    const projectId = metadataReader.get('PROJECT_ID');
     const workflowName = metadataReader.get('WORKFLOW_NAME');
     const jobName = metadataReader.get('JOB_NAME');
     const buildToolVersion = metadataReader.get('BUILD_TOOL_VERSION');
@@ -38895,6 +38900,7 @@ function toBuildMetadata(metadataFile) {
     }
     return {
         buildMetadata: {
+            projectId,
             workflowName,
             jobName,
             buildToolVersion,
@@ -38958,7 +38964,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGithubToken = exports.getAuthorizedList = exports.isSkipSummary = exports.isSkipComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
+exports.getGithubToken = exports.getAuthorizedList = exports.isSkipProjectId = exports.isSkipSummary = exports.isSkipComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
 const sharedInput = __importStar(__nccwpck_require__(169));
 function getBuildScanCaptureStrategy() {
     return sharedInput.getBooleanInput('develocity-allow-untrusted');
@@ -38984,6 +38990,10 @@ function isSkipSummary() {
     return sharedInput.getBooleanInput('skip-summary');
 }
 exports.isSkipSummary = isSkipSummary;
+function isSkipProjectId() {
+    return sharedInput.getBooleanInput('skip-project-id');
+}
+exports.isSkipProjectId = isSkipProjectId;
 function getAuthorizedList() {
     return sharedInput.getInput('authorized-list');
 }
@@ -39034,7 +39044,7 @@ const loader = __importStar(__nccwpck_require__(2065));
 const summary = __importStar(__nccwpck_require__(6611));
 async function publish(buildTool) {
     if (githubUtils.isPublicationAllowed()) {
-        const buildArtifact = await loader.loadBuildScanData(buildTool.getArtifactName(), buildTool.getBuildScanDataDir());
+        const buildArtifact = await loader.loadBuildScanData(buildTool.getType(), buildTool.getArtifactName(), buildTool.getBuildScanDataDir());
         if (buildArtifact) {
             await buildTool.buildScanPublish();
             await summary.dump(buildArtifact, buildTool.getBuildScanWorkDir());
@@ -39092,11 +39102,12 @@ const githubUtils = __importStar(__nccwpck_require__(3349));
 const input = __importStar(__nccwpck_require__(4086));
 const io = __importStar(__nccwpck_require__(1422));
 const sharedInput = __importStar(__nccwpck_require__(169));
+const common_1 = __nccwpck_require__(1869);
 const DUMP_FILENAME = 'build-metadata.json';
 async function dump(buildArtifact, buildScanWorkDir) {
     updateBuildScanLinks(buildArtifact.builds, buildScanWorkDir);
     if (buildArtifact.builds.length > 0) {
-        const htmlSummary = getHtmlSummary(buildArtifact.builds);
+        const htmlSummary = getHtmlSummary(buildArtifact);
         if (input.isSkipComment()) {
             dumpToFile(buildArtifact, buildScanWorkDir);
         }
@@ -39131,22 +39142,32 @@ function updateBuildScanLinks(buildMetadata, buildScanWorkDir) {
 function dumpToFile(buildArtifact, buildScanWorkDir) {
     io.writeContentToFileSync(path_1.default.resolve(buildScanWorkDir, DUMP_FILENAME), JSON.stringify(buildArtifact));
 }
-function getHtmlSummary(builds) {
+function getHtmlSummary(buildArtifact) {
     return `
 <table>
-    <tr>
-        <th>Project</th>
-        <th>Requested Tasks</th>
+    <tr>${input.isSkipProjectId() ? '' : `
+        <th>Project</th>`}
+        <th>Job</th>
+        <th>Requested ${getWorkUnitName(buildArtifact.buildToolType)}</th>
         <th>Build Tool Version</th>
         <th>Build Outcome</th>
         <th>Build Scan®</th>
-    </tr>${builds.map(build => renderBuildResultRow(build)).join('')}
+    </tr>${buildArtifact.builds.map(build => renderBuildResultRow(build)).join('')}
 </table>
     `;
 }
+function getWorkUnitName(buildToolType) {
+    switch (buildToolType) {
+        case common_1.BuildToolType.GRADLE:
+            return 'tasks';
+        case common_1.BuildToolType.MAVEN:
+            return 'goals';
+    }
+}
 function renderBuildResultRow(build) {
     return `
-    <tr>
+    <tr>${input.isSkipProjectId() ? '' : `        
+        <td>${build.projectId}</td>`}
         <td>${build.jobName}</td>
         <td>${build.requestedTasks}</td>
         <td align='center'>${build.buildToolVersion}</td>

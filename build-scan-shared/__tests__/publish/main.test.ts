@@ -8,6 +8,7 @@ import * as githubUtils from '../../src/publish/utils/github'
 import * as loader from '../../src/publish/data/load'
 import * as main from '../../src/publish/main'
 import * as output from '../../src/publish/summary/dump'
+import {BuildToolType} from '../../src/buildTool/common'
 
 const buildTool = maven.mavenBuildTool
 
@@ -21,11 +22,13 @@ describe('main', () => {
         jest.spyOn(githubUtils, 'isPublicationAllowed').mockReturnValue(true)
         jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(
             Promise.resolve({
+                buildToolType: BuildToolType.MAVEN,
                 artifactId: 4242,
                 builds: [
                     {
                         jobName: 'foo',
                         buildFailure: false,
+                        projectId: 'foo',
                         requestedTasks: 'clean package',
                         workflowName: 'bar',
                         buildId: 'foo',

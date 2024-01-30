@@ -143,6 +143,7 @@ This comment will not be created if `skip-comment` is set to `true`, the summary
   "artifactId": 1080352553,
   "builds": [
     {
+      "projectId": "maven-project",
       "workflowName": "PR Build",
       "jobName": "test-matrix",
       "buildToolVersion": "3.8.8",
@@ -152,6 +153,7 @@ This comment will not be created if `skip-comment` is set to `true`, the summary
       "buildScanLink": "https://<DEVELOCITY_URL>/s/itg2ytkifb6wa"
     },
     {
+      "projectId": "maven-project",
       "workflowName": "PR Build",
       "jobName": "test-matrix",
       "buildToolVersion": "3.8.8",
@@ -180,15 +182,16 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                         | Description                                                                  | Default                  |
-|------------------------------|------------------------------------------------------------------------------|--------------------------|
-| `develocity-url`             | Develocity URL                                                               |                          |
-| `develocity-access-key`      | *Optional*: Develocity access key                                            |                          |
-| `develocity-allow-untrusted` | *Optional*: Develocity allow-untrusted flag                                  | `false`                  |
-| `skip-comment`               | *Optional*: Whether to comment or not the pull-request with Build Scan links | `false`                  |
-| `skip-summary`               | *Optional*: Whether to add or not a summary to the GitHub workflow           | `false`                  |
-| `authorized-list`            | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                     |
-| `github-token`               | *Optional*: Github token                                                     | `${{ github.token }}`    |
+| Name                         | Description                                                                  | Default               |
+|------------------------------|------------------------------------------------------------------------------|-----------------------|
+| `develocity-url`             | Develocity URL                                                               |                       |
+| `develocity-access-key`      | *Optional*: Develocity access key                                            |                       |
+| `develocity-allow-untrusted` | *Optional*: Develocity allow-untrusted flag                                  | `false`               |
+| `skip-comment`               | *Optional*: Whether to comment or not the pull-request with Build Scan links | `false`               |
+| `skip-summary`               | *Optional*: Whether to add or not a summary to the GitHub workflow           | `false`               |
+| `skip-project-id`            | *Optional*: Whether to add or not project id to the summary / comment        | `true`                |  
+| `authorized-list`            | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                  |
+| `github-token`               | *Optional*: Github token                                                     | `${{ github.token }}` |
 
 **Usage**:
 

@@ -18,6 +18,9 @@ inputs:
   skip-summary:
     description: 'Whether to add or not a summary to the GitHub workflow'
     default: 'false'
+  skip-project-id:
+    description: 'Whether to add or not the project id in the summary / comment'
+    default: 'true'
   authorized-list:
     description: 'CSV List of users allowed to publish Build Scans'
     default: ''

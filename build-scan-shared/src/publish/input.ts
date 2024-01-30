@@ -24,6 +24,10 @@ export function isSkipSummary(): boolean {
     return sharedInput.getBooleanInput('skip-summary')
 }
 
+export function isSkipProjectId(): boolean {
+    return sharedInput.getBooleanInput('skip-project-id')
+}
+
 export function getAuthorizedList(): string {
     return sharedInput.getInput('authorized-list')
 }
