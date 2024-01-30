@@ -47,9 +47,12 @@ function getListArtifactsOptionsForWorkflowRun(): any {
     const runId = github.context.payload.workflow_run.id
 
     return {
-        workflowRunId: runId,
-        repositoryName: github.context.repo.repo,
-        repositoryOwner: github.context.repo.owner,
+        findBy: {
+            token: input.getGithubToken(),
+            workflowRunId: runId,
+            repositoryName: github.context.repo.repo,
+            repositoryOwner: github.context.repo.owner
+        }
     }
 }
 
@@ -59,18 +62,14 @@ function getListArtifactsOptionsForTest(): any {
     }
 }
 
-export async function getArtifactIdForWorkflowRun(artifactName: string): Promise<undefined | number> {
+export async function getArtifactIdsForWorkflowRun(artifactName: string): Promise<number[]> {
     const artifactClient = new DefaultArtifactClient()
 
     const artifacts = await artifactClient.listArtifacts(
         getListArtifactsOptions()
     )
 
-    core.info(`${JSON.stringify(artifacts)}`)
-
-    const matchArtifact = getBuildScanArtifact(artifactName, artifacts?.artifacts)
-
-    return matchArtifact?.id
+    return getBuildScanArtifactIds(artifactName, artifacts?.artifacts)
 }
 
 function isUserAuthorized(): boolean {
@@ -133,9 +132,11 @@ export async function extractArtifactToDirectory(artifactName: string, artifactI
     return isDownLoadArtifactToFile
 }
 
-function getBuildScanArtifact(artifactName: string, artifacts: any): any {
-    return artifacts.find((candidate: any) => {
-        return candidate.name === artifactName
+function getBuildScanArtifactIds(artifactName: string, artifacts: any): any {
+    return artifacts.filter((candidate: any) => {
+        return candidate.name.startsWith(artifactName)
+    }).map((match: any) => {
+        return match.id
     })
 }
 

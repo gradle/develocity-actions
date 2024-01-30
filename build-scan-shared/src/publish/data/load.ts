@@ -10,7 +10,7 @@ import {BuildToolType} from '../../buildTool/common'
 
 export interface BuildArtifact {
     prNumber: number
-    artifactId: number
+    artifactIds: number[]
     builds: BuildMetadata[]
     buildToolType: BuildToolType
 }
@@ -26,9 +26,12 @@ export interface BuildMetadata {
     buildScanLink?: string
 }
 
-export async function loadBuildScanData(buildToolType: BuildToolType, artifactName: string, buildScanDataDir: string): Promise<BuildArtifact | null> {
-    const artifactId = await githubUtils.getArtifactIdForWorkflowRun(artifactName)
-    if (artifactId) {
+export async function loadBuildScanData(buildToolType: BuildToolType, artifactName: string, buildScanDataDir: string): Promise<BuildArtifact> {
+    let prNumber = 0
+    const builds: BuildMetadata[] = []
+
+    const artifactIds = await githubUtils.getArtifactIdsForWorkflowRun(artifactName)
+    for (const artifactId of artifactIds) {
         // Download artifact
         if (await githubUtils.extractArtifactToDirectory(artifactName, artifactId, buildScanDataDir)) {
             // Collect build scan metadata
@@ -38,24 +41,20 @@ export async function loadBuildScanData(buildToolType: BuildToolType, artifactNa
                 throw new Error(`Build Scan metadata not found`)
             }
 
-            let prNumber = 0
-            const builds: BuildMetadata[] = []
             for (const metadataFile of metadataFiles) {
                 const currentMetadata = toBuildMetadata(metadataFile)
                 builds.push(currentMetadata.buildMetadata)
                 prNumber = currentMetadata.prNumber
             }
-
-            return {
-                buildToolType,
-                prNumber,
-                artifactId,
-                builds
-            }
         }
     }
 
-    return null
+    return {
+        buildToolType,
+        prNumber,
+        artifactIds,
+        builds
+    }
 }
 
 function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; prNumber: number} {

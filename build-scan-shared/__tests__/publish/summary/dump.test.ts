@@ -31,7 +31,7 @@ describe('dump', () => {
         // when
         await output.dump({
             buildToolType: BuildToolType.MAVEN,
-            artifactId: 0,
+            artifactIds: [0],
             builds: [
                 {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
@@ -64,7 +64,7 @@ describe('dump', () => {
         // when
         await output.dump({
             buildToolType: BuildToolType.MAVEN,
-            artifactId: 0,
+            artifactIds: [0],
             builds: [
                 {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
@@ -93,7 +93,7 @@ describe('dump', () => {
         // when
         await output.dump({
             buildToolType: BuildToolType.MAVEN,
-            artifactId: 0,
+            artifactIds: [0],
             builds: [
                 {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
@@ -122,7 +122,7 @@ describe('dump', () => {
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactIds: [], builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()
@@ -147,7 +147,7 @@ describe('dump', () => {
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactIds: [], builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()

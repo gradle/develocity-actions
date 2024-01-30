@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import * as glob from '@actions/glob'
 import {DefaultArtifactClient} from '@actions/artifact'
 
+import * as input from './input'
 import * as commonBuildTool from '../buildTool/common'
 
 export async function uploadBuildScanDataFiles(buildTool: commonBuildTool.BuildTool): Promise<void> {
@@ -28,7 +29,13 @@ async function uploadArtifacts(
 ): Promise<void> {
     const artifactClient = new DefaultArtifactClient()
 
-    await artifactClient.uploadArtifact(buildScanArtifactName, files, buildScanDataFolder, {
+    await artifactClient.uploadArtifact(getArtifactName(buildScanArtifactName), files, buildScanDataFolder, {
         retentionDays: 1
     })
+}
+
+function getArtifactName(buildScanArtifactName: string): string {
+    return `${buildScanArtifactName}-${input.getWorkflowName().replaceAll(' ', '-')}-${input
+        .getJobName()
+        .replaceAll(' ', '-')}`
 }

@@ -38100,7 +38100,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.exportVariables = void 0;
+exports.exportVariables = exports.getJobName = exports.getWorkflowName = void 0;
 const path_1 = __importDefault(__nccwpck_require__(1017));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
@@ -38108,9 +38108,11 @@ const sharedInput = __importStar(__nccwpck_require__(169));
 function getWorkflowName() {
     return sharedInput.getInput('workflow-name');
 }
+exports.getWorkflowName = getWorkflowName;
 function getJobName() {
     return sharedInput.getInput('job-name');
 }
+exports.getJobName = getJobName;
 function getBuildScanCaptureStrategy() {
     return sharedInput.getInput('build-scan-capture-strategy');
 }
