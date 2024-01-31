@@ -42,8 +42,9 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         LOGGER.info("Configuring extension: " + getClass().getSimpleName());
         LOGGER.debug(configuration.toString());
 
-        // Set Maven goals
+        // Set Maven data
         buildState.setMavenVersion(getMavenVersion());
+        buildState.setArtifactId(session.getCurrentProject().getArtifactId());
         buildState.setMavenGoals(String.join(" ", session.getRequest().getGoals()));
 
         // Capture build result
@@ -111,8 +112,9 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
             LOGGER.debug("Capturing [" + buildState.getMavenGoals() + "] in " + scanDumpDir);
 
             String summary =
-                    String.format("PR_NUMBER=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nBUILD_TOOL_VERSION=%s\nREQUESTED_TASKS=%s\nBUILD_FAILURE=%s\n",
+                    String.format("PR_NUMBER=%s\nPROJECT_ID=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nBUILD_TOOL_VERSION=%s\nREQUESTED_TASKS=%s\nBUILD_FAILURE=%s\n",
                         configuration.getPrNumber(),
+                        buildState.getArtifactId(),
                         configuration.getWorkflowName(),
                         configuration.getJobName(),
                         buildState.getMavenVersion(),

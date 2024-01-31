@@ -6,14 +6,17 @@ import * as commonBuildTool from '../../buildTool/common'
 import * as githubUtils from '../utils/github'
 import * as props from './properties'
 import * as sharedInput from '../../input'
+import {BuildToolType} from '../../buildTool/common'
 
 export interface BuildArtifact {
     prNumber: number
     artifactId: number
     builds: BuildMetadata[]
+    buildToolType: BuildToolType
 }
 
 export interface BuildMetadata {
+    projectId: string
     workflowName: string
     jobName: string
     buildToolVersion: string
@@ -23,7 +26,7 @@ export interface BuildMetadata {
     buildScanLink?: string
 }
 
-export async function loadBuildScanData(artifactName: string, buildScanDataDir: string): Promise<BuildArtifact | null> {
+export async function loadBuildScanData(buildToolType: BuildToolType, artifactName: string, buildScanDataDir: string): Promise<BuildArtifact | null> {
     const artifactId = await githubUtils.getArtifactIdForWorkflowRun(artifactName)
     if (artifactId) {
         // Download artifact
@@ -44,6 +47,7 @@ export async function loadBuildScanData(artifactName: string, buildScanDataDir: 
             }
 
             return {
+                buildToolType,
                 prNumber,
                 artifactId,
                 builds
@@ -58,6 +62,7 @@ function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; p
     const buildId = commonBuildTool.parseScanDumpPath(metadataFile).buildId
     const metadataReader = props.create(metadataFile)
     const prNumber = Number((metadataReader as PropertiesReader.Reader).get('PR_NUMBER'))
+    const projectId = (metadataReader as PropertiesReader.Reader).get('PROJECT_ID') as string
     const workflowName = (metadataReader as PropertiesReader.Reader).get('WORKFLOW_NAME') as string
     const jobName = (metadataReader as PropertiesReader.Reader).get('JOB_NAME') as string
     const buildToolVersion = (metadataReader as PropertiesReader.Reader).get('BUILD_TOOL_VERSION') as string
@@ -69,6 +74,7 @@ function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; p
 
     return {
         buildMetadata: {
+            projectId,
             workflowName,
             jobName,
             buildToolVersion,

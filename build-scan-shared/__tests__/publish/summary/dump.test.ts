@@ -1,9 +1,11 @@
-process.env['RUNNER_TEMP'] = '/tmp';
+process.env['RUNNER_TEMP'] = '/tmp'
 
 import * as githubUtils from '../../../src/publish/utils/github'
 import * as input from '../../../src/publish/input'
 import * as io from '../../../src/io'
 import * as output from '../../../src/publish/summary/dump'
+import {BuildToolType} from '../../../src/buildTool/common'
+
 
 const outputMock = jest.spyOn(output, 'dump')
 
@@ -14,8 +16,8 @@ describe('dump', () => {
 
     it('Dump triggers pull request comment and summary', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(false)
-        jest.spyOn(input, 'isSkipSummary').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -27,9 +29,10 @@ describe('dump', () => {
 
         // when
         await output.dump({
+            buildToolType: BuildToolType.MAVEN,
             artifactId: 0,
             builds: [
-                {jobName: 'foo', buildFailure: false, requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
+                {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
             prNumber: 42
         }, '')
@@ -42,10 +45,10 @@ describe('dump', () => {
         expect(ioWriteMock).not.toHaveBeenCalled()
     })
 
-    it('Dump with skip-comment dumps output to file', async () => {
+    it('Dump with skip-pr-comment dumps output to file', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipSummary').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
+        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -57,9 +60,10 @@ describe('dump', () => {
 
         // when
         await output.dump({
+            buildToolType: BuildToolType.MAVEN,
             artifactId: 0,
             builds: [
-                {jobName: 'foo', buildFailure: false, requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
+                {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
             prNumber: 42
         }, '')
@@ -71,10 +75,10 @@ describe('dump', () => {
         expect(ioWriteMock).toHaveBeenCalled()
     })
 
-    it('Dump with skip-summary does not add summary', async () => {
+    it('Dump with skip-job-summary does not add summary', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipSummary').mockReturnValue(true)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
+        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(true)
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
@@ -83,9 +87,10 @@ describe('dump', () => {
 
         // when
         await output.dump({
+            buildToolType: BuildToolType.MAVEN,
             artifactId: 0,
             builds: [
-                {jobName: 'foo', buildFailure: false, requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
+                {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
             prNumber: 42
         }, '')
@@ -99,7 +104,7 @@ describe('dump', () => {
 
     it('Dump without build scan does nothing', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -110,7 +115,7 @@ describe('dump', () => {
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()
@@ -120,9 +125,9 @@ describe('dump', () => {
         expect(ioWriteMock).not.toHaveBeenCalled()
     })
 
-    it('Dump with skip-comment and without build scan does nothing', async () => {
+    it('Dump with skip-pr-comment and without build scan does nothing', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -133,7 +138,7 @@ describe('dump', () => {
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()

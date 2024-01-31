@@ -16,16 +16,20 @@ export function getDevelocityAccessKey(): string {
     return sharedInput.getInput('develocity-access-key')
 }
 
-export function isSkipComment(): boolean {
-    return sharedInput.getBooleanInput('skip-comment')
+export function isSkipPrComment(): boolean {
+    return sharedInput.getBooleanInput('skip-pr-comment')
 }
 
-export function isSkipSummary(): boolean {
-    return sharedInput.getBooleanInput('skip-summary')
+export function isSkipJobSummary(): boolean {
+    return sharedInput.getBooleanInput('skip-job-summary')
 }
 
-export function getAuthorizedList(): string {
-    return sharedInput.getInput('authorized-list')
+export function isSkipProjectIdInJobSummary(): boolean {
+    return sharedInput.getBooleanInput('skip-project-id-in-job-summary')
+}
+
+export function getAuthorizedUsersList(): string {
+    return sharedInput.getInput('authorized-users-list')
 }
 
 // Internal parameters

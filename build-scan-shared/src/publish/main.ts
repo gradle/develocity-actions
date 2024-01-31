@@ -9,6 +9,7 @@ import * as summary from './summary/dump'
 export async function publish(buildTool: commonBuildTool.BuildTool): Promise<void> {
     if (githubUtils.isPublicationAllowed()) {
         const buildArtifact = await loader.loadBuildScanData(
+            buildTool.getType(),
             buildTool.getArtifactName(),
             buildTool.getBuildScanDataDir()
         )

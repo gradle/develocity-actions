@@ -71,6 +71,10 @@ export abstract class BuildTool {
         io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent)
     }
 
+    getType(): BuildToolType {
+        return this.type
+    }
+
     getBuildScanWorkDir(): string {
         return path.resolve(getWorkDir(), this.getArtifactName())
     }
