@@ -128,14 +128,14 @@ jobs:
 
 The action will download any saved Build Scan® and publish them to Develocity.
 
-The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-list`. 
+The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-users-list`. 
 The action will publish Build Scans® if the initial pull-request author belongs to the list.
 
 By default, the pull-request will be commented with a summary:
 
 ![comment](./doc/summary-comment.png)
 
-This comment will not be created if `skip-comment` is set to `true`, the summary details will in this case be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
+This comment will not be created if `skip-pr-comment` is set to `true`, the summary details will in this case be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
 
 ```json
 {
@@ -165,7 +165,7 @@ This comment will not be created if `skip-comment` is set to `true`, the summary
   ]
 }
 ```
-By default, a summary will be added to the GitHub workflow calling the action (can be skipped with `skip-summary` is set to `true`):
+By default, a summary will be added to the GitHub workflow calling the action (can be skipped with `skip-job-summary` is set to `true`):
 
 ![workflow](./doc/summary-workflow.png)
 
@@ -182,16 +182,16 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                         | Description                                                                  | Default               |
-|------------------------------|------------------------------------------------------------------------------|-----------------------|
-| `develocity-url`             | Develocity URL                                                               |                       |
-| `develocity-access-key`      | *Optional*: Develocity access key                                            |                       |
-| `develocity-allow-untrusted` | *Optional*: Develocity allow-untrusted flag                                  | `false`               |
-| `skip-comment`               | *Optional*: Whether to comment or not the pull-request with Build Scan links | `false`               |
-| `skip-summary`               | *Optional*: Whether to add or not a summary to the GitHub workflow           | `false`               |
-| `skip-project-id`            | *Optional*: Whether to add or not project id to the summary / comment        | `true`                |  
-| `authorized-list`            | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                  |
-| `github-token`               | *Optional*: Github token                                                     | `${{ github.token }}` |
+| Name                             | Description                                                                  | Default               |
+|----------------------------------|------------------------------------------------------------------------------|-----------------------|
+| `develocity-url`                 | Develocity URL                                                               |                       |
+| `develocity-access-key`          | *Optional*: Develocity access key                                            |                       |
+| `develocity-allow-untrusted`     | *Optional*: Develocity allow-untrusted flag                                  | `false`               |
+| `skip-pr-comment`                | *Optional*: Whether to comment or not the pull-request with Build Scan links | `false`               |
+| `skip-job-summary`               | *Optional*: Whether to add or not a summary to the GitHub workflow           | `false`               |
+| `skip-project-id-in-job-summary` | *Optional*: Whether to add or not project id to the job summary / comment    | `true`                |  
+| `authorized-users-list`          | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                  |
+| `github-token`                   | *Optional*: Github token                                                     | `${{ github.token }}` |
 
 **Usage**:
 

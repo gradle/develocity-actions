@@ -12,16 +12,16 @@ inputs:
   develocity-allow-untrusted:
     description: 'Develocity allow-untrusted flag'
     default: 'false'
-  skip-comment:
+  skip-pr-comment:
     description: 'Whether to comment or not the pull-request with Build Scan links'
     default: 'false'
-  skip-summary:
-    description: 'Whether to add or not a summary to the GitHub workflow'
+  skip-job-summary:
+    description: 'Whether to add or not a job summary to the GitHub workflow'
     default: 'false'
-  skip-project-id:
-    description: 'Whether to add or not the project id in the summary / comment'
+  skip-project-id-in-job-summary:
+    description: 'Whether to add or not the project id in the job summary / comment'
     default: 'true'
-  authorized-list:
+  authorized-users-list:
     description: 'CSV List of users allowed to publish Build Scans'
     default: ''
     required: false

@@ -38964,7 +38964,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGithubToken = exports.getAuthorizedList = exports.isSkipProjectId = exports.isSkipSummary = exports.isSkipComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
+exports.getGithubToken = exports.getAuthorizedUsersList = exports.isSkipProjectIdInJobSummary = exports.isSkipJobSummary = exports.isSkipPrComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
 const sharedInput = __importStar(__nccwpck_require__(169));
 function getBuildScanCaptureStrategy() {
     return sharedInput.getBooleanInput('develocity-allow-untrusted');
@@ -38982,22 +38982,22 @@ function getDevelocityAccessKey() {
     return sharedInput.getInput('develocity-access-key');
 }
 exports.getDevelocityAccessKey = getDevelocityAccessKey;
-function isSkipComment() {
-    return sharedInput.getBooleanInput('skip-comment');
+function isSkipPrComment() {
+    return sharedInput.getBooleanInput('skip-pr-comment');
 }
-exports.isSkipComment = isSkipComment;
-function isSkipSummary() {
-    return sharedInput.getBooleanInput('skip-summary');
+exports.isSkipPrComment = isSkipPrComment;
+function isSkipJobSummary() {
+    return sharedInput.getBooleanInput('skip-job-summary');
 }
-exports.isSkipSummary = isSkipSummary;
-function isSkipProjectId() {
-    return sharedInput.getBooleanInput('skip-project-id');
+exports.isSkipJobSummary = isSkipJobSummary;
+function isSkipProjectIdInJobSummary() {
+    return sharedInput.getBooleanInput('skip-project-id-in-job-summary');
 }
-exports.isSkipProjectId = isSkipProjectId;
-function getAuthorizedList() {
-    return sharedInput.getInput('authorized-list');
+exports.isSkipProjectIdInJobSummary = isSkipProjectIdInJobSummary;
+function getAuthorizedUsersList() {
+    return sharedInput.getInput('authorized-users-list');
 }
-exports.getAuthorizedList = getAuthorizedList;
+exports.getAuthorizedUsersList = getAuthorizedUsersList;
 // Internal parameters
 function getGithubToken() {
     return sharedInput.getInput('github-token', { required: true });
@@ -39108,13 +39108,13 @@ async function dump(buildArtifact, buildScanWorkDir) {
     updateBuildScanLinks(buildArtifact.builds, buildScanWorkDir);
     if (buildArtifact.builds.length > 0) {
         const htmlSummary = getHtmlSummary(buildArtifact);
-        if (input.isSkipComment()) {
+        if (input.isSkipPrComment()) {
             dumpToFile(buildArtifact, buildScanWorkDir);
         }
         else {
             await dumpToPullRequestComment(buildArtifact.prNumber, htmlSummary);
         }
-        if (!input.isSkipSummary()) {
+        if (!input.isSkipJobSummary()) {
             await dumpToWorkflowSummary(htmlSummary);
         }
     }
@@ -39145,7 +39145,7 @@ function dumpToFile(buildArtifact, buildScanWorkDir) {
 function getHtmlSummary(buildArtifact) {
     return `
 <table>
-    <tr>${input.isSkipProjectId() ? '' : `
+    <tr>${input.isSkipProjectIdInJobSummary() ? '' : `
         <th>Project</th>`}
         <th>Job</th>
         <th>Requested ${getWorkUnitName(buildArtifact.buildToolType)}</th>
@@ -39166,7 +39166,7 @@ function getWorkUnitName(buildToolType) {
 }
 function renderBuildResultRow(build) {
     return `
-    <tr>${input.isSkipProjectId() ? '' : `        
+    <tr>${input.isSkipProjectIdInJobSummary() ? '' : `        
         <td>${build.projectId}</td>`}
         <td>${build.jobName}</td>
         <td>${build.requestedTasks}</td>
@@ -39247,10 +39247,10 @@ function isEventSupported() {
     return github.context.eventName === 'workflow_run';
 }
 function isUserAuthorized() {
-    const authorizedList = input.getAuthorizedList().trim();
+    const authorizedUsersList = input.getAuthorizedUsersList().trim();
     const prSubmitter = github.context.payload.workflow_run.actor.login;
     core.debug(`prSubmitter = ${prSubmitter}`);
-    if (authorizedList && !authorizedList.split(',').includes(prSubmitter)) {
+    if (authorizedUsersList && !authorizedUsersList.split(',').includes(prSubmitter)) {
         core.info(`user ${prSubmitter} not authorized to publish Build Scans`);
         return false;
     }

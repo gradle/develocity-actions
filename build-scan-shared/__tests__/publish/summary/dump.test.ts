@@ -16,8 +16,8 @@ describe('dump', () => {
 
     it('Dump triggers pull request comment and summary', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(false)
-        jest.spyOn(input, 'isSkipSummary').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -45,10 +45,10 @@ describe('dump', () => {
         expect(ioWriteMock).not.toHaveBeenCalled()
     })
 
-    it('Dump with skip-comment dumps output to file', async () => {
+    it('Dump with skip-pr-comment dumps output to file', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipSummary').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
+        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -75,10 +75,10 @@ describe('dump', () => {
         expect(ioWriteMock).toHaveBeenCalled()
     })
 
-    it('Dump with skip-summary does not add summary', async () => {
+    it('Dump with skip-job-summary does not add summary', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipSummary').mockReturnValue(true)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
+        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(true)
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
@@ -104,7 +104,7 @@ describe('dump', () => {
 
     it('Dump without build scan does nothing', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -125,9 +125,9 @@ describe('dump', () => {
         expect(ioWriteMock).not.toHaveBeenCalled()
     })
 
-    it('Dump with skip-comment and without build scan does nothing', async () => {
+    it('Dump with skip-pr-comment and without build scan does nothing', async () => {
         // Given
-        jest.spyOn(input, 'isSkipComment').mockReturnValue(false)
+        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))

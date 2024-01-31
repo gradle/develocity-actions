@@ -22,11 +22,11 @@ function isEventSupported(): boolean {
 }
 
 function isUserAuthorized(): boolean {
-    const authorizedList = input.getAuthorizedList().trim()
+    const authorizedUsersList = input.getAuthorizedUsersList().trim()
     const prSubmitter = github.context.payload.workflow_run.actor.login
 
     core.debug(`prSubmitter = ${prSubmitter}`)
-    if (authorizedList && !authorizedList.split(',').includes(prSubmitter)) {
+    if (authorizedUsersList && !authorizedUsersList.split(',').includes(prSubmitter)) {
         core.info(`user ${prSubmitter} not authorized to publish Build Scans`)
         return false
     }

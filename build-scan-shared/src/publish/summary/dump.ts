@@ -16,13 +16,13 @@ export async function dump(buildArtifact: BuildArtifact, buildScanWorkDir: strin
     if (buildArtifact.builds.length > 0) {
         const htmlSummary = getHtmlSummary(buildArtifact)
 
-        if (input.isSkipComment()) {
+        if (input.isSkipPrComment()) {
             dumpToFile(buildArtifact, buildScanWorkDir)
         } else {
             await dumpToPullRequestComment(buildArtifact.prNumber, htmlSummary)
         }
 
-        if (!input.isSkipSummary()) {
+        if (!input.isSkipJobSummary()) {
             await dumpToWorkflowSummary(htmlSummary)
         }
     }
@@ -54,7 +54,7 @@ function dumpToFile(buildArtifact: BuildArtifact, buildScanWorkDir: string): voi
 function getHtmlSummary(buildArtifact: BuildArtifact): string {
     return `
 <table>
-    <tr>${input.isSkipProjectId() ? '' : `
+    <tr>${input.isSkipProjectIdInJobSummary() ? '' : `
         <th>Project</th>`}
         <th>Job</th>
         <th>Requested ${getWorkUnitName(buildArtifact.buildToolType)}</th>
@@ -77,7 +77,7 @@ function getWorkUnitName(buildToolType: BuildToolType): string {
 
 function renderBuildResultRow(build: BuildMetadata): string {
     return `
-    <tr>${input.isSkipProjectId() ? '' : `        
+    <tr>${input.isSkipProjectIdInJobSummary() ? '' : `        
         <td>${build.projectId}</td>`}
         <td>${build.jobName}</td>
         <td>${build.requestedTasks}</td>
