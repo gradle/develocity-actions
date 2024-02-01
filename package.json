@@ -23,9 +23,9 @@
     "format:test": "prettier --write **/__tests__/**/*.ts",
     "lint": "eslint */src/**/*.ts",
     "package-build-scan-maven-capture-extension": "mvn clean package -f maven-build-scan-capture-extension/pom.xml",
-    "package-build-scan-maven-setup-main": "ncc build build-scan-setup-maven/src/main.ts --out build-scan-setup-maven/dist/main",
-    "package-build-scan-maven-setup-post": "ncc build build-scan-setup-maven/src/post.ts --out build-scan-setup-maven/dist/post",
-    "package-build-scan-maven-publish": "ncc build build-scan-publish-maven/src/main.ts --out build-scan-publish-maven/dist",
+    "package-build-scan-maven-setup-main": "ncc build build-scan-setup-maven/src/main.ts --out dist/build-scan-setup-maven/main",
+    "package-build-scan-maven-setup-post": "ncc build build-scan-setup-maven/src/post.ts --out dist/build-scan-setup-maven/post",
+    "package-build-scan-maven-publish": "ncc build build-scan-publish-maven/src/main.ts --out dist/build-scan-publish-maven",
     "check": "npm-run-all --parallel format:write format:test lint",
     "package": "npm-run-all --parallel package-build-scan-*",
     "build": "npm run check && npm run package",
@@ -63,7 +63,7 @@
     ]
   },
   "dependencies": {
-    "@actions/artifact": "1.1.2",
+    "@actions/artifact": "^2.1.0",
     "@actions/core": "^1.10.1",
     "@actions/github": "5.1.1",
     "@actions/glob": "0.4.0",

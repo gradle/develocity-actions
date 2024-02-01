@@ -13,12 +13,12 @@ export async function publish(buildTool: commonBuildTool.BuildTool): Promise<voi
             buildTool.getArtifactName(),
             buildTool.getBuildScanDataDir()
         )
-        if (buildArtifact) {
+        if (buildArtifact.builds.length > 0) {
             await buildTool.buildScanPublish()
 
             await summary.dump(buildArtifact, buildTool.getBuildScanWorkDir())
 
-            await cleaner.deleteWorkflowArtifacts(buildArtifact.artifactId)
+            await cleaner.deleteWorkflowArtifacts(buildArtifact.artifactIds)
         } else {
             core.info('Skipping the publication: No artifact found')
         }

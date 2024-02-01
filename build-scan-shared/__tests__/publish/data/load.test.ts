@@ -9,7 +9,7 @@ import {BuildToolType} from '../../../src/buildTool/common'
 
 const loadMock = jest.spyOn(load, 'loadBuildScanData')
 
-const mockedArtifactId = 42
+const mockedArtifactIds = [42]
 const mockedPrNumber = 4242
 
 describe('load', () => {
@@ -33,8 +33,8 @@ describe('load', () => {
 
     it('Load build scan metadata succeeds', async () => {
         // given
-        jest.spyOn(githubUtils, 'getArtifactIdForWorkflowRun').mockReturnValue(Promise.resolve(mockedArtifactId))
-        jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve(true))
+        jest.spyOn(githubUtils, 'getArtifactIdsForWorkflowRun').mockReturnValue(Promise.resolve(mockedArtifactIds))
+        jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve())
         const reader: Partial<PropertiesReader.Reader> = {
             get(key: string) {
                 switch (key) {
@@ -53,28 +53,28 @@ describe('load', () => {
 
         // then
         expect(loadMock).toHaveReturned()
-        expect(buildScanData?.artifactId).toBe(mockedArtifactId)
+        expect(buildScanData?.artifactIds).toBe(mockedArtifactIds)
         expect(buildScanData?.prNumber).toBe(mockedPrNumber)
     })
 
     it('Load build scan metadata does nothing when build scan artifact is not found', async () => {
         // given
-        jest.spyOn(githubUtils, 'getArtifactIdForWorkflowRun').mockReturnValue(Promise.resolve(undefined))
-        jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve(false))
+        jest.spyOn(githubUtils, 'getArtifactIdsForWorkflowRun').mockReturnValue(Promise.resolve([]))
+        jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve())
 
         // when
         const buildScanData = await load.loadBuildScanData(BuildToolType.MAVEN,'artifactName','buildScanDataDir')
 
         // then
         expect(loadMock).toHaveReturned()
-        expect(buildScanData?.artifactId).toBeUndefined()
-        expect(buildScanData?.prNumber).toBeUndefined()
+        expect(buildScanData?.artifactIds).toEqual([])
+        expect(buildScanData?.prNumber).toBe(0)
     })
 
     it('Load build scan metadata fails when metadata file is not found', async () => {
         // given
-        jest.spyOn(githubUtils, 'getArtifactIdForWorkflowRun').mockReturnValue(Promise.resolve(mockedArtifactId))
-        jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve(true))
+        jest.spyOn(githubUtils, 'getArtifactIdsForWorkflowRun').mockReturnValue(Promise.resolve(mockedArtifactIds))
+        jest.spyOn(githubUtils, 'extractArtifactToDirectory').mockReturnValue(Promise.resolve())
         // @ts-ignore
         jest.spyOn(glob, 'create').mockReturnValue(
             Promise.resolve({

@@ -23,7 +23,7 @@ describe('main', () => {
         jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(
             Promise.resolve({
                 buildToolType: BuildToolType.MAVEN,
-                artifactId: 4242,
+                artifactIds: [4242],
                 builds: [
                     {
                         jobName: 'foo',
@@ -56,7 +56,9 @@ describe('main', () => {
     it('Publish on non workflow_run event does nothing', async () => {
         // Given
         jest.spyOn(githubUtils, 'isPublicationAllowed').mockReturnValue(false)
-        jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(Promise.resolve(null))
+        jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(
+            Promise.resolve({buildToolType: BuildToolType.MAVEN, artifactIds: [], builds: [], prNumber: 0})
+        )
         const outputMock = jest.spyOn(output, 'dump').mockReturnValue(Promise.resolve())
         const cleanerMock = jest.spyOn(cleaner, 'deleteWorkflowArtifacts').mockReturnValue(Promise.resolve())
         const buildScanPublishMock = jest
@@ -75,7 +77,9 @@ describe('main', () => {
     it('Publish without build scan does nothing', async () => {
         // Given
         jest.spyOn(githubUtils, 'isPublicationAllowed').mockReturnValue(true)
-        jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(Promise.resolve(null))
+        jest.spyOn(loader, 'loadBuildScanData').mockReturnValue(
+            Promise.resolve({buildToolType: BuildToolType.MAVEN, artifactIds: [], builds: [], prNumber: 0})
+        )
         const outputMock = jest.spyOn(output, 'dump').mockReturnValue(Promise.resolve())
         const cleanerMock = jest.spyOn(cleaner, 'deleteWorkflowArtifacts').mockReturnValue(Promise.resolve())
         const buildScanPublishMock = jest

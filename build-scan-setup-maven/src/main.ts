@@ -5,7 +5,7 @@ import * as errorHandler from '../../build-scan-shared/src/error'
 import * as input from '../../build-scan-shared/src/setup/input'
 import * as maven from '../../build-scan-shared/src/buildTool/maven'
 
-const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension'
+const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`
 
 const ENV_KEY_MAVEN_OPTS = 'MAVEN_OPTS'
@@ -31,9 +31,7 @@ function configureEnvironment(): void {
         __dirname,
         '..',
         '..',
-        '..',
         MAVEN_BUILD_SCAN_CAPTURE_EXTENSION,
-        'dist',
         MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR
     )
 

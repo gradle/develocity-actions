@@ -10,7 +10,7 @@ import {BuildToolType} from '../../buildTool/common'
 
 export interface BuildArtifact {
     prNumber: number
-    artifactId: number
+    artifactIds: number[]
     builds: BuildMetadata[]
     buildToolType: BuildToolType
 }
@@ -26,36 +26,37 @@ export interface BuildMetadata {
     buildScanLink?: string
 }
 
-export async function loadBuildScanData(buildToolType: BuildToolType, artifactName: string, buildScanDataDir: string): Promise<BuildArtifact | null> {
-    const artifactId = await githubUtils.getArtifactIdForWorkflowRun(artifactName)
-    if (artifactId) {
-        // Download artifact
-        if (await githubUtils.extractArtifactToDirectory(artifactName, artifactId, buildScanDataDir)) {
-            // Collect build scan metadata
-            const globber = await glob.create(`${buildScanDataDir}/**/${sharedInput.BUILD_SCAN_METADATA_FILE}`)
-            const metadataFiles = await globber.glob()
-            if (!metadataFiles || metadataFiles.length === 0) {
-                throw new Error(`Build Scan metadata not found`)
-            }
+export async function loadBuildScanData(buildToolType: BuildToolType, artifactName: string, buildScanDataDir: string): Promise<BuildArtifact> {
+    let prNumber = 0
+    const builds: BuildMetadata[] = []
 
-            let prNumber = 0
-            const builds: BuildMetadata[] = []
-            for (const metadataFile of metadataFiles) {
-                const currentMetadata = toBuildMetadata(metadataFile)
-                builds.push(currentMetadata.buildMetadata)
-                prNumber = currentMetadata.prNumber
-            }
+    const artifactIds = await githubUtils.getArtifactIdsForWorkflowRun(artifactName)
+    if(artifactIds.length > 0) {
+        for (const artifactId of artifactIds) {
+            // Download artifact
+            await githubUtils.extractArtifactToDirectory(artifactName, artifactId, buildScanDataDir)
+        }
 
-            return {
-                buildToolType,
-                prNumber,
-                artifactId,
-                builds
-            }
+        // Collect build scan metadata
+        const globber = await glob.create(`${buildScanDataDir}/**/${sharedInput.BUILD_SCAN_METADATA_FILE}`)
+        const metadataFiles = await globber.glob()
+        if (!metadataFiles || metadataFiles.length === 0) {
+            throw new Error(`Build Scan metadata not found`)
+        }
+
+        for (const metadataFile of metadataFiles) {
+            const currentMetadata = toBuildMetadata(metadataFile)
+            builds.push(currentMetadata.buildMetadata)
+            prNumber = currentMetadata.prNumber
         }
     }
 
-    return null
+    return {
+        buildToolType,
+        prNumber,
+        artifactIds,
+        builds
+    }
 }
 
 function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; prNumber: number} {

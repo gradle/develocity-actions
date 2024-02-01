@@ -24,13 +24,14 @@ describe('dump', () => {
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
+        const ioExistMock = jest.spyOn(io, 'existsSync').mockReturnValue(true)
         const ioReadMock = jest.spyOn(io, 'readFileSync').mockReturnValue('foo=https://foo.bar/s/1234')
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
         await output.dump({
             buildToolType: BuildToolType.MAVEN,
-            artifactId: 0,
+            artifactIds: [0],
             builds: [
                 {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
@@ -39,6 +40,7 @@ describe('dump', () => {
 
         // then
         expect(outputMock).toHaveReturned()
+        expect(ioExistMock).toHaveBeenCalled()
         expect(ioReadMock).toHaveBeenCalled()
         expect(githubCommentMock).toHaveBeenCalled()
         expect(githubSummaryMock).toHaveBeenCalled()
@@ -55,13 +57,14 @@ describe('dump', () => {
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
+        const ioExistMock = jest.spyOn(io, 'existsSync').mockReturnValue(true)
         const ioReadMock = jest.spyOn(io, 'readFileSync').mockReturnValue('foo=https://foo.bar/s/1234')
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
         await output.dump({
             buildToolType: BuildToolType.MAVEN,
-            artifactId: 0,
+            artifactIds: [0],
             builds: [
                 {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
@@ -70,6 +73,7 @@ describe('dump', () => {
 
         // then
         expect(outputMock).toHaveReturned()
+        expect(ioExistMock).toHaveBeenCalled()
         expect(ioReadMock).toHaveBeenCalled()
         expect(githubCommentMock).not.toHaveBeenCalled()
         expect(ioWriteMock).toHaveBeenCalled()
@@ -82,13 +86,14 @@ describe('dump', () => {
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
+        const ioExistMock = jest.spyOn(io, 'existsSync').mockReturnValue(true)
         const ioReadMock = jest.spyOn(io, 'readFileSync').mockReturnValue('foo=https://foo.bar/s/1234')
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
         await output.dump({
             buildToolType: BuildToolType.MAVEN,
-            artifactId: 0,
+            artifactIds: [0],
             builds: [
                 {jobName: 'foo', buildFailure: false, projectId: 'foo', requestedTasks: 'clean package', workflowName: 'bar', buildId: 'foo', buildToolVersion:'3.9'}
             ],
@@ -97,6 +102,7 @@ describe('dump', () => {
 
         // then
         expect(outputMock).toHaveReturned()
+        expect(ioExistMock).toHaveBeenCalled()
         expect(ioReadMock).toHaveBeenCalled()
         expect(githubSummaryMock).not.toHaveBeenCalled()
         expect(ioWriteMock).toHaveBeenCalled()
@@ -111,14 +117,16 @@ describe('dump', () => {
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
+        const ioExistMock = jest.spyOn(io, 'existsSync').mockReturnValue(true)
         const ioReadMock = jest.spyOn(io, 'readFileSync').mockReturnValue('foo=https://foo.bar/s/1234')
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactIds: [], builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()
+        expect(ioExistMock).toHaveBeenCalled()
         expect(ioReadMock).toHaveBeenCalled()
         expect(githubCommentMock).not.toHaveBeenCalled()
         expect(githubSummaryMock).not.toHaveBeenCalled()
@@ -134,14 +142,16 @@ describe('dump', () => {
         const githubSummaryMock = jest
             .spyOn(githubUtils, 'addSummary')
             .mockReturnValue(Promise.resolve(undefined))
+        const ioExistMock = jest.spyOn(io, 'existsSync').mockReturnValue(true)
         const ioReadMock = jest.spyOn(io, 'readFileSync').mockReturnValue('foo=https://foo.bar/s/1234')
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
 
         // when
-        await output.dump({buildToolType: BuildToolType.MAVEN, artifactId: 0, builds: [], prNumber: 42}, '')
+        await output.dump({buildToolType: BuildToolType.MAVEN, artifactIds: [], builds: [], prNumber: 42}, '')
 
         // then
         expect(outputMock).toHaveReturned()
+        expect(ioExistMock).toHaveBeenCalled()
         expect(ioReadMock).toHaveBeenCalled()
         expect(githubCommentMock).not.toHaveBeenCalled()
         expect(githubSummaryMock).not.toHaveBeenCalled()

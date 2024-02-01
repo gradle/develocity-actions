@@ -29,21 +29,26 @@ export async function dump(buildArtifact: BuildArtifact, buildScanWorkDir: strin
 }
 
 function updateBuildScanLinks(buildMetadata: BuildMetadata[], buildScanWorkDir: string): void {
-    const buildScanLinks = io.readFileSync(path.resolve(buildScanWorkDir, sharedInput.BUILD_SCAN_LINK_FILE))
-    if (buildScanLinks) {
-        for (const buildScanLinksLine of buildScanLinks.split('\n')) {
-            const buildScanLinkData = buildScanLinksLine.split('=')
-            if (buildScanLinkData && buildScanLinkData.length === 2) {
-                const buildId = buildScanLinkData[0]
-                const buildScanLink = buildScanLinkData[1]
-                const match = buildMetadata.find(element => element.buildId === buildId)
-                if (match) {
-                    match.buildScanLink = buildScanLink
+    const buildScanLinkFile = path.resolve(buildScanWorkDir, sharedInput.BUILD_SCAN_LINK_FILE)
+    if(io.existsSync(buildScanLinkFile)) {
+        const buildScanLinks = io.readFileSync(path.resolve(buildScanWorkDir, sharedInput.BUILD_SCAN_LINK_FILE))
+        if (buildScanLinks) {
+            for (const buildScanLinksLine of buildScanLinks.split('\n')) {
+                const buildScanLinkData = buildScanLinksLine.split('=')
+                if (buildScanLinkData && buildScanLinkData.length === 2) {
+                    const buildId = buildScanLinkData[0]
+                    const buildScanLink = buildScanLinkData[1]
+                    const match = buildMetadata.find(element => element.buildId === buildId)
+                    if (match) {
+                        match.buildScanLink = buildScanLink
+                    }
                 }
             }
+        } else {
+            core.warning(`Build scan link file is empty, build summary won't contain build scan links`)
         }
     } else {
-        core.warning(`Build scan link file not found, build summary will not be dumped`)
+        core.warning(`Build scan link file not found, build summary won't contain build scan links`)
     }
 }
 
@@ -105,7 +110,9 @@ function renderBuildScanBadge(outcomeText: string, outcomeColor: string, targetU
 }
 
 async function dumpToPullRequestComment(prNumber: number, htmlSummary: string): Promise<void> {
-    await githubUtils.commentPullRequest(prNumber, htmlSummary)
+    if(prNumber > 0) {
+        await githubUtils.commentPullRequest(prNumber, htmlSummary)
+    }
 }
 
 async function dumpToWorkflowSummary(htmlSummary: string): Promise<void> {

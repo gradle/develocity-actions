@@ -5,11 +5,11 @@ import * as github from '@actions/github'
 import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
 
-function getWorkflowName(): string {
+export function getWorkflowName(): string {
     return sharedInput.getInput('workflow-name')
 }
 
-function getJobName(): string {
+export function getJobName(): string {
     return sharedInput.getInput('job-name')
 }
 

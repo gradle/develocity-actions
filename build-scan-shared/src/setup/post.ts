@@ -1,7 +1,8 @@
 import * as core from '@actions/core'
-import {create} from '@actions/artifact'
 import * as glob from '@actions/glob'
+import {DefaultArtifactClient} from '@actions/artifact'
 
+import * as input from './input'
 import * as commonBuildTool from '../buildTool/common'
 
 export async function uploadBuildScanDataFiles(buildTool: commonBuildTool.BuildTool): Promise<void> {
@@ -17,7 +18,7 @@ export async function uploadBuildScanDataFiles(buildTool: commonBuildTool.BuildT
 
 async function getBuildScanDataFiles(buildScanDataFolder: string): Promise<string[]> {
     core.debug(`Collecting build scans in ${buildScanDataFolder}/**`)
-    const globber = await glob.create(`${buildScanDataFolder}/**`)
+    const globber = await glob.create(`${buildScanDataFolder}/**`, {matchDirectories: false})
     return await globber.glob()
 }
 
@@ -26,9 +27,15 @@ async function uploadArtifacts(
     buildScanDataFolder: string,
     buildScanArtifactName: string
 ): Promise<void> {
-    const artifactClient = create()
+    const artifactClient = new DefaultArtifactClient()
 
-    await artifactClient.uploadArtifact(buildScanArtifactName, files, buildScanDataFolder, {
+    await artifactClient.uploadArtifact(getArtifactName(buildScanArtifactName), files, buildScanDataFolder, {
         retentionDays: 1
     })
+}
+
+function getArtifactName(buildScanArtifactName: string): string {
+    return `${buildScanArtifactName}-${input.getWorkflowName().replaceAll(' ', '-')}-${input
+        .getJobName()
+        .replaceAll(' ', '-')}`
 }

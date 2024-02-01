@@ -71,7 +71,7 @@ Some parameters need to be adjusted here:
 ##### build-scan-setup-maven
 
 The action addresses two use cases:
-- Save unpublished Build Scan® data as a workflow artifact with name `build-scan-data-maven`, which can then be published in a dependent workflow.
+- Save unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
 - Capture links of Build Scan® published to Develocity, which can then be displayed as a pull-request comment
 
 The _capture strategy_ can be customized:

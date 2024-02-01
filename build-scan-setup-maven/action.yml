@@ -26,5 +26,5 @@ inputs:
 
 runs:
   using: node20
-  main: dist/main/index.js
-  post: dist/post/index.js
+  main: ../dist/build-scan-setup-maven/main/index.js
+  post: ../dist/build-scan-setup-maven/post/index.js
