@@ -10,6 +10,9 @@ on:
 env:
   DV_URL: "https://ge.solutions-team.gradle.com"
   DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
+  MAVEN_SETUP_DIST: "dist/build-scan-setup-maven"
+  MAVEN_PUBLISH_DIST: "dist/build-scan-publish-maven"
+  MAVEN_CAPTURE_EXTENSION_JAR: "dist/maven-build-scan-capture-extension/maven-build-scan-capture-extension.jar"
 
 jobs:
 
@@ -34,30 +37,28 @@ jobs:
         run: npm run all
       - name: Check build-scan-setup-maven dist
         run: |
-          if [ "$(git diff --ignore-space-at-eol --text build-scan-setup-maven/dist/ | wc -l)" -gt "0" ]; then
+          if [ "$(git diff --ignore-space-at-eol --text ${{ env.MAVEN_SETUP_DIST }} | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"
-            git diff --ignore-space-at-eol --text build-scan-setup-maven/dist/
+            git diff --ignore-space-at-eol --text ${{ env.MAVEN_SETUP_DIST }}
             exit 1
           fi
       - name: Check build-scan-publish-maven dist
         run: |
-          if [ "$(git diff --ignore-space-at-eol --text build-scan-publish-maven/dist/ | wc -l)" -gt "0" ]; then
+          if [ "$(git diff --ignore-space-at-eol --text ${{ env.MAVEN_PUBLISH_DIST }} | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"
-            git diff --ignore-space-at-eol --text build-scan-publish-maven/dist/
+            git diff --ignore-space-at-eol --text ${{ env.MAVEN_PUBLISH_DIST }}
             exit 1
           fi
       - name: Check maven-build-scan-capture-extension dist
-        env:
-          JAR_FILE: "maven-build-scan-capture-extension/dist/maven-build-scan-capture-extension.jar"
         run: |
           # collect current jar content status (length, crc32, name of each entries)
-          unzip -vqq ${{ env.JAR_FILE }} | awk '{print $1,$7,$8}' | sort -k3 --ignore-case > current-jar-status.txt
+          unzip -vqq ${{ env.MAVEN_CAPTURE_EXTENSION_JAR }} | awk '{print $1,$7,$8}' | sort -k3 --ignore-case > current-jar-status.txt
 
           # retrieve last jar version from repository
-          git restore ${{ env.JAR_FILE }}
+          git restore ${{ env.MAVEN_CAPTURE_EXTENSION_JAR }}
 
           # collect last from repo jar content status (length, crc32, name of each entries)
-          unzip -vqq ${{ env.JAR_FILE }} | awk '{print $1,$7,$8}' | sort -k3 --ignore-case > repo-jar-status.txt
+          unzip -vqq ${{ env.MAVEN_CAPTURE_EXTENSION_JAR }} | awk '{print $1,$7,$8}' | sort -k3 --ignore-case > repo-jar-status.txt
 
           if [ "$(diff current-jar-status.txt repo-jar-status.txt | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"

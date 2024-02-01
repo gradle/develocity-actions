@@ -37501,7 +37501,7 @@ const path_1 = __importDefault(__nccwpck_require__(1017));
 const errorHandler = __importStar(__nccwpck_require__(2766));
 const input = __importStar(__nccwpck_require__(4758));
 const maven = __importStar(__nccwpck_require__(37));
-const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = 'maven-build-scan-capture-extension';
+const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`;
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
 const ENV_KEY_MAVEN_OPTS = 'MAVEN_OPTS';
 const MAVEN_OPTS_EXT_CLASS_PATH = '-Dmaven.ext.class.path';
@@ -37521,7 +37521,7 @@ function run() {
 }
 exports.run = run;
 function configureEnvironment() {
-    const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, 'dist', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
+    const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
     const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS];
     let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}`;
     if (mavenOptsCurrent) {
