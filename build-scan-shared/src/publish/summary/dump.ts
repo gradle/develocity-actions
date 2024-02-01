@@ -110,7 +110,9 @@ function renderBuildScanBadge(outcomeText: string, outcomeColor: string, targetU
 }
 
 async function dumpToPullRequestComment(prNumber: number, htmlSummary: string): Promise<void> {
-    await githubUtils.commentPullRequest(prNumber, htmlSummary)
+    if(prNumber > 0) {
+        await githubUtils.commentPullRequest(prNumber, htmlSummary)
+    }
 }
 
 async function dumpToWorkflowSummary(htmlSummary: string): Promise<void> {
