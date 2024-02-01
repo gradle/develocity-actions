@@ -2,7 +2,7 @@ import * as github from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
 import {OctokitResponse} from '@octokit/types' // eslint-disable-line import/named
 import * as core from '@actions/core'
-import { DefaultArtifactClient } from '@actions/artifact'
+import {Artifact, DefaultArtifactClient} from '@actions/artifact'
 
 import * as input from '../input'
 import * as io from '../../io'
@@ -85,8 +85,7 @@ function isUserAuthorized(): boolean {
     return true
 }
 
-export async function extractArtifactToDirectory(artifactName: string, artifactId: number, folderName: string): Promise<boolean> {
-    let isDownLoadArtifactToFile = false
+export async function extractArtifactToDirectory(artifactName: string, artifactId: number, folderName: string): Promise<void> {
     try {
         const archiveName = `${artifactName}.${ZIP_EXTENSION}`
 
@@ -115,8 +114,6 @@ export async function extractArtifactToDirectory(artifactName: string, artifactI
             if (core.isDebug()) {
                 core.debug(`Extracted Build Scan artifact to ${extracted}: ${io.readdirSync(extracted)}`)
             }
-
-            isDownLoadArtifactToFile = true
         } else {
             core.warning(`Unable to download artifact ${artifactId}`)
         }
@@ -128,11 +125,9 @@ export async function extractArtifactToDirectory(artifactName: string, artifactI
             throw error
         }
     }
-
-    return isDownLoadArtifactToFile
 }
 
-function getBuildScanArtifactIds(artifactName: string, artifacts: any): any {
+function getBuildScanArtifactIds(artifactName: string, artifacts: Artifact[]): number[] {
     return artifacts.filter((candidate: any) => {
         return candidate.name.startsWith(artifactName)
     }).map((match: any) => {

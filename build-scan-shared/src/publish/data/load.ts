@@ -31,21 +31,23 @@ export async function loadBuildScanData(buildToolType: BuildToolType, artifactNa
     const builds: BuildMetadata[] = []
 
     const artifactIds = await githubUtils.getArtifactIdsForWorkflowRun(artifactName)
-    for (const artifactId of artifactIds) {
-        // Download artifact
-        if (await githubUtils.extractArtifactToDirectory(artifactName, artifactId, buildScanDataDir)) {
-            // Collect build scan metadata
-            const globber = await glob.create(`${buildScanDataDir}/**/${sharedInput.BUILD_SCAN_METADATA_FILE}`)
-            const metadataFiles = await globber.glob()
-            if (!metadataFiles || metadataFiles.length === 0) {
-                throw new Error(`Build Scan metadata not found`)
-            }
+    if(artifactIds.length > 0) {
+        for (const artifactId of artifactIds) {
+            // Download artifact
+            await githubUtils.extractArtifactToDirectory(artifactName, artifactId, buildScanDataDir)
+        }
 
-            for (const metadataFile of metadataFiles) {
-                const currentMetadata = toBuildMetadata(metadataFile)
-                builds.push(currentMetadata.buildMetadata)
-                prNumber = currentMetadata.prNumber
-            }
+        // Collect build scan metadata
+        const globber = await glob.create(`${buildScanDataDir}/**/${sharedInput.BUILD_SCAN_METADATA_FILE}`)
+        const metadataFiles = await globber.glob()
+        if (!metadataFiles || metadataFiles.length === 0) {
+            throw new Error(`Build Scan metadata not found`)
+        }
+
+        for (const metadataFile of metadataFiles) {
+            const currentMetadata = toBuildMetadata(metadataFile)
+            builds.push(currentMetadata.buildMetadata)
+            prNumber = currentMetadata.prNumber
         }
     }
 
