@@ -80,7 +80,7 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
     }
 
     void captureUnpublishedBuildScan() {
-      if(configuration.isBuildScanCaptureUnpublishedEnabled(buildState.isBuildFailure())) {
+      if(configuration.isCaptureUnpublishedBuildScans(buildState.isBuildFailure())) {
           LOGGER.info("Configuring unpublished Build Scan capture");
 
           File buildScanDirectory = new File(configuration.getBuildScanDataDir());
@@ -128,7 +128,7 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
     }
 
     void captureBuildScanLink(String buildScanLink) {
-        if(configuration.isBuildScanCaptureLinkEnabled(buildState.isBuildFailure())) {
+        if(configuration.isCaptureBuildScanLinks(buildState.isBuildFailure())) {
             LOGGER.info("Capturing Build Scan link");
             buildState.setBuildScanLink(buildScanLink);
 

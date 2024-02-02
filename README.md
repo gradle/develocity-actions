@@ -20,7 +20,7 @@ The `Approve and Run` manual step documented [here](https://docs.github.com/en/a
 
 #### Usage
 
-In the GitHub workflow called to validate a pull-request, insert the `Setup Build Scan dump capture` once in each job having steps invoking Maven.
+In the GitHub workflow called to validate a pull-request, insert the `Setup Build Scan dump capture` step once in each job having steps invoking Maven.
 
 ```yaml
 name: PR Build
@@ -80,8 +80,8 @@ The _capture strategy_ can be customized:
 - `ON_DEMAND`: capture will be attempted if `CAPTURE_BUILD_SCAN=true` in the environment
 
 The _capture_ can be _enabled_/_disabled_ separately:
-- `build-scan-capture-unpublished-enabled`: to disable unpublished Build Scan® capture
-- `build-scan-capture-link-enabled`: to disable Build Scan® link capture
+- `capture-unpublished-build-scans`: to disable unpublished Build Scan® capture
+- `capture-build-scan-links`: to disable Build Scan® link capture
 
 The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
 The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
@@ -99,13 +99,13 @@ Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construc
 
 **Action inputs**:
 
-| Name                                     | Description                                                                                                         | Default                                                                                                                                                                                                       |
-|------------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `workflow-filename`                      | *Optional*: Name of the workflow triggering the build                                                               | `${{ github.workflow }}`                                                                                                                                                                                      |
-| `job-filename`                           | *Optional*: Name of the job triggering the build                                                                    | `${{ github.job }}`                                                                                                                                                                                           |
-| `build-scan-capture-strategy`            | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                                             | `ALWAYS`                                                                                                                                                                                                      |
-| `build-scan-capture-unpublished-enabled` | *Optional*: Flag to enable unpublished Build Scan capture                                                           | `true`                                                                                                                                                                                                        |
-| `build-scan-capture-link-enabled`        | *Optional*: Flag to enable Build Scan link capture                                                                  | `true`                                                                                                                                                                                                        |
+| Name                              | Description                                                             | Default                   |
+|-----------------------------------|-------------------------------------------------------------------------|---------------------------|
+| `workflow-name`                   | *Optional*: Name of the workflow triggering the build                   | `${{ github.workflow }}`  |
+| `job-filename`                    | *Optional*: Name of the job triggering the build                        | `${{ github.job }}`       |
+| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS`                  |
+| `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture    | `true`                    |
+| `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture           | `true`                    |
 
 **Usage**:
 

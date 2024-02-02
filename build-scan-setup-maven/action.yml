@@ -11,16 +11,16 @@ inputs:
     description: 'Name of the job triggering the build'
     required: false
     default: ${{ github.job }}
-  build-scan-capture-strategy:
+  capture-strategy:
     description: 'Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)'
     required: false
     default: ALWAYS
-  build-scan-capture-unpublished-enabled:
-    description: 'Flag to enable unpublished Build Scan capture'
+  capture-unpublished-build-scans:
+    description: 'Whether to enable or not unpublished Build Scans capture'
     required: false
     default: true
-  build-scan-capture-link-enabled:
-    description: 'Flag to enable Build Scan link capture'
+  capture-build-scan-links:
+    description: 'Whether to enable or not Build Scan links capture'
     required: false
     default: true
 

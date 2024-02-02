@@ -1,9 +1,5 @@
 import * as sharedInput from '../input'
 
-export function getBuildScanCaptureStrategy(): boolean {
-    return sharedInput.getBooleanInput('develocity-allow-untrusted')
-}
-
 export function isDevelocityAllowUntrusted(): boolean {
     return sharedInput.getBooleanInput('develocity-allow-untrusted')
 }

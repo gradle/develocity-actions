@@ -37669,7 +37669,7 @@ class BuildTool {
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
                         GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
-                        INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED: 'false',
+                        INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS: 'false',
                         BUILD_SCAN_LINK_FILE: path_1.default.resolve(this.getBuildScanWorkDir(), sharedInput.BUILD_SCAN_LINK_FILE)
                     }
                 });
@@ -38025,12 +38025,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGithubToken = exports.getAuthorizedUsersList = exports.isSkipProjectIdInJobSummary = exports.isSkipJobSummary = exports.isSkipPrComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = exports.getBuildScanCaptureStrategy = void 0;
+exports.getGithubToken = exports.getAuthorizedUsersList = exports.isSkipProjectIdInJobSummary = exports.isSkipJobSummary = exports.isSkipPrComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = void 0;
 const sharedInput = __importStar(__nccwpck_require__(169));
-function getBuildScanCaptureStrategy() {
-    return sharedInput.getBooleanInput('develocity-allow-untrusted');
-}
-exports.getBuildScanCaptureStrategy = getBuildScanCaptureStrategy;
 function isDevelocityAllowUntrusted() {
     return sharedInput.getBooleanInput('develocity-allow-untrusted');
 }
@@ -38113,19 +38109,19 @@ function getJobName() {
     return sharedInput.getInput('job-name');
 }
 exports.getJobName = getJobName;
-function getBuildScanCaptureStrategy() {
-    return sharedInput.getInput('build-scan-capture-strategy');
+function getCaptureStrategy() {
+    return sharedInput.getInput('capture-strategy');
 }
-function getBuildScanCaptureUnpublishedEnabled() {
-    return sharedInput.getInput('build-scan-capture-unpublished-enabled');
+function getCaptureUnpublishedBuildScans() {
+    return sharedInput.getInput('capture-unpublished-build-scans');
 }
-function getBuildScanCaptureLinkEnabled() {
-    return sharedInput.getInput('build-scan-capture-link-enabled');
+function getCaptureBuildScanLinks() {
+    return sharedInput.getInput('capture-build-scan-links');
 }
 function exportVariables(buildTool) {
-    core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_STRATEGY', getBuildScanCaptureStrategy());
-    core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED', getBuildScanCaptureUnpublishedEnabled());
-    core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_LINK_ENABLED', getBuildScanCaptureLinkEnabled());
+    core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy());
+    core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans());
+    core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks());
     core.exportVariable('INPUT_WORKFLOW_NAME', getWorkflowName());
     core.exportVariable('INPUT_JOB_NAME', getJobName());
     core.exportVariable('PR_NUMBER', github.context.issue.number);
