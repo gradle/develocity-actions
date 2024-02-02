@@ -44,7 +44,7 @@ describe('dump', () => {
         expect(ioReadMock).toHaveBeenCalled()
         expect(githubCommentMock).toHaveBeenCalled()
         expect(githubSummaryMock).toHaveBeenCalled()
-        expect(ioWriteMock).not.toHaveBeenCalled()
+        expect(ioWriteMock).toHaveBeenCalled()
     })
 
     it('Dump with skip-pr-comment dumps output to file', async () => {

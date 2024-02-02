@@ -16,9 +16,9 @@ export async function dump(buildArtifact: BuildArtifact, buildScanWorkDir: strin
     if (buildArtifact.builds.length > 0) {
         const htmlSummary = getHtmlSummary(buildArtifact)
 
-        if (input.isSkipPrComment()) {
-            dumpToFile(buildArtifact, buildScanWorkDir)
-        } else {
+        dumpToFile(buildArtifact, buildScanWorkDir)
+
+        if (!input.isSkipPrComment()) {
             await dumpToPullRequestComment(buildArtifact.prNumber, htmlSummary)
         }
 
