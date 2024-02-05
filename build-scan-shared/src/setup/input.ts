@@ -11,7 +11,22 @@ export function getWorkflowName(): string {
 }
 
 export function getJobName(): string {
-    return sharedInput.getInput('job-name')
+    const jobNameInput = sharedInput.getInput('job-name')
+    if (jobNameInput) {
+        return jobNameInput
+    } else {
+        let currentMatrixValue = ''
+        const jobMatrixInput = sharedInput.getInput('job-matrix')
+        if (jobMatrixInput) {
+            const jobMatrix = JSON.parse(jobMatrixInput)
+            if (jobMatrix) {
+                core.debug(`using matrix ${jobMatrix}`)
+                currentMatrixValue = Object.values(jobMatrix).join('-')
+                core.debug(`currentMatrixValue = ${currentMatrixValue}`)
+            }
+        }
+        return currentMatrixValue ? `${github.context.job}-${currentMatrixValue}` : `${github.context.job}`
+    }
 }
 
 function getCaptureStrategy(): string {

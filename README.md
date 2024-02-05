@@ -90,7 +90,7 @@ _Note:_<br>
 If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered. 
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
-`job-name` is only used in the summary rendered by the `maven-publish-build-scan` action. Default value can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as the values would collide on each matrix case. 
+The job name is used in the summary and as artifact suffix, by default its value is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
 
 **Event Triggers**:
 
@@ -99,12 +99,12 @@ Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construc
 
 **Action inputs**:
 
-| Name                              | Description                                                             | Default                   |
-|-----------------------------------|-------------------------------------------------------------------------|---------------------------|
-| `job-name`                        | *Optional*: Name of the job triggering the build                        | `${{ github.job }}`       |
-| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS`                  |
-| `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture    | `true`                    |
-| `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture           | `true`                    |
+| Name                              | Description                                                             | Default  |
+|-----------------------------------|-------------------------------------------------------------------------|----------|
+| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS` |
+| `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture    | `true`   |
+| `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture           | `true`   |
+| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)           |          |
 
 **Usage**:
 
