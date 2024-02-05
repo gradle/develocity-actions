@@ -27,7 +27,7 @@ name: PR Build
 jobs:
   build:  
       - name: Setup Build Scan dump capture
-        uses: gradle/github-actions/maven-setup@v1-beta
+        uses: gradle/github-actions/maven-setup@v1
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
@@ -52,9 +52,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/github-actions/maven-setup@v1-beta
+        uses: gradle/github-actions/maven-setup@v1
       - name: Publish Build Scans
-        uses: gradle/github-actions/maven-publish-build-scan@v1-beta
+        uses: gradle/github-actions/maven-publish-build-scan@v1
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
@@ -118,7 +118,7 @@ jobs:
   build:
     [...]
     - name: Setup Build Scan dump capture
-      uses: gradle/github-actions/maven-setup@v1-beta
+      uses: gradle/github-actions/maven-setup@v1
     - name: Build with Maven
       run: ./mvnw clean package
   [...]
@@ -218,9 +218,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/github-actions/maven-setup@v1-beta
+        uses: gradle/github-actions/maven-setup@v1
       - name: Publish Build Scans
-        uses: gradle/github-actions/maven-publish-build-scan@v1-beta
+        uses: gradle/github-actions/maven-publish-build-scan@v1
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
