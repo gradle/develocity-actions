@@ -90,7 +90,7 @@ _Note:_<br>
 If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered. 
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
-`workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-publish-build-scan` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
+`job-name` is only used in the summary rendered by the `maven-publish-build-scan` action. Default value can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as the values would collide on each matrix case. 
 
 **Event Triggers**:
 
@@ -101,8 +101,7 @@ Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construc
 
 | Name                              | Description                                                             | Default                   |
 |-----------------------------------|-------------------------------------------------------------------------|---------------------------|
-| `workflow-name`                   | *Optional*: Name of the workflow triggering the build                   | `${{ github.workflow }}`  |
-| `job-filename`                    | *Optional*: Name of the job triggering the build                        | `${{ github.job }}`       |
+| `job-name`                        | *Optional*: Name of the job triggering the build                        | `${{ github.job }}`       |
 | `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS`                  |
 | `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture    | `true`                    |
 | `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture           | `true`                    |

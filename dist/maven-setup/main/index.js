@@ -38020,7 +38020,8 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const sharedInput = __importStar(__nccwpck_require__(169));
 function getWorkflowName() {
-    return sharedInput.getInput('workflow-name');
+    // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
+    return process.env['GITHUB_WORKFLOW'] ? process.env['GITHUB_WORKFLOW'] : 'unknown workflow name';
 }
 exports.getWorkflowName = getWorkflowName;
 function getJobName() {
@@ -38040,8 +38041,8 @@ function exportVariables(buildTool) {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy());
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans());
     core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks());
-    core.exportVariable('INPUT_WORKFLOW_NAME', getWorkflowName());
     core.exportVariable('INPUT_JOB_NAME', getJobName());
+    core.exportVariable('SETUP_WORKFLOW_NAME', getWorkflowName());
     core.exportVariable('PR_NUMBER', github.context.issue.number);
     core.exportVariable('BUILD_SCAN_DATA_DIR', buildTool.getBuildScanDataDir());
     core.exportVariable('BUILD_SCAN_DATA_COPY_DIR', buildTool.getBuildScanDataCopyDir());

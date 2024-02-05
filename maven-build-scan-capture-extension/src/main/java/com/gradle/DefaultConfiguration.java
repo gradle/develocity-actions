@@ -18,7 +18,7 @@ class DefaultConfiguration implements Configuration {
     static final String BUILD_SCAN_LINK_FILE = "BUILD_SCAN_LINK_FILE";
     static final String BUILD_SCAN_METADATA_FILENAME = "BUILD_SCAN_METADATA_FILENAME";
     static final String CONFIG_KEY_JOB_NAME = "INPUT_JOB_NAME";
-    static final String CONFIG_KEY_WORKFLOW_NAME = "INPUT_WORKFLOW_NAME";
+    static final String CONFIG_KEY_WORKFLOW_NAME = "SETUP_WORKFLOW_NAME";
     static final String CONFIG_KEY_PR_NUMBER = "PR_NUMBER";
     static final String CONFIG_KEY_BUILD_ID = "BUILD_ID";
 

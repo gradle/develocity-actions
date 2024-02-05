@@ -3,10 +3,6 @@ description: Setup action to capture Maven Build Scans metadata
 author: Gradle team
 
 inputs:
-  workflow-name:
-    description: 'Name of the workflow triggering the build'
-    required: false
-    default: ${{ github.workflow }}
   job-name:
     description: 'Name of the job triggering the build'
     required: false
