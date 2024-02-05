@@ -10,7 +10,7 @@ on:
 env:
   DV_URL: "https://ge.solutions-team.gradle.com"
   DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
-  MAVEN_SETUP_DIST: "dist/build-scan-setup-maven"
+  MAVEN_SETUP_DIST: "dist/maven-setup"
   MAVEN_PUBLISH_DIST: "dist/maven-publish-build-scan"
   MAVEN_CAPTURE_EXTENSION_JAR: "dist/maven-build-scan-capture-extension/maven-build-scan-capture-extension.jar"
 
@@ -35,7 +35,7 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run all
-      - name: Check build-scan-setup-maven dist
+      - name: Check maven-setup dist
         run: |
           if [ "$(git diff --ignore-space-at-eol --text ${{ env.MAVEN_SETUP_DIST }} | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"
@@ -98,8 +98,8 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Setup Maven Build Scan dump capture
-        uses: ./build-scan-setup-maven
+      - name: Setup Build Scan dump capture
+        uses: ./maven-setup
       - name: Run Maven Build 1
         working-directory: ./sample/common-develocity-maven-configuration
         run: mvn clean -B -X -Dgradle.enterprise.url=${{ env.DV_URL }}
@@ -118,7 +118,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Build Scan link capture
-        uses: ./build-scan-setup-maven
+        uses: ./maven-setup
       - name: Publish Build Scans
         uses: ./maven-publish-build-scan
         with:

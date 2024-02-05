@@ -26,8 +26,8 @@ In the GitHub workflow called to validate a pull-request, insert the `Setup Buil
 name: PR Build
 jobs:
   build:  
-      - name: Setup Maven Build Scan dump capture
-        uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+      - name: Setup Build Scan dump capture
+        uses: gradle/github-actions/maven-setup@v1-beta
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
@@ -52,7 +52,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+        uses: gradle/github-actions/maven-setup@v1-beta
       - name: Publish Build Scans
         uses: gradle/github-actions/maven-publish-build-scan@v1-beta
         with:
@@ -68,7 +68,7 @@ Some parameters need to be adjusted here:
  
 #### Implementation details
 
-##### build-scan-setup-maven
+##### maven-setup
 
 The action addresses two use cases:
 - Save unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
@@ -90,7 +90,7 @@ _Note:_<br>
 If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered. 
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
-`workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-build-scan-publish` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
+`workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-publish-build-scan` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
 
 **Event Triggers**:
 
@@ -109,7 +109,7 @@ Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construc
 
 **Usage**:
 
-Insert the `Setup Maven Build Scan dump capture` once in each job having steps invoking Maven.
+Insert the `Setup Build Scan dump capture` once in each job having steps invoking Maven.
 
 ```yaml
 name: PR Build
@@ -117,8 +117,8 @@ jobs:
   [...]
   build:
     [...]
-    - name: Setup Maven Build Scan dump capture
-      uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+    - name: Setup Build Scan dump capture
+      uses: gradle/github-actions/maven-setup@v1-beta
     - name: Build with Maven
       run: ./mvnw clean package
   [...]
@@ -131,11 +131,11 @@ The action will download any saved Build Scan® and publish them to Develocity.
 The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-users-list`. 
 The action will publish Build Scans® if the initial pull-request author belongs to the list.
 
-By default, the pull-request will be commented with a summary:
+By default, the pull-request will be commented with a summary (can be skipped if `skip-pr-comment` is set to `true`):
 
 ![comment](./doc/summary-comment.png)
 
-This comment will not be created if `skip-pr-comment` is set to `true`, the summary details will in this case be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
+The summary details will be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
 
 ```json
 {
@@ -217,8 +217,8 @@ jobs:
       actions: write
       pull-requests: write
     steps:
-      - name: Setup Maven Build Scan link capture
-        uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+      - name: Setup Build Scan link capture
+        uses: gradle/github-actions/maven-setup@v1-beta
       - name: Publish Build Scans
         uses: gradle/github-actions/maven-publish-build-scan@v1-beta
         with:
