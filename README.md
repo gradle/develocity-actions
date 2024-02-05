@@ -54,7 +54,7 @@ jobs:
       - name: Setup Build Scan link capture
         uses: gradle/github-actions/build-scan-setup-maven@v1-beta
       - name: Publish Build Scans
-        uses: gradle/github-actions/build-scan-publish-maven@v1-beta
+        uses: gradle/github-actions/maven-publish-build-scan@v1-beta
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
@@ -124,7 +124,7 @@ jobs:
   [...]
 ```
 
-##### build-scan-publish-maven
+##### maven-publish-build-scan
 
 The action will download any saved Build Scan® and publish them to Develocity.
 
@@ -220,7 +220,7 @@ jobs:
       - name: Setup Maven Build Scan link capture
         uses: gradle/github-actions/build-scan-setup-maven@v1-beta
       - name: Publish Build Scans
-        uses: gradle/github-actions/build-scan-publish-maven@v1-beta
+        uses: gradle/github-actions/maven-publish-build-scan@v1-beta
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}

@@ -11,7 +11,7 @@ env:
   DV_URL: "https://ge.solutions-team.gradle.com"
   DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
   MAVEN_SETUP_DIST: "dist/build-scan-setup-maven"
-  MAVEN_PUBLISH_DIST: "dist/build-scan-publish-maven"
+  MAVEN_PUBLISH_DIST: "dist/maven-publish-build-scan"
   MAVEN_CAPTURE_EXTENSION_JAR: "dist/maven-build-scan-capture-extension/maven-build-scan-capture-extension.jar"
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
             git diff --ignore-space-at-eol --text ${{ env.MAVEN_SETUP_DIST }}
             exit 1
           fi
-      - name: Check build-scan-publish-maven dist
+      - name: Check maven-publish-build-scan dist
         run: |
           if [ "$(git diff --ignore-space-at-eol --text ${{ env.MAVEN_PUBLISH_DIST }} | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"
@@ -120,7 +120,7 @@ jobs:
       - name: Setup Build Scan link capture
         uses: ./build-scan-setup-maven
       - name: Publish Build Scans
-        uses: ./build-scan-publish-maven
+        uses: ./maven-publish-build-scan
         with:
           develocity-url: ${{ env.DV_URL }}
           develocity-access-key: ${{ env.DV_FAKE_ACCESS_KEY }}
