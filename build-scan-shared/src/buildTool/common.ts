@@ -132,7 +132,7 @@ export abstract class BuildTool {
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
                         GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
-                        INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED: 'false',
+                        INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS: 'false',
                         BUILD_SCAN_LINK_FILE: path.resolve(this.getBuildScanWorkDir(), sharedInput.BUILD_SCAN_LINK_FILE)
                     }
                 })

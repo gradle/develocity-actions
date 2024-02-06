@@ -20,14 +20,14 @@ The `Approve and Run` manual step documented [here](https://docs.github.com/en/a
 
 #### Usage
 
-In the GitHub workflow called to validate a pull-request, insert the `Setup Build Scan dump capture` once in each job having steps invoking Maven.
+In the GitHub workflow called to validate a pull-request, insert the `Setup Build Scan dump capture` step once in each job having steps invoking Maven.
 
 ```yaml
 name: PR Build
 jobs:
   build:  
-      - name: Setup Maven Build Scan dump capture
-        uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+      - name: Setup Build Scan dump capture
+        uses: gradle/github-actions/maven-setup@v1
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
@@ -52,9 +52,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+        uses: gradle/github-actions/maven-setup@v1
       - name: Publish Build Scans
-        uses: gradle/github-actions/build-scan-publish-maven@v1-beta
+        uses: gradle/github-actions/maven-publish-build-scan@v1
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
@@ -68,7 +68,7 @@ Some parameters need to be adjusted here:
  
 #### Implementation details
 
-##### build-scan-setup-maven
+##### maven-setup
 
 The action addresses two use cases:
 - Save unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
@@ -80,8 +80,8 @@ The _capture strategy_ can be customized:
 - `ON_DEMAND`: capture will be attempted if `CAPTURE_BUILD_SCAN=true` in the environment
 
 The _capture_ can be _enabled_/_disabled_ separately:
-- `build-scan-capture-unpublished-enabled`: to disable unpublished Build Scan® capture
-- `build-scan-capture-link-enabled`: to disable Build Scan® link capture
+- `capture-unpublished-build-scans`: to disable unpublished Build Scan® capture
+- `capture-build-scan-links`: to disable Build Scan® link capture
 
 The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
 The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
@@ -90,7 +90,7 @@ _Note:_<br>
 If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered. 
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
-`workflow-filename` and `job-filename` are only used in the summary rendered by the `maven-build-scan-publish` action. Default values can be overridden, which is highly recommended when using a [matrix strategy](https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs) as those values would collide on each matrix case. 
+The job name is used in the summary and as artifact suffix, by default its value is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
 
 **Event Triggers**:
 
@@ -99,17 +99,16 @@ Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construc
 
 **Action inputs**:
 
-| Name                                     | Description                                                                                                         | Default                                                                                                                                                                                                       |
-|------------------------------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `workflow-filename`                      | *Optional*: Name of the workflow triggering the build                                                               | `${{ github.workflow }}`                                                                                                                                                                                      |
-| `job-filename`                           | *Optional*: Name of the job triggering the build                                                                    | `${{ github.job }}`                                                                                                                                                                                           |
-| `build-scan-capture-strategy`            | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                                             | `ALWAYS`                                                                                                                                                                                                      |
-| `build-scan-capture-unpublished-enabled` | *Optional*: Flag to enable unpublished Build Scan capture                                                           | `true`                                                                                                                                                                                                        |
-| `build-scan-capture-link-enabled`        | *Optional*: Flag to enable Build Scan link capture                                                                  | `true`                                                                                                                                                                                                        |
+| Name                              | Description                                                             | Default  |
+|-----------------------------------|-------------------------------------------------------------------------|----------|
+| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS` |
+| `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture    | `true`   |
+| `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture           | `true`   |
+| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)           |          |
 
 **Usage**:
 
-Insert the `Setup Maven Build Scan dump capture` once in each job having steps invoking Maven.
+Insert the `Setup Build Scan dump capture` once in each job having steps invoking Maven.
 
 ```yaml
 name: PR Build
@@ -117,25 +116,25 @@ jobs:
   [...]
   build:
     [...]
-    - name: Setup Maven Build Scan dump capture
-      uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+    - name: Setup Build Scan dump capture
+      uses: gradle/github-actions/maven-setup@v1
     - name: Build with Maven
       run: ./mvnw clean package
   [...]
 ```
 
-##### build-scan-publish-maven
+##### maven-publish-build-scan
 
 The action will download any saved Build Scan® and publish them to Develocity.
 
 The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-users-list`. 
 The action will publish Build Scans® if the initial pull-request author belongs to the list.
 
-By default, the pull-request will be commented with a summary:
+By default, the pull-request will be commented with a summary (can be skipped if `skip-pr-comment` is set to `true`):
 
 ![comment](./doc/summary-comment.png)
 
-This comment will not be created if `skip-pr-comment` is set to `true`, the summary details will in this case be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
+The summary details will be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
 
 ```json
 {
@@ -217,10 +216,10 @@ jobs:
       actions: write
       pull-requests: write
     steps:
-      - name: Setup Maven Build Scan link capture
-        uses: gradle/github-actions/build-scan-setup-maven@v1-beta
+      - name: Setup Build Scan link capture
+        uses: gradle/github-actions/maven-setup@v1
       - name: Publish Build Scans
-        uses: gradle/github-actions/build-scan-publish-maven@v1-beta
+        uses: gradle/github-actions/maven-publish-build-scan@v1
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}

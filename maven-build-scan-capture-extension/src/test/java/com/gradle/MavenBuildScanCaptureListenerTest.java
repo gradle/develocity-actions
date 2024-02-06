@@ -26,7 +26,7 @@ public class MavenBuildScanCaptureListenerTest {
     @Test
     void captureUnpublishedBuildScan_success() throws Exception {
         // given
-        when(configurationMock.isBuildScanCaptureUnpublishedEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.isCaptureUnpublishedBuildScans(anyBoolean())).thenReturn(true);
         when(configurationMock.getBuildScanDataCopyDir()).thenReturn("copyDir");
         when(configurationMock.getBuildScanDataDir()).thenReturn("dataDir");
         when(configurationMock.getBuildScanMetadataFilename()).thenReturn("metadataFile");
@@ -45,7 +45,7 @@ public class MavenBuildScanCaptureListenerTest {
     @Test
     void captureUnpublishedBuildScan_withCaptureDisabled_doesNothing() throws Exception {
         // given
-        when(configurationMock.isBuildScanCaptureUnpublishedEnabled(anyBoolean())).thenReturn(false);
+        when(configurationMock.isCaptureUnpublishedBuildScans(anyBoolean())).thenReturn(false);
         underTest.setFileManager(fileManagerMock);
         underTest.setConfiguration(configurationMock);
 
@@ -59,7 +59,7 @@ public class MavenBuildScanCaptureListenerTest {
     @Test
     void captureUnpublishedBuildScan_withoutScanDump_doesNothing() throws Exception {
         // given
-        when(configurationMock.isBuildScanCaptureUnpublishedEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.isCaptureUnpublishedBuildScans(anyBoolean())).thenReturn(true);
         when(configurationMock.getBuildScanDataDir()).thenReturn("dataDir");
         when(fileManagerMock.find(any(Path.class),anyInt(),any(BiPredicate.class))).thenReturn(Arrays.stream(new Path[]{}));
         underTest.setFileManager(fileManagerMock);
@@ -75,7 +75,7 @@ public class MavenBuildScanCaptureListenerTest {
     @Test
     void captureBuildScanLink_success() throws Exception {
         // given
-        when(configurationMock.isBuildScanCaptureLinkEnabled(anyBoolean())).thenReturn(true);
+        when(configurationMock.isCaptureBuildScanLinks(anyBoolean())).thenReturn(true);
         when(configurationMock.getBuildScanLinkFile()).thenReturn("linkFile");
         underTest.setConfiguration(configurationMock);
         underTest.setFileManager(fileManagerMock);
@@ -90,7 +90,7 @@ public class MavenBuildScanCaptureListenerTest {
     @Test
     void captureBuildScanLink_withCaptureDisabled_doesNothing() throws Exception {
         // given
-        when(configurationMock.isBuildScanCaptureLinkEnabled(anyBoolean())).thenReturn(false);
+        when(configurationMock.isCaptureBuildScanLinks(anyBoolean())).thenReturn(false);
         underTest.setConfiguration(configurationMock);
         underTest.setFileManager(fileManagerMock);
 

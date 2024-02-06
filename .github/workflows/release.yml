@@ -1,0 +1,24 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Release version.
+        required: true
+
+jobs:
+  release:
+    name: Develocity Actions Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release/changelog.txt
+          name: ${{ github.event.inputs.release_version }}
+          tag_name: v${{ github.event.inputs.release_version }}

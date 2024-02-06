@@ -10,9 +10,9 @@ interface Configuration {
 
     String getBuildId();
 
-    boolean isBuildScanCaptureUnpublishedEnabled(boolean isBuildFailure);
+    boolean isCaptureUnpublishedBuildScans(boolean isBuildFailure);
 
-    boolean isBuildScanCaptureLinkEnabled(boolean isBuildFailure);
+    boolean isCaptureBuildScanLinks(boolean isBuildFailure);
 
     String getBuildScanDataDir();
 

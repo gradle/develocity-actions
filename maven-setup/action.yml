@@ -1,0 +1,29 @@
+name: Maven Setup Action
+description: Setup action to capture Maven Build Scans metadata
+author: Gradle team
+
+inputs:
+  capture-strategy:
+    description: 'Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)'
+    required: false
+    default: ALWAYS
+  capture-unpublished-build-scans:
+    description: 'Whether to enable or not unpublished Build Scans capture'
+    required: false
+    default: true
+  capture-build-scan-links:
+    description: 'Whether to enable or not Build Scan links capture'
+    required: false
+    default: true
+  job-name:
+    description: 'Job name (used in summary and as artifact suffix)'
+    required: false
+  job-matrix:
+    description: 'Job matrix; this should not be overridden by users (INTERNAL).'
+    required: false
+    default: ${{ toJSON(matrix) }}
+
+runs:
+  using: node20
+  main: ../dist/maven-setup/main/index.js
+  post: ../dist/maven-setup/post/index.js

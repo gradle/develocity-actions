@@ -6,31 +6,47 @@ import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
 
 export function getWorkflowName(): string {
-    return sharedInput.getInput('workflow-name')
+    // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
+    return process.env['GITHUB_WORKFLOW'] ? process.env['GITHUB_WORKFLOW'] : 'unknown workflow name'
 }
 
 export function getJobName(): string {
-    return sharedInput.getInput('job-name')
+    const jobNameInput = sharedInput.getInput('job-name')
+    if (jobNameInput) {
+        return jobNameInput
+    } else {
+        let currentMatrixValue = ''
+        const jobMatrixInput = sharedInput.getInput('job-matrix')
+        if (jobMatrixInput) {
+            const jobMatrix = JSON.parse(jobMatrixInput)
+            if (jobMatrix) {
+                core.debug(`using matrix ${jobMatrix}`)
+                currentMatrixValue = Object.values(jobMatrix).join('-')
+                core.debug(`currentMatrixValue = ${currentMatrixValue}`)
+            }
+        }
+        return currentMatrixValue ? `${github.context.job}-${currentMatrixValue}` : `${github.context.job}`
+    }
 }
 
-function getBuildScanCaptureStrategy(): string {
-    return sharedInput.getInput('build-scan-capture-strategy')
+function getCaptureStrategy(): string {
+    return sharedInput.getInput('capture-strategy')
 }
 
-function getBuildScanCaptureUnpublishedEnabled(): string {
-    return sharedInput.getInput('build-scan-capture-unpublished-enabled')
+function getCaptureUnpublishedBuildScans(): string {
+    return sharedInput.getInput('capture-unpublished-build-scans')
 }
 
-function getBuildScanCaptureLinkEnabled(): string {
-    return sharedInput.getInput('build-scan-capture-link-enabled')
+function getCaptureBuildScanLinks(): string {
+    return sharedInput.getInput('capture-build-scan-links')
 }
 
 export function exportVariables(buildTool: commonBuildTool.BuildTool): void {
-    core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_STRATEGY', getBuildScanCaptureStrategy())
-    core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_UNPUBLISHED_ENABLED', getBuildScanCaptureUnpublishedEnabled())
-    core.exportVariable('INPUT_BUILD_SCAN_CAPTURE_LINK_ENABLED', getBuildScanCaptureLinkEnabled())
-    core.exportVariable('INPUT_WORKFLOW_NAME', getWorkflowName())
+    core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy())
+    core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans())
+    core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks())
     core.exportVariable('INPUT_JOB_NAME', getJobName())
+    core.exportVariable('SETUP_WORKFLOW_NAME', getWorkflowName())
     core.exportVariable('PR_NUMBER', github.context.issue.number)
     core.exportVariable('BUILD_SCAN_DATA_DIR', buildTool.getBuildScanDataDir())
     core.exportVariable('BUILD_SCAN_DATA_COPY_DIR', buildTool.getBuildScanDataCopyDir())
