@@ -9,10 +9,14 @@ import java.util.stream.Stream;
 
 interface FileManager {
 
-    void writeContent(Path filePath, String content) throws IOException;
+    void writeContent(File file, String content) throws IOException;
 
     void copyDirectory(File buildScanDirectory, File destinationDirectory) throws IOException;
 
-    Stream<Path> find(Path start, int maxDepth, BiPredicate<Path, BasicFileAttributes> matcher) throws IOException;
+    void copyFile(File source, File target) throws IOException;
+
+    void deleteDirectory(File buildScanDirectory) throws IOException;
+
+    Stream<Path> find(File start, int maxDepth, BiPredicate<Path, BasicFileAttributes> matcher) throws IOException;
 
 }

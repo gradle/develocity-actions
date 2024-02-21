@@ -14,12 +14,14 @@ interface Configuration {
 
     boolean isCaptureBuildScanLinks(boolean isBuildFailure);
 
+    boolean isBuildScanRepublication();
+
     String getBuildScanDataDir();
+
+    String getBuildScanMetadataDir();
 
     String getBuildScanDataCopyDir();
 
-    String getBuildScanLinkFile();
-
-    String getBuildScanMetadataFilename();
+    String getBuildScanMetadataCopyDir();
 
 }

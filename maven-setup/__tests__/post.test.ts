@@ -5,6 +5,7 @@ import * as github from '@actions/github'
 process.env['RUNNER_TEMP'] = '/tmp'
 
 import * as post from '../src/post'
+import * as summary from '../../build-scan-shared/src/summary/dump'
 
 const runMock = jest.spyOn(post, 'run')
 
@@ -35,7 +36,7 @@ describe('Post Setup Maven', () => {
             Promise.resolve({
                 // @ts-ignore
                 glob() {
-                    return ['foo.scan']
+                    return ['/tmp/maven-build-scan-data/build-scan-data/foo.scan']
                 }
             })
         )
@@ -45,7 +46,7 @@ describe('Post Setup Maven', () => {
         const uploadArtifactMock = jest
             .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
             .mockImplementation()
-
+        const summaryMock = jest.spyOn(summary, 'dump').mockResolvedValue()
 
         // when
         await post.run()
@@ -53,6 +54,7 @@ describe('Post Setup Maven', () => {
         // then
         expect(runMock).toHaveReturned()
         expect(uploadArtifactMock).toHaveBeenCalled()
+        expect(summaryMock).toHaveBeenCalled()
     })
 
     it('Post-execution without build scan does not upload artifact', async () => {
@@ -71,6 +73,7 @@ describe('Post Setup Maven', () => {
         const uploadArtifactMock = jest
             .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
             .mockImplementation()
+        const summaryMock = jest.spyOn(summary, 'dump').mockResolvedValue()
 
         // when
         await post.run()
@@ -78,5 +81,6 @@ describe('Post Setup Maven', () => {
         // then
         expect(runMock).toHaveReturned()
         expect(uploadArtifactMock).not.toHaveBeenCalled()
+        expect(summaryMock).toHaveBeenCalled()
     })
 })

@@ -3,11 +3,11 @@ import * as core from '@actions/core'
 
 import * as commonBuildTool from './common'
 import * as input from '../publish/input'
-import * as io from '../io'
+import * as io from '../utils/io'
 
 class MavenBuildTool extends commonBuildTool.BuildTool {
     private readonly BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data'
-    private readonly BUILD_SCAN_DATA_DIR = '.gradle-enterprise/build-scan-data/'
+    private readonly DEVELOCITY_DIR = '.gradle-enterprise/'
     private readonly COMMAND = 'mvn'
     private readonly PUBLISH_TASK = 'gradle-enterprise:build-scan-publish-previous'
     private readonly PLUGIN_DESCRIPTOR_FILENAME = '.mvn/extensions.xml'
@@ -24,8 +24,8 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
         return this.BUILD_SCAN_ARTIFACT_NAME
     }
 
-    getBuildScanDataDir(): string {
-        return path.resolve(this.getBuildToolHome(), this.BUILD_SCAN_DATA_DIR)
+    getDevelocityDir(): string {
+        return path.resolve(this.getBuildToolHome(), this.DEVELOCITY_DIR)
     }
 
     getCommand(): string {

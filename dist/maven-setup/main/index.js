@@ -37501,8 +37501,7 @@ const exec = __importStar(__nccwpck_require__(1514));
 const glob = __importStar(__nccwpck_require__(8090));
 const core = __importStar(__nccwpck_require__(2186));
 const input = __importStar(__nccwpck_require__(4086));
-const io = __importStar(__nccwpck_require__(1422));
-const sharedInput = __importStar(__nccwpck_require__(169));
+const io = __importStar(__nccwpck_require__(6545));
 const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP';
 var BuildToolType;
 (function (BuildToolType) {
@@ -37521,9 +37520,10 @@ class BuildTool {
     ENV_KEY_HOME = 'HOME';
     ENV_KEY_HOMEDRIVE = 'HOMEDRIVE';
     ENV_KEY_HOMEPATH = 'HOMEPATH';
-    BUILD_SCAN_DATA_COPY_DIR = 'build-scan-data-copy';
     PUBLISHER_PROJECT_DIR = 'build-scan-publish';
     SCAN_FILENAME = `scan.scan`;
+    BUILD_SCAN_DATA_DIR = 'build-scan-data';
+    BUILD_SCAN_METADATA_DIR = 'build-scan-metadata';
     REPLACE_ME_TOKEN = `REPLACE_ME`;
     type;
     constructor(type) {
@@ -37542,11 +37542,20 @@ class BuildTool {
     getType() {
         return this.type;
     }
+    getBuildScanDataDir() {
+        return path_1.default.resolve(this.getDevelocityDir(), this.BUILD_SCAN_DATA_DIR);
+    }
+    getBuildScanMetadataDir() {
+        return path_1.default.resolve(this.getDevelocityDir(), this.BUILD_SCAN_METADATA_DIR);
+    }
     getBuildScanWorkDir() {
         return path_1.default.resolve(getWorkDir(), this.getArtifactName());
     }
     getBuildScanDataCopyDir() {
-        return path_1.default.resolve(this.getBuildScanWorkDir(), this.BUILD_SCAN_DATA_COPY_DIR);
+        return path_1.default.resolve(this.getBuildScanWorkDir(), this.BUILD_SCAN_DATA_DIR);
+    }
+    getBuildScanMetadataCopyDir() {
+        return path_1.default.resolve(this.getBuildScanWorkDir(), this.BUILD_SCAN_METADATA_DIR);
     }
     getPublisherProjectDir() {
         return path_1.default.resolve(this.getBuildScanWorkDir(), this.PUBLISHER_PROJECT_DIR);
@@ -37554,6 +37563,12 @@ class BuildTool {
     async buildScanPublish() {
         const buildToolCmd = this.getCommand();
         const publisherProjectDir = this.getPublisherProjectDir();
+        const globber = await glob.create(`${this.getBuildScanDataDir()}/**/${this.SCAN_FILENAME}`);
+        const scanFiles = await globber.glob();
+        if (scanFiles.length === 0) {
+            core.info('Skipping the publication: No artifact found');
+            return;
+        }
         // Create publisher directory
         if (!io.existsSync(publisherProjectDir)) {
             core.debug(`Creating ${publisherProjectDir}`);
@@ -37569,13 +37584,12 @@ class BuildTool {
         if (res.stderr !== '' && res.exitCode) {
             throw new Error(`${buildToolCmd} execution failed: ${res.stderr}`);
         }
-        const globber = await glob.create(`${this.getBuildScanDataDir()}/**/${this.SCAN_FILENAME}`);
-        const scanFiles = await globber.glob();
         this.createPublisherProjectStructure();
         // Iterate file in reverse order to match build-scan-publish-previous sort
+        let idx = 1;
         for (const scanFile of scanFiles.sort().reverse()) {
             // Parse current version
-            core.info(`Publishing ${scanFile}`);
+            core.info(`Publishing ${scanFile} (${idx++}/${scanFiles.length})`);
             try {
                 const scanFileData = parseScanDumpPath(scanFile);
                 // Create plugin descriptor with current plugin version
@@ -37584,11 +37598,14 @@ class BuildTool {
                 res = await exec.getExecOutput(buildToolCmd, this.getPublishTask(), {
                     cwd: publisherProjectDir,
                     env: {
+                        IS_BUILD_SCAN_REPUBLICATION: 'true',
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
                         GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
-                        INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS: 'false',
-                        BUILD_SCAN_LINK_FILE: path_1.default.resolve(this.getBuildScanWorkDir(), sharedInput.BUILD_SCAN_LINK_FILE)
+                        BUILD_SCAN_DATA_DIR: this.getBuildScanDataDir(),
+                        BUILD_SCAN_DATA_COPY_DIR: this.getBuildScanDataCopyDir(),
+                        BUILD_SCAN_METADATA_DIR: this.getBuildScanMetadataDir(),
+                        BUILD_SCAN_METADATA_COPY_DIR: this.getBuildScanMetadataCopyDir()
                     }
                 });
                 if (res.stderr !== '' && res.exitCode) {
@@ -37657,10 +37674,10 @@ const path_1 = __importDefault(__nccwpck_require__(1017));
 const core = __importStar(__nccwpck_require__(2186));
 const commonBuildTool = __importStar(__nccwpck_require__(1869));
 const input = __importStar(__nccwpck_require__(4086));
-const io = __importStar(__nccwpck_require__(1422));
+const io = __importStar(__nccwpck_require__(6545));
 class MavenBuildTool extends commonBuildTool.BuildTool {
     BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data';
-    BUILD_SCAN_DATA_DIR = '.gradle-enterprise/build-scan-data/';
+    DEVELOCITY_DIR = '.gradle-enterprise/';
     COMMAND = 'mvn';
     PUBLISH_TASK = 'gradle-enterprise:build-scan-publish-previous';
     PLUGIN_DESCRIPTOR_FILENAME = '.mvn/extensions.xml';
@@ -37673,8 +37690,8 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
     getArtifactName() {
         return this.BUILD_SCAN_ARTIFACT_NAME;
     }
-    getBuildScanDataDir() {
-        return path_1.default.resolve(this.getBuildToolHome(), this.BUILD_SCAN_DATA_DIR);
+    getDevelocityDir() {
+        return path_1.default.resolve(this.getBuildToolHome(), this.DEVELOCITY_DIR);
     }
     getCommand() {
         return this.COMMAND;
@@ -37811,10 +37828,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getBooleanInput = exports.getInput = exports.BUILD_SCAN_METADATA_FILE = exports.BUILD_SCAN_LINK_FILE = void 0;
+exports.getGithubToken = exports.getBooleanInput = exports.getInput = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-exports.BUILD_SCAN_LINK_FILE = 'build-scan-links.properties';
-exports.BUILD_SCAN_METADATA_FILE = 'build-scan-metadata.properties';
 function getInput(key, options) {
     return core.getInput(key, options);
 }
@@ -37832,84 +37847,11 @@ function getBooleanInput(paramName, paramDefault = false) {
     throw TypeError(`The value '${paramValue} is not valid for '${paramName}. Valid values are: [true, false]`);
 }
 exports.getBooleanInput = getBooleanInput;
-
-
-/***/ }),
-
-/***/ 1422:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.copyFileSync = exports.writeContentToFileSync = exports.writeFileSync = exports.readFileSync = exports.readdirSync = exports.mkdirSync = exports.extractZip = exports.existsSync = void 0;
-const core = __importStar(__nccwpck_require__(2186));
-const fs_1 = __importDefault(__nccwpck_require__(7147));
-const path_1 = __importDefault(__nccwpck_require__(1017));
-const toolCache = __importStar(__nccwpck_require__(7784));
-function existsSync(fileName) {
-    return fs_1.default.existsSync(fileName);
+// Internal parameters
+function getGithubToken() {
+    return getInput('github-token', { required: true });
 }
-exports.existsSync = existsSync;
-async function extractZip(zipFileName, extractDir) {
-    return await toolCache.extractZip(zipFileName, extractDir);
-}
-exports.extractZip = extractZip;
-function mkdirSync(dir) {
-    fs_1.default.mkdirSync(dir, { recursive: true });
-}
-exports.mkdirSync = mkdirSync;
-function readdirSync(dirName) {
-    return fs_1.default.readdirSync(path_1.default.resolve(dirName));
-}
-exports.readdirSync = readdirSync;
-function readFileSync(fileName) {
-    return fs_1.default.readFileSync(path_1.default.resolve(fileName), 'utf-8');
-}
-exports.readFileSync = readFileSync;
-function writeFileSync(dirName, fileName, downloadBuffer) {
-    fs_1.default.writeFileSync(path_1.default.resolve(dirName, fileName), Buffer.from(downloadBuffer));
-}
-exports.writeFileSync = writeFileSync;
-function writeContentToFileSync(fileName, content) {
-    fs_1.default.writeFileSync(fileName, content);
-}
-exports.writeContentToFileSync = writeContentToFileSync;
-function copyFileSync(source, dest) {
-    if (!existsSync(dest)) {
-        fs_1.default.copyFileSync(source, dest);
-    }
-    else {
-        core.info(`${dest} already present, skipping copy`);
-    }
-}
-exports.copyFileSync = copyFileSync;
+exports.getGithubToken = getGithubToken;
 
 
 /***/ }),
@@ -37943,7 +37885,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getGithubToken = exports.getAuthorizedUsersList = exports.isSkipProjectIdInJobSummary = exports.isSkipJobSummary = exports.isSkipPrComment = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = void 0;
+exports.getAuthorizedUsersList = exports.getDevelocityAccessKey = exports.getDevelocityUrl = exports.isDevelocityAllowUntrusted = void 0;
 const sharedInput = __importStar(__nccwpck_require__(169));
 function isDevelocityAllowUntrusted() {
     return sharedInput.getBooleanInput('develocity-allow-untrusted');
@@ -37957,27 +37899,10 @@ function getDevelocityAccessKey() {
     return sharedInput.getInput('develocity-access-key');
 }
 exports.getDevelocityAccessKey = getDevelocityAccessKey;
-function isSkipPrComment() {
-    return sharedInput.getBooleanInput('skip-pr-comment');
-}
-exports.isSkipPrComment = isSkipPrComment;
-function isSkipJobSummary() {
-    return sharedInput.getBooleanInput('skip-job-summary');
-}
-exports.isSkipJobSummary = isSkipJobSummary;
-function isSkipProjectIdInJobSummary() {
-    return sharedInput.getBooleanInput('skip-project-id-in-job-summary');
-}
-exports.isSkipProjectIdInJobSummary = isSkipProjectIdInJobSummary;
 function getAuthorizedUsersList() {
     return sharedInput.getInput('authorized-users-list');
 }
 exports.getAuthorizedUsersList = getAuthorizedUsersList;
-// Internal parameters
-function getGithubToken() {
-    return sharedInput.getInput('github-token', { required: true });
-}
-exports.getGithubToken = getGithubToken;
 
 
 /***/ }),
@@ -38010,15 +37935,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.exportVariables = exports.getJobName = exports.getWorkflowName = void 0;
-const path_1 = __importDefault(__nccwpck_require__(1017));
+exports.exportVariables = exports.isSkipProjectIdInJobSummary = exports.isSkipJobSummary = exports.isSkipPrComment = exports.getJobName = exports.getWorkflowName = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const sharedInput = __importStar(__nccwpck_require__(169));
+const input_1 = __nccwpck_require__(169);
 function getWorkflowName() {
     // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
     return process.env['GITHUB_WORKFLOW'] ? process.env['GITHUB_WORKFLOW'] : 'unknown workflow name';
@@ -38053,6 +37975,18 @@ function getCaptureUnpublishedBuildScans() {
 function getCaptureBuildScanLinks() {
     return sharedInput.getInput('capture-build-scan-links');
 }
+function isSkipPrComment() {
+    return (0, input_1.getBooleanInput)('skip-pr-comment');
+}
+exports.isSkipPrComment = isSkipPrComment;
+function isSkipJobSummary() {
+    return (0, input_1.getBooleanInput)('skip-job-summary');
+}
+exports.isSkipJobSummary = isSkipJobSummary;
+function isSkipProjectIdInJobSummary() {
+    return (0, input_1.getBooleanInput)('skip-project-id-in-job-summary');
+}
+exports.isSkipProjectIdInJobSummary = isSkipProjectIdInJobSummary;
 function exportVariables(buildTool) {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy());
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans());
@@ -38062,10 +37996,102 @@ function exportVariables(buildTool) {
     core.exportVariable('PR_NUMBER', github.context.issue.number);
     core.exportVariable('BUILD_SCAN_DATA_DIR', buildTool.getBuildScanDataDir());
     core.exportVariable('BUILD_SCAN_DATA_COPY_DIR', buildTool.getBuildScanDataCopyDir());
-    core.exportVariable('BUILD_SCAN_LINK_FILE', path_1.default.resolve(buildTool.getBuildScanWorkDir(), sharedInput.BUILD_SCAN_LINK_FILE));
-    core.exportVariable('BUILD_SCAN_METADATA_FILENAME', sharedInput.BUILD_SCAN_METADATA_FILE);
+    core.exportVariable('BUILD_SCAN_METADATA_DIR', buildTool.getBuildScanMetadataDir());
+    core.exportVariable('BUILD_SCAN_METADATA_COPY_DIR', buildTool.getBuildScanMetadataCopyDir());
 }
 exports.exportVariables = exportVariables;
+
+
+/***/ }),
+
+/***/ 6545:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.renameSync = exports.copyFileSync = exports.writeContentToFileSync = exports.writeFileSync = exports.readFileSync = exports.readdirSync = exports.mkdirSync = exports.extractZip = exports.existsSync = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
+const path_1 = __importDefault(__nccwpck_require__(1017));
+const toolCache = __importStar(__nccwpck_require__(7784));
+function existsSync(fileName) {
+    return fs_1.default.existsSync(fileName);
+}
+exports.existsSync = existsSync;
+async function extractZip(zipFileName, extractDir) {
+    return await toolCache.extractZip(zipFileName, extractDir);
+}
+exports.extractZip = extractZip;
+function mkdirSync(dir) {
+    fs_1.default.mkdirSync(dir, { recursive: true });
+}
+exports.mkdirSync = mkdirSync;
+function readdirSync(dirName) {
+    return fs_1.default.readdirSync(path_1.default.resolve(dirName));
+}
+exports.readdirSync = readdirSync;
+function readFileSync(fileName) {
+    return fs_1.default.readFileSync(path_1.default.resolve(fileName), 'utf-8');
+}
+exports.readFileSync = readFileSync;
+function writeFileSync(dirName, fileName, downloadBuffer) {
+    if (!fs_1.default.existsSync(dirName)) {
+        fs_1.default.mkdirSync(dirName, { recursive: true });
+    }
+    fs_1.default.writeFileSync(path_1.default.resolve(dirName, fileName), Buffer.from(downloadBuffer));
+}
+exports.writeFileSync = writeFileSync;
+function writeContentToFileSync(fileName, content) {
+    const parentDir = path_1.default.basename(path_1.default.dirname(fileName));
+    if (!fs_1.default.existsSync(parentDir)) {
+        fs_1.default.mkdirSync(parentDir, { recursive: true });
+    }
+    fs_1.default.writeFileSync(fileName, content);
+}
+exports.writeContentToFileSync = writeContentToFileSync;
+function copyFileSync(source, dest) {
+    if (!existsSync(dest)) {
+        fs_1.default.copyFileSync(source, dest);
+    }
+    else {
+        core.info(`${dest} already present, skipping copy`);
+    }
+}
+exports.copyFileSync = copyFileSync;
+function renameSync(oldPath, newPath) {
+    if (!fs_1.default.existsSync(newPath)) {
+        fs_1.default.mkdirSync(newPath, { recursive: true });
+    }
+    fs_1.default.renameSync(oldPath, newPath);
+}
+exports.renameSync = renameSync;
 
 
 /***/ }),
