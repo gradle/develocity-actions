@@ -37,7 +37,7 @@ By default, a summary will be added to the GitHub workflow calling the action (c
 
 ![workflow](./doc/summary-workflow.png)
 
-By default, the pull-request will be commented with the summary (can be skipped if `skip-pr-comment` is set to `true`):
+By default, a comment will be added to the pull-request with the summary (can be skipped if `skip-pr-comment` is set to `true`):
 
 ![comment](./doc/summary-comment.png)
 
