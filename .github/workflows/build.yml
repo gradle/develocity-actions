@@ -87,25 +87,34 @@ jobs:
           fi
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Checkout Maven sample project
+      - name: Checkout Maven sample Gradle Enterprise project
         uses: actions/checkout@v4
         with:
           repository: 'gradle/develocity-build-config-samples'
-          path: 'sample'
+          path: 'sample-gradle-enterprise'
+          ref: 'main'
+      - name: Checkout Maven sample Develocity project
+        uses: actions/checkout@v4
+        with:
+          repository: 'pshevche/develocity-build-config-samples'
+          path: 'sample-develocity'
           ref: 'main'
       - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+      - name: Set up RC repository
+        run: |
+          mv ./sample-develocity/common-develocity-maven-configuration/.mvn/settings.xml $HOME/.m2
       - name: Setup Build Scan dump capture
         uses: ./maven-setup
       - name: Run Maven Build 1
-        working-directory: ./sample/common-develocity-maven-configuration
+        working-directory: ./sample-gradle-enterprise/common-develocity-maven-configuration
         run: mvn clean -B -X -Dgradle.enterprise.url=${{ env.DV_URL }}
       - name: Run Maven Build 2
-        working-directory: ./sample/common-develocity-maven-configuration
-        run: mvn initialize -B -X -Dgradle.enterprise.url=${{ env.DV_URL }}
+        working-directory: ./sample-develocity/common-develocity-maven-configuration
+        run: mvn initialize -B -X -Ddevelocity.url=${{ env.DV_URL }}
 
   test-publish:
     runs-on: ubuntu-latest
