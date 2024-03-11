@@ -38393,7 +38393,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.exportVariables = exports.isSkipProjectIdInJobSummary = exports.isSkipJobSummary = exports.isSkipPrComment = exports.getJobName = exports.getWorkflowName = void 0;
+exports.exportVariables = exports.isAddProjectIdInJobSummary = exports.isAddJobSummary = exports.isAddPrComment = exports.getJobName = exports.getWorkflowName = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const sharedInput = __importStar(__nccwpck_require__(169));
@@ -38432,18 +38432,18 @@ function getCaptureUnpublishedBuildScans() {
 function getCaptureBuildScanLinks() {
     return sharedInput.getInput('capture-build-scan-links');
 }
-function isSkipPrComment() {
-    return (0, input_1.getBooleanInput)('skip-pr-comment');
+function isAddPrComment() {
+    return (0, input_1.getBooleanInput)('add-pr-comment');
 }
-exports.isSkipPrComment = isSkipPrComment;
-function isSkipJobSummary() {
-    return (0, input_1.getBooleanInput)('skip-job-summary');
+exports.isAddPrComment = isAddPrComment;
+function isAddJobSummary() {
+    return (0, input_1.getBooleanInput)('add-job-summary');
 }
-exports.isSkipJobSummary = isSkipJobSummary;
-function isSkipProjectIdInJobSummary() {
-    return (0, input_1.getBooleanInput)('skip-project-id-in-job-summary');
+exports.isAddJobSummary = isAddJobSummary;
+function isAddProjectIdInJobSummary() {
+    return (0, input_1.getBooleanInput)('add-project-id-in-job-summary');
 }
-exports.isSkipProjectIdInJobSummary = isSkipProjectIdInJobSummary;
+exports.isAddProjectIdInJobSummary = isAddProjectIdInJobSummary;
 function exportVariables(buildTool) {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy());
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans());

@@ -22,11 +22,11 @@ export async function dump(
 
         dumpToFile(job, buildScanWorkDir)
 
-        if (!input.isSkipPrComment() && job.prNumber) {
+        if (input.isAddPrComment() && job.prNumber) {
             await dumpToPullRequestComment(job.prNumber, htmlSummary)
         }
 
-        if (!input.isSkipJobSummary()) {
+        if (input.isAddJobSummary()) {
             await dumpToWorkflowSummary(htmlSummary)
         }
     }
@@ -40,10 +40,10 @@ function getHtmlSummary(job: Job): string {
     return `
 <table>
     <tr>${
-        input.isSkipProjectIdInJobSummary()
-            ? ''
-            : `
+        input.isAddProjectIdInJobSummary()
+            ? `
         <th>Project</th>`
+            : ''
     }
         <th>Job</th>
         <th>Requested ${getWorkUnitName(job.buildToolType)}</th>
@@ -67,10 +67,10 @@ function getWorkUnitName(buildToolType: BuildToolType): string {
 function renderBuildResultRow(build: BuildMetadata): string {
     return `
     <tr>${
-        input.isSkipProjectIdInJobSummary()
-            ? ''
-            : `        
+        input.isAddProjectIdInJobSummary()
+            ? `        
         <td>${build.projectId}</td>`
+            : ''
     }
         <td>${build.jobName}</td>
         <td>${build.requestedTasks}</td>

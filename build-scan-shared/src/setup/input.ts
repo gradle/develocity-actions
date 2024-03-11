@@ -41,16 +41,16 @@ function getCaptureBuildScanLinks(): string {
     return sharedInput.getInput('capture-build-scan-links')
 }
 
-export function isSkipPrComment(): boolean {
-    return getBooleanInput('skip-pr-comment')
+export function isAddPrComment(): boolean {
+    return getBooleanInput('add-pr-comment')
 }
 
-export function isSkipJobSummary(): boolean {
-    return getBooleanInput('skip-job-summary')
+export function isAddJobSummary(): boolean {
+    return getBooleanInput('add-job-summary')
 }
 
-export function isSkipProjectIdInJobSummary(): boolean {
-    return getBooleanInput('skip-project-id-in-job-summary')
+export function isAddProjectIdInJobSummary(): boolean {
+    return getBooleanInput('add-project-id-in-job-summary')
 }
 
 export function exportVariables(buildTool: commonBuildTool.BuildTool): void {

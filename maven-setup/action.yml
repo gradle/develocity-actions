@@ -22,15 +22,15 @@ inputs:
     description: 'Job matrix; this should not be overridden by users (INTERNAL).'
     required: false
     default: ${{ toJSON(matrix) }}
-  skip-pr-comment:
+  add-pr-comment:
     description: 'Whether to comment or not the pull-request with Build Scan links'
-    default: 'false'
-  skip-job-summary:
-    description: 'Whether to add or not a job summary to the GitHub workflow'
-    default: 'false'
-  skip-project-id-in-job-summary:
-    description: 'Whether to add or not the project id in the job summary / comment'
     default: 'true'
+  add-job-summary:
+    description: 'Whether to add or not a job summary to the GitHub workflow'
+    default: 'true'
+  add-project-id-in-job-summary:
+    description: 'Whether to add or not the project id in the job summary / comment'
+    default: 'false'
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}

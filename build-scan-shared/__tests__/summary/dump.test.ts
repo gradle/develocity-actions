@@ -37,8 +37,8 @@ describe('dump', () => {
     it('Dump triggers pull request comment and summary', async () => {
         // Given
         jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(job)
-        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
-        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(false)
+        jest.spyOn(input, 'isAddPrComment').mockReturnValue(true)
+        jest.spyOn(input, 'isAddJobSummary').mockReturnValue(true)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -55,11 +55,11 @@ describe('dump', () => {
         expect(githubSummaryMock).toHaveBeenCalled()
     })
 
-    it('Dump with skip-pr-comment dumps output to file', async () => {
+    it('Dump with add-pr-comment=false dumps output to file', async () => {
         // Given
         jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(job)
-        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(false)
+        jest.spyOn(input, 'isAddPrComment').mockReturnValue(false)
+        jest.spyOn(input, 'isAddJobSummary').mockReturnValue(true)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -76,11 +76,11 @@ describe('dump', () => {
         expect(githubSummaryMock).toHaveBeenCalled()
     })
 
-    it('Dump with skip-job-summary does not add summary', async () => {
+    it('Dump with add-job-summary=false does not add summary', async () => {
         // Given
         jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(job)
-        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(true)
+        jest.spyOn(input, 'isAddPrComment').mockReturnValue(false)
+        jest.spyOn(input, 'isAddJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -100,8 +100,8 @@ describe('dump', () => {
     it('Dump without build scan does nothing', async () => {
         // Given
         jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(<Job>{})
-        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(true)
-        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(true)
+        jest.spyOn(input, 'isAddPrComment').mockReturnValue(false)
+        jest.spyOn(input, 'isAddJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))
@@ -118,11 +118,11 @@ describe('dump', () => {
         expect(githubSummaryMock).not.toHaveBeenCalled()
     })
 
-    it('Dump with skip-pr-comment and without build scan does nothing', async () => {
+    it('Dump with add-pr-comment=true and without build scan does nothing', async () => {
         // Given
         jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(<Job>{})
-        jest.spyOn(input, 'isSkipPrComment').mockReturnValue(false)
-        jest.spyOn(input, 'isSkipJobSummary').mockReturnValue(true)
+        jest.spyOn(input, 'isAddPrComment').mockReturnValue(true)
+        jest.spyOn(input, 'isAddJobSummary').mockReturnValue(false)
         const githubCommentMock = jest
             .spyOn(githubUtils, 'commentPullRequest')
             .mockReturnValue(Promise.resolve(undefined))

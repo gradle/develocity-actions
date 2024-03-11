@@ -33,18 +33,18 @@ The action enables two features:
 
 #### Summary
 
-By default, a summary will be added to the GitHub workflow calling the action (can be skipped with `skip-job-summary` is set to `true`):
+By default, a summary will be added to the GitHub workflow calling the action (can be skipped with `add-job-summary` is set to `false`):
 
 ![workflow](./doc/summary-workflow.png)
 
-By default, a comment will be added to the pull-request with the summary (can be skipped if `skip-pr-comment` is set to `true`):
+By default, a comment will be added to the pull-request with the summary (can be skipped if `add-pr-comment` is set to `false`):
 
 ![comment](./doc/summary-comment.png)
 
 _Note:_<br>
 - The job name is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
 - The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
-  only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`skip-pr-comment: false`).  
+  only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`add-pr-comment: false`).  
 
 Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
 
@@ -110,15 +110,15 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                               | Description                                                                  | Default   |
-|------------------------------------|------------------------------------------------------------------------------|-----------|
-| `capture-strategy`                 | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)      | `ALWAYS`  |
-| `capture-unpublished-build-scans`  | *Optional*: Whether to enable or not unpublished Build Scans capture         | `true`    |
-| `capture-build-scan-links`         | *Optional*: Whether to enable or not Build Scan links capture                | `true`    |
-| `job-name`                         | *Optional*: Job name (used in summary and as artifact suffix)                |           |
-| `skip-pr-comment`                  | *Optional*: Whether to comment or not the pull-request with Build Scan links | `false`   |
-| `skip-job-summary`                 | *Optional*: Whether to add or not a summary to the GitHub workflow           | `false`   |
-| `skip-project-id-in-job-summary`   | *Optional*: Whether to add or not project id to the job summary / comment    | `true`    |  
+| Name                              | Description                                                                  | Default  |
+|-----------------------------------|------------------------------------------------------------------------------|----------|
+| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)      | `ALWAYS` |
+| `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture         | `true`   |
+| `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture                | `true`   |
+| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)                |          |
+| `add-pr-comment`                  | *Optional*: Whether to comment or not the pull-request with Build Scan links | `true`   |
+| `add-job-summary`                 | *Optional*: Whether to add or not a summary to the GitHub workflow           | `true`   |
+| `add-project-id-in-job-summary`   | *Optional*: Whether to add or not project id to the job summary / comment    | `false`  |  
 
 ## Publish Build Scans® for pull-requests issued from forked repositories
 
