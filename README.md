@@ -5,8 +5,8 @@ A collection of composite GitHub Actions
 ## Add a workflow summary to Maven builds 
 
 ### Description
-The `maven-setup` action adds a workflow summary for each Maven invocation. 
-The summary can also be optionally added as a pull-request comment (if in a pull-request context). 
+The `maven-setup` action adds a workflow summary for each Maven invocation.
+The summary is also added as a pull-request comment in a pull-request context. This can be disabled via [configuration](#summary).
 
 This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#publish-build-scans-for-pull-requests-issued-from-forked-repositories) for details.
 
@@ -110,21 +110,21 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                              | Description                                                                  | Default  |
-|-----------------------------------|------------------------------------------------------------------------------|----------|
-| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)      | `ALWAYS` |
-| `capture-unpublished-build-scans` | *Optional*: Whether to enable or not unpublished Build Scans capture         | `true`   |
-| `capture-build-scan-links`        | *Optional*: Whether to enable or not Build Scan links capture                | `true`   |
-| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)                |          |
-| `add-pr-comment`                  | *Optional*: Whether to comment or not the pull-request with Build Scan links | `true`   |
-| `add-job-summary`                 | *Optional*: Whether to add or not a summary to the GitHub workflow           | `true`   |
-| `add-project-id-in-job-summary`   | *Optional*: Whether to add or not project id to the job summary / comment    | `false`  |  
+| Name                              | Description                                                             | Default  |
+|-----------------------------------|-------------------------------------------------------------------------|----------|
+| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS` |
+| `capture-unpublished-build-scans` | *Optional*: Enable unpublished Build Scans capture                      | `true`   |
+| `capture-build-scan-links`        | *Optional*: Enable Build Scan links capture                             | `true`   |
+| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)           |          |
+| `add-pr-comment`                  | *Optional*: Comment the pull-request with Build Scan links              | `true`   |
+| `add-job-summary`                 | *Optional*: Add a summary to the GitHub workflow                        | `true`   |
+| `add-project-id-in-job-summary`   | *Optional*: Add project id to the job summary / comment                 | `false`  |  
 
 ## Publish Build Scans® for pull-requests issued from forked repositories
 
 ### Description
-When submitting a pull request, a GitHub workflow that validates the change is usually triggered, however the Develocity Build Scans® can’t be published 
-as workflows from forked repositories do not have access to secrets although an access token is required to publish a Build Scan®
+When submitting a pull request from a forked GitHub repository, a GitHub workflow that validates the change cannot publish a Build Scan® 
+as workflows from forked repositories do not have access to secrets. An access token is required to publish a Build Scan®.
 
 _Note:_<br>
 The `Approve and Run` manual step documented [here](https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks) must be enabled on the GitHub repository configuration to meet legal requirements (this is the default configuration).
@@ -187,7 +187,7 @@ Some parameters need to be adjusted here:
 The action will download any saved Build Scan® and publish them to Develocity.
 
 The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-users-list`. 
-The action will publish Build Scans® if the initial pull-request author belongs to the list.
+The action will publish Build Scans® if the initial pull-request author belongs to the list or if the list is empty.
 
 **Event Triggers**:
 
