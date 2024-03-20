@@ -14,19 +14,30 @@ import java.util.stream.Stream;
 class DefaultFileManager implements FileManager {
 
     @Override
-    public void writeContent(Path filePath, String content) throws IOException {
-        Files.write(filePath, content.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    public void writeContent(File file, String content) throws IOException {
+        Files.createDirectories(file.toPath().getParent());
+        Files.write(file.toPath(), content.getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
     @Override
-    public void copyDirectory(File buildScanDirectory, File destinationDirectory) throws IOException {
-        FileUtils.copyDirectory(buildScanDirectory, destinationDirectory);
+    public void copyDirectory(File source, File target) throws IOException {
+        FileUtils.copyDirectory(source, target);
     }
 
     @Override
-    public Stream<Path> find(Path start,
+    public void copyFile(File source, File target) throws IOException {
+        FileUtils.copyFile(source, target);
+    }
+
+    @Override
+    public void deleteDirectory(File buildScanDirectory) throws IOException {
+        FileUtils.deleteDirectory(buildScanDirectory);
+    }
+
+    @Override
+    public Stream<Path> find(File start,
                              int maxDepth,
                              BiPredicate<Path, BasicFileAttributes> matcher) throws IOException {
-        return Files.find(start, maxDepth, matcher);
+        return Files.find(start.toPath(), maxDepth, matcher);
     }
 }

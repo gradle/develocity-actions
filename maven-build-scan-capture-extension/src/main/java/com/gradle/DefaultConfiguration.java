@@ -14,13 +14,14 @@ class DefaultConfiguration implements Configuration {
     static final String CONFIG_KEY_CAPTURE_UNPUBLISHED_BUILD_SCANS = "INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS";
     static final String CONFIG_KEY_CAPTURE_BUILD_SCAN_LINKS = "INPUT_CAPTURE_BUILD_SCAN_LINKS";
     static final String CONFIG_KEY_BUILD_SCAN_DATA_DIR = "BUILD_SCAN_DATA_DIR";
+    static final String CONFIG_KEY_BUILD_SCAN_METADATA_DIR = "BUILD_SCAN_METADATA_DIR";
+    static final String CONFIG_KEY_BUILD_SCAN_METADATA_COPY_DIR = "BUILD_SCAN_METADATA_COPY_DIR";
     static final String CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR = "BUILD_SCAN_DATA_COPY_DIR";
-    static final String BUILD_SCAN_LINK_FILE = "BUILD_SCAN_LINK_FILE";
-    static final String BUILD_SCAN_METADATA_FILENAME = "BUILD_SCAN_METADATA_FILENAME";
     static final String CONFIG_KEY_JOB_NAME = "INPUT_JOB_NAME";
     static final String CONFIG_KEY_WORKFLOW_NAME = "SETUP_WORKFLOW_NAME";
     static final String CONFIG_KEY_PR_NUMBER = "PR_NUMBER";
     static final String CONFIG_KEY_BUILD_ID = "BUILD_ID";
+    static final String CONFIG_KEY_IS_BUILD_SCAN_REPUBLICATION = "IS_BUILD_SCAN_REPUBLICATION";
 
     final Map<String,String> configuration = new HashMap<>();
 
@@ -32,15 +33,16 @@ class DefaultConfiguration implements Configuration {
         instance.configuration.put(CONFIG_KEY_WORKFLOW_NAME, getEnvOrDefault(CONFIG_KEY_WORKFLOW_NAME, "unknown workflow name"));
         instance.configuration.put(CONFIG_KEY_JOB_NAME, getEnvOrDefault(CONFIG_KEY_JOB_NAME, "unknown job name"));
         instance.configuration.put(CONFIG_KEY_PR_NUMBER, getEnvOrDefault(CONFIG_KEY_PR_NUMBER, "0"));
-        instance.configuration.put(CONFIG_KEY_BUILD_ID, getEnvOrDefault(CONFIG_KEY_BUILD_ID, "0"));
+        instance.configuration.put(CONFIG_KEY_BUILD_ID, getEnv(CONFIG_KEY_BUILD_ID));
         instance.configuration.put(CONFIG_KEY_CAPTURE_STRATEGY, getEnvOrDefault(CONFIG_KEY_CAPTURE_STRATEGY, CaptureStrategy.ALWAYS.name()));
         instance.configuration.put(CONFIG_KEY_CAPTURE_UNPUBLISHED_BUILD_SCANS, getEnvOrDefault(CONFIG_KEY_CAPTURE_UNPUBLISHED_BUILD_SCANS, String.valueOf(true)));
         instance.configuration.put(CONFIG_KEY_CAPTURE_BUILD_SCAN_LINKS, getEnvOrDefault(CONFIG_KEY_CAPTURE_BUILD_SCAN_LINKS, String.valueOf(true)));
         instance.configuration.put(CONFIG_KEY_CAPTURE_CURRENT_ENABLED, getEnvOrDefault(CONFIG_KEY_CAPTURE_CURRENT_ENABLED, String.valueOf(false)));
         instance.configuration.put(CONFIG_KEY_BUILD_SCAN_DATA_DIR, getEnv(CONFIG_KEY_BUILD_SCAN_DATA_DIR));
         instance.configuration.put(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR, getEnv(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR));
-        instance.configuration.put(BUILD_SCAN_LINK_FILE, getEnv(BUILD_SCAN_LINK_FILE));
-        instance.configuration.put(BUILD_SCAN_METADATA_FILENAME, getEnv(BUILD_SCAN_METADATA_FILENAME));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_METADATA_DIR, getEnv(CONFIG_KEY_BUILD_SCAN_METADATA_DIR));
+        instance.configuration.put(CONFIG_KEY_BUILD_SCAN_METADATA_COPY_DIR, getEnv(CONFIG_KEY_BUILD_SCAN_METADATA_COPY_DIR));
+        instance.configuration.put(CONFIG_KEY_IS_BUILD_SCAN_REPUBLICATION, getEnvOrDefault(CONFIG_KEY_IS_BUILD_SCAN_REPUBLICATION, String.valueOf(false)));
 
         return instance;
     }
@@ -88,6 +90,10 @@ class DefaultConfiguration implements Configuration {
                 || (Boolean.parseBoolean(configuration.get(CONFIG_KEY_CAPTURE_CURRENT_ENABLED)) && getCaptureStrategy().equals(CaptureStrategy.ON_DEMAND));
     }
 
+    public boolean isBuildScanRepublication() {
+        return Boolean.parseBoolean(configuration.get(CONFIG_KEY_IS_BUILD_SCAN_REPUBLICATION));
+    }
+
     public String getBuildScanDataDir() {
         return configuration.get(CONFIG_KEY_BUILD_SCAN_DATA_DIR);
     }
@@ -96,12 +102,12 @@ class DefaultConfiguration implements Configuration {
         return configuration.get(CONFIG_KEY_BUILD_SCAN_DATA_COPY_DIR);
     }
 
-    public String getBuildScanLinkFile() {
-        return configuration.get(BUILD_SCAN_LINK_FILE);
+    public String getBuildScanMetadataDir() {
+        return configuration.get(CONFIG_KEY_BUILD_SCAN_METADATA_DIR);
     }
 
-    public String getBuildScanMetadataFilename() {
-        return configuration.get(BUILD_SCAN_METADATA_FILENAME);
+    public String getBuildScanMetadataCopyDir() {
+        return configuration.get(CONFIG_KEY_BUILD_SCAN_METADATA_COPY_DIR);
     }
 
     @Override

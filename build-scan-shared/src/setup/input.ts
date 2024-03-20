@@ -1,9 +1,9 @@
-import path from 'path'
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
 import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
+import {getBooleanInput} from '../input'
 
 export function getWorkflowName(): string {
     // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
@@ -41,6 +41,18 @@ function getCaptureBuildScanLinks(): string {
     return sharedInput.getInput('capture-build-scan-links')
 }
 
+export function isAddPrComment(): boolean {
+    return getBooleanInput('add-pr-comment')
+}
+
+export function isAddJobSummary(): boolean {
+    return getBooleanInput('add-job-summary')
+}
+
+export function isAddProjectIdInJobSummary(): boolean {
+    return getBooleanInput('add-project-id-in-job-summary')
+}
+
 export function exportVariables(buildTool: commonBuildTool.BuildTool): void {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy())
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans())
@@ -50,9 +62,6 @@ export function exportVariables(buildTool: commonBuildTool.BuildTool): void {
     core.exportVariable('PR_NUMBER', github.context.issue.number)
     core.exportVariable('BUILD_SCAN_DATA_DIR', buildTool.getBuildScanDataDir())
     core.exportVariable('BUILD_SCAN_DATA_COPY_DIR', buildTool.getBuildScanDataCopyDir())
-    core.exportVariable(
-        'BUILD_SCAN_LINK_FILE',
-        path.resolve(buildTool.getBuildScanWorkDir(), sharedInput.BUILD_SCAN_LINK_FILE)
-    )
-    core.exportVariable('BUILD_SCAN_METADATA_FILENAME', sharedInput.BUILD_SCAN_METADATA_FILE)
+    core.exportVariable('BUILD_SCAN_METADATA_DIR', buildTool.getBuildScanMetadataDir())
+    core.exportVariable('BUILD_SCAN_METADATA_COPY_DIR', buildTool.getBuildScanMetadataCopyDir())
 }

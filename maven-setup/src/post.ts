@@ -10,7 +10,7 @@ process.on('uncaughtException', e => errorHandler.handle(e))
  */
 export async function run(): Promise<void> {
     try {
-        await setup.uploadBuildScanDataFiles(maven.mavenBuildTool)
+        await setup.post(maven.mavenBuildTool)
     } catch (error) {
         errorHandler.handle(error)
     }

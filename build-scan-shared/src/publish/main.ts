@@ -1,27 +1,23 @@
 import * as core from '@actions/core'
 
-import * as cleaner from './data/clean'
 import * as commonBuildTool from '../buildTool/common'
-import * as githubUtils from './utils/github'
-import * as loader from './data/load'
-import * as summary from './summary/dump'
+import * as githubUtils from '../utils/github'
+import * as input from './input'
 
 export async function publish(buildTool: commonBuildTool.BuildTool): Promise<void> {
-    if (githubUtils.isPublicationAllowed()) {
-        const buildArtifact = await loader.loadBuildScanData(
-            buildTool.getType(),
+    githubUtils.logOriginWorkflowLink()
+
+    if (githubUtils.isPublicationAllowed(input.getAuthorizedUsersList().trim())) {
+        const artifactIds = await githubUtils.downloadBuildScanData(
             buildTool.getArtifactName(),
-            buildTool.getBuildScanDataDir()
+            buildTool.getDevelocityDir()
         )
-        if (buildArtifact.builds.length > 0) {
-            await buildTool.buildScanPublish()
 
-            await summary.dump(buildArtifact, buildTool.getBuildScanWorkDir())
+        // Publish build scans
+        await buildTool.buildScanPublish()
 
-            await cleaner.deleteWorkflowArtifacts(buildArtifact.artifactIds)
-        } else {
-            core.info('Skipping the publication: No artifact found')
-        }
+        // delete workflow artifacts
+        await githubUtils.deleteWorkflowArtifacts(artifactIds)
     } else {
         core.info('Skipping the publication: Unsupported event trigger')
     }

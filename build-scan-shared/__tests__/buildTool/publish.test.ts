@@ -3,10 +3,9 @@ import * as exec from '@actions/exec'
 
 process.env['RUNNER_TEMP'] = '/tmp'
 
-import * as commonBuildTool from '../../src/buildTool/common'
 import * as github from '@actions/github'
 import * as maven from '../../src/buildTool/maven'
-import * as io from '../../src/io'
+import * as io from '../../src/utils/io'
 
 const buildTool = maven.mavenBuildTool
 

@@ -4,8 +4,7 @@ import * as glob from '@actions/glob'
 import * as core from '@actions/core'
 
 import * as input from '../publish/input'
-import * as io from '../io'
-import * as sharedInput from '../input'
+import * as io from '../utils/io'
 
 const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP'
 
@@ -27,12 +26,11 @@ export abstract class BuildTool {
     private readonly ENV_KEY_HOME = 'HOME'
     private readonly ENV_KEY_HOMEDRIVE = 'HOMEDRIVE'
     private readonly ENV_KEY_HOMEPATH = 'HOMEPATH'
-
-    private readonly BUILD_SCAN_DATA_COPY_DIR = 'build-scan-data-copy'
     private readonly PUBLISHER_PROJECT_DIR = 'build-scan-publish'
-
     private readonly SCAN_FILENAME = `scan.scan`
 
+    protected readonly BUILD_SCAN_DATA_DIR = 'build-scan-data'
+    protected readonly BUILD_SCAN_METADATA_DIR = 'build-scan-metadata'
     protected readonly REPLACE_ME_TOKEN = `REPLACE_ME`
 
     protected type: BuildToolType
@@ -43,8 +41,6 @@ export abstract class BuildTool {
 
     protected abstract getCommand(): string
 
-    protected abstract getBuildToolHome(): string
-
     protected abstract getPluginDescriptorFileName(): string
 
     protected abstract getPluginDescriptorTemplate(): string
@@ -53,7 +49,7 @@ export abstract class BuildTool {
 
     abstract getArtifactName(): string
 
-    abstract getBuildScanDataDir(): string
+    abstract getDevelocityDir(): string
 
     protected getHome(): string {
         return (
@@ -75,12 +71,24 @@ export abstract class BuildTool {
         return this.type
     }
 
+    getBuildScanDataDir(): string {
+        return path.resolve(this.getDevelocityDir(), this.BUILD_SCAN_DATA_DIR)
+    }
+
+    getBuildScanMetadataDir(): string {
+        return path.resolve(this.getDevelocityDir(), this.BUILD_SCAN_METADATA_DIR)
+    }
+
     getBuildScanWorkDir(): string {
         return path.resolve(getWorkDir(), this.getArtifactName())
     }
 
     getBuildScanDataCopyDir(): string {
-        return path.resolve(this.getBuildScanWorkDir(), this.BUILD_SCAN_DATA_COPY_DIR)
+        return path.resolve(this.getBuildScanWorkDir(), this.BUILD_SCAN_DATA_DIR)
+    }
+
+    getBuildScanMetadataCopyDir(): string {
+        return path.resolve(this.getBuildScanWorkDir(), this.BUILD_SCAN_METADATA_DIR)
     }
 
     protected getPublisherProjectDir(): string {
@@ -90,6 +98,13 @@ export abstract class BuildTool {
     async buildScanPublish(): Promise<void> {
         const buildToolCmd = this.getCommand()
         const publisherProjectDir = this.getPublisherProjectDir()
+
+        const globber = await glob.create(`${this.getBuildScanDataDir()}/**/${this.SCAN_FILENAME}`)
+        const scanFiles = await globber.glob()
+        if (scanFiles.length === 0) {
+            core.info('Skipping the publication: No artifact found')
+            return
+        }
 
         // Create publisher directory
         if (!io.existsSync(publisherProjectDir)) {
@@ -109,15 +124,13 @@ export abstract class BuildTool {
             throw new Error(`${buildToolCmd} execution failed: ${res.stderr}`)
         }
 
-        const globber = await glob.create(`${this.getBuildScanDataDir()}/**/${this.SCAN_FILENAME}`)
-        const scanFiles = await globber.glob()
-
         this.createPublisherProjectStructure()
 
         // Iterate file in reverse order to match build-scan-publish-previous sort
+        let idx = 1
         for (const scanFile of scanFiles.sort().reverse()) {
             // Parse current version
-            core.info(`Publishing ${scanFile}`)
+            core.info(`Publishing ${scanFile} (${idx++}/${scanFiles.length})`)
 
             try {
                 const scanFileData = parseScanDumpPath(scanFile)
@@ -129,11 +142,14 @@ export abstract class BuildTool {
                 res = await exec.getExecOutput(buildToolCmd, this.getPublishTask(), {
                     cwd: publisherProjectDir,
                     env: {
+                        IS_BUILD_SCAN_REPUBLICATION: 'true',
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
                         GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
-                        INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS: 'false',
-                        BUILD_SCAN_LINK_FILE: path.resolve(this.getBuildScanWorkDir(), sharedInput.BUILD_SCAN_LINK_FILE)
+                        BUILD_SCAN_DATA_DIR: this.getBuildScanDataDir(),
+                        BUILD_SCAN_DATA_COPY_DIR: this.getBuildScanDataCopyDir(),
+                        BUILD_SCAN_METADATA_DIR: this.getBuildScanMetadataDir(),
+                        BUILD_SCAN_METADATA_COPY_DIR: this.getBuildScanMetadataCopyDir()
                     }
                 })
                 if (res.stderr !== '' && res.exitCode) {
