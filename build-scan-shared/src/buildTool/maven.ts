@@ -7,9 +7,9 @@ import * as io from '../utils/io'
 
 class MavenBuildTool extends commonBuildTool.BuildTool {
     private readonly BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data'
-    private readonly DEVELOCITY_DIR = '.gradle-enterprise/'
+    private readonly DEVELOCITY_DIR = '.develocity/'
     private readonly COMMAND = 'mvn'
-    private readonly PUBLISH_TASK = 'gradle-enterprise:build-scan-publish-previous'
+    private readonly PUBLISH_TASK = 'develocity:build-scan-publish-previous'
     private readonly PLUGIN_DESCRIPTOR_FILENAME = '.mvn/extensions.xml'
 
     constructor() {
@@ -50,7 +50,7 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
             <extensions>
                 <extension>
                     <groupId>com.gradle</groupId>
-                    <artifactId>gradle-enterprise-maven-extension</artifactId>
+                    <artifactId>develocity-maven-extension</artifactId>
                     <version>${this.REPLACE_ME_TOKEN}</version>
                 </extension>
             </extensions>
@@ -67,7 +67,7 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
         }
 
         io.writeContentToFileSync(`${this.getPublisherProjectDir()}/pom.xml`, this.getPomContent())
-        io.writeContentToFileSync(`${mvnDir}/gradle-enterprise.xml`, this.getGradleEnterpriseConfigurationContent())
+        io.writeContentToFileSync(`${mvnDir}/develocity.xml`, this.getDevelocityConfigurationContent())
     }
 
     private getPomContent(): string {
@@ -82,16 +82,16 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
     `.replace(/  +/g, '')
     }
 
-    private getGradleEnterpriseConfigurationContent(): string {
+    private getDevelocityConfigurationContent(): string {
         return `
         <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-        <gradleEnterprise
-            xmlns="https://www.gradle.com/gradle-enterprise-maven" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.gradle.com/gradle-enterprise-maven https://www.gradle.com/schema/gradle-enterprise-maven.xsd">
+        <develocity
+            xmlns="https://www.gradle.com/develocity-maven" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.gradle.com/develocity-maven https://www.gradle.com/schema/develocity-maven.xsd">
             <server>
                 <url>${input.getDevelocityUrl()}</url>
                 <allowUntrusted>${input.isDevelocityAllowUntrusted()}</allowUntrusted>
             </server>
-        </gradleEnterprise>
+        </develocity>
     `.replace(/  +/g, '')
     }
 }

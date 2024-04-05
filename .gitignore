@@ -22,4 +22,4 @@ coverage/
 
 # Local environment
 .env
-.mvn/.gradle-enterprise/
+.mvn/.develocity/

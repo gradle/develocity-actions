@@ -38057,7 +38057,7 @@ class BuildTool {
                     env: {
                         IS_BUILD_SCAN_REPUBLICATION: 'true',
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
-                        GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
+                        DEVELOCITY_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
                         BUILD_SCAN_DATA_DIR: this.getBuildScanDataDir(),
                         BUILD_SCAN_DATA_COPY_DIR: this.getBuildScanDataCopyDir(),
@@ -38134,9 +38134,9 @@ const input = __importStar(__nccwpck_require__(4086));
 const io = __importStar(__nccwpck_require__(6545));
 class MavenBuildTool extends commonBuildTool.BuildTool {
     BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data';
-    DEVELOCITY_DIR = '.gradle-enterprise/';
+    DEVELOCITY_DIR = '.develocity/';
     COMMAND = 'mvn';
-    PUBLISH_TASK = 'gradle-enterprise:build-scan-publish-previous';
+    PUBLISH_TASK = 'develocity:build-scan-publish-previous';
     PLUGIN_DESCRIPTOR_FILENAME = '.mvn/extensions.xml';
     constructor() {
         super(commonBuildTool.BuildToolType.MAVEN);
@@ -38169,7 +38169,7 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
             <extensions>
                 <extension>
                     <groupId>com.gradle</groupId>
-                    <artifactId>gradle-enterprise-maven-extension</artifactId>
+                    <artifactId>develocity-maven-extension</artifactId>
                     <version>${this.REPLACE_ME_TOKEN}</version>
                 </extension>
             </extensions>
@@ -38183,7 +38183,7 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
             io.mkdirSync(mvnDir);
         }
         io.writeContentToFileSync(`${this.getPublisherProjectDir()}/pom.xml`, this.getPomContent());
-        io.writeContentToFileSync(`${mvnDir}/gradle-enterprise.xml`, this.getGradleEnterpriseConfigurationContent());
+        io.writeContentToFileSync(`${mvnDir}/develocity.xml`, this.getDevelocityConfigurationContent());
     }
     getPomContent() {
         return `
@@ -38196,16 +38196,16 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
         </project>
     `.replace(/  +/g, '');
     }
-    getGradleEnterpriseConfigurationContent() {
+    getDevelocityConfigurationContent() {
         return `
         <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-        <gradleEnterprise
-            xmlns="https://www.gradle.com/gradle-enterprise-maven" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.gradle.com/gradle-enterprise-maven https://www.gradle.com/schema/gradle-enterprise-maven.xsd">
+        <develocity
+            xmlns="https://www.gradle.com/develocity-maven" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.gradle.com/develocity-maven https://www.gradle.com/schema/develocity-maven.xsd">
             <server>
                 <url>${input.getDevelocityUrl()}</url>
                 <allowUntrusted>${input.isDevelocityAllowUntrusted()}</allowUntrusted>
             </server>
-        </gradleEnterprise>
+        </develocity>
     `.replace(/  +/g, '');
     }
 }
