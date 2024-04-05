@@ -1,1 +1,2 @@
-- First release
+Apr 05, 2024
+- v1
