@@ -102,10 +102,10 @@ jobs:
         uses: ./maven-setup
       - name: Run Maven Build 1
         working-directory: ./sample/common-develocity-maven-configuration
-        run: mvn clean -B -X -Dgradle.enterprise.url=${{ env.DV_URL }}
+        run: mvn clean -B -X -Ddevelocity.url=${{ env.DV_URL }}
       - name: Run Maven Build 2
         working-directory: ./sample/common-develocity-maven-configuration
-        run: mvn initialize -B -X -Dgradle.enterprise.url=${{ env.DV_URL }}
+        run: mvn initialize -B -X -Ddevelocity.url=${{ env.DV_URL }}
 
   test-publish:
     runs-on: ubuntu-latest

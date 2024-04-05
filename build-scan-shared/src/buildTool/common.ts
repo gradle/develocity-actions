@@ -144,7 +144,7 @@ export abstract class BuildTool {
                     env: {
                         IS_BUILD_SCAN_REPUBLICATION: 'true',
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
-                        GRADLE_ENTERPRISE_ACCESS_KEY: input.getDevelocityAccessKey(),
+                        DEVELOCITY_ACCESS_KEY: input.getDevelocityAccessKey(),
                         BUILD_ID: scanFileData.buildId,
                         BUILD_SCAN_DATA_DIR: this.getBuildScanDataDir(),
                         BUILD_SCAN_DATA_COPY_DIR: this.getBuildScanDataCopyDir(),

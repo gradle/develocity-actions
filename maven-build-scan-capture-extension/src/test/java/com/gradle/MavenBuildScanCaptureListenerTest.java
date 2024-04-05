@@ -1,6 +1,6 @@
 package com.gradle;
 
-import com.gradle.maven.extension.api.scan.PublishedBuildScan;
+import com.gradle.develocity.agent.maven.api.scan.PublishedBuildScan;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

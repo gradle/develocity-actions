@@ -1,8 +1,8 @@
 package com.gradle;
 
-import com.gradle.maven.extension.api.GradleEnterpriseApi;
-import com.gradle.maven.extension.api.GradleEnterpriseListener;
-import com.gradle.maven.extension.api.scan.PublishedBuildScan;
+import com.gradle.develocity.agent.maven.api.DevelocityApi;
+import com.gradle.develocity.agent.maven.api.DevelocityListener;
+import com.gradle.develocity.agent.maven.api.scan.PublishedBuildScan;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.rtinfo.internal.DefaultRuntimeInformation;
 import org.codehaus.plexus.component.annotations.Component;
@@ -20,11 +20,11 @@ import java.util.stream.Stream;
 
 @SuppressWarnings("unused")
 @Component(
-        role = GradleEnterpriseListener.class,
+        role = DevelocityListener.class,
         hint = "maven-build-scan-capture-extension",
         description = "Maven Build Scan capture extension"
 )
-public final class MavenBuildScanCaptureListener implements GradleEnterpriseListener {
+public final class MavenBuildScanCaptureListener implements DevelocityListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MavenBuildScanCaptureListener.class);
     private static final String SCAN_DUMP_REGEX = ".*/build-scan-data/.*/previous/.*/scan.scan";
@@ -40,7 +40,7 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
     }
 
     @Override
-    public void configure(GradleEnterpriseApi gradleEnterpriseApi, MavenSession session) {
+    public void configure(DevelocityApi develocityApi, MavenSession session) {
         LOGGER.info("Configuring extension: " + getClass().getSimpleName());
         LOGGER.debug(configuration.toString());
 
@@ -52,7 +52,7 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         buildState.setMavenGoals(String.join(" ", session.getRequest().getGoals()));
 
         // Capture build result
-        gradleEnterpriseApi.getBuildScan().buildFinished(buildResult -> {
+        develocityApi.getBuildScan().buildFinished(buildResult -> {
             if(!buildResult.getFailures().isEmpty()) {
                 LOGGER.debug("Marking build failure");
                 buildState.setBuildFailure();
@@ -60,10 +60,10 @@ public final class MavenBuildScanCaptureListener implements GradleEnterpriseList
         });
 
         // Capture build scan link
-        gradleEnterpriseApi.getBuildScan().buildScanPublished(this::captureBuildScanLink);
+        develocityApi.getBuildScan().buildScanPublished(this::captureBuildScanLink);
 
         // Capture build scan metadata with a shutdown hook
-        // The gradleEnterpriseApi.getBuildScan().buildFinished callback is called too early to collect the previous build scan
+        // The develocityApi.getBuildScan().buildFinished callback is called too early to collect the previous build scan
         Runtime.getRuntime().addShutdownHook(new Thread(this::captureBuildScanMetadata));
     }
 
