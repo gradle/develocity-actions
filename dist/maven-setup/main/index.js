@@ -38843,6 +38843,7 @@ function configureEnvironment() {
     else {
         // MAVEN_OPTS not configured
     }
+    core.setOutput('build-metadata-file-path', path_1.default.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'));
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew);
 }
 run();
