@@ -38351,7 +38351,7 @@ class MavenBuildTool extends commonBuildTool.BuildTool {
     BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data';
     DEVELOCITY_DIR = '.develocity/';
     COMMAND = 'mvn';
-    PUBLISH_TASK = 'develocity:build-scan-publish-previous';
+    PUBLISH_TASK = 'com.gradle:develocity-maven-extension:build-scan-publish-previous';
     PLUGIN_DESCRIPTOR_FILENAME = '.mvn/extensions.xml';
     constructor() {
         super(commonBuildTool.BuildToolType.MAVEN);
