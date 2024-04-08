@@ -1,6 +1,6 @@
-# github-actions
+# develocity-actions
 
-A collection of composite GitHub Actions
+A collection of composite GitHub Actions related to [Develocity](https://gradle.com/)
 
 ## Add a workflow summary to Maven builds 
 
