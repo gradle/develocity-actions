@@ -44,6 +44,7 @@ describe('dump', () => {
             .mockReturnValue(Promise.resolve(undefined))
         const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
+        jest.spyOn(io, 'existsSync').mockReturnValue(true)
 
         // when
         await output.dump(BuildToolType.MAVEN, '', '')
@@ -65,6 +66,7 @@ describe('dump', () => {
             .mockReturnValue(Promise.resolve(undefined))
         const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
+        jest.spyOn(io, 'existsSync').mockReturnValue(true)
 
         // when
         await output.dump(BuildToolType.MAVEN, '', '')
@@ -86,6 +88,7 @@ describe('dump', () => {
             .mockReturnValue(Promise.resolve(undefined))
         const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
         const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
+        jest.spyOn(io, 'existsSync').mockReturnValue(true)
 
         // when
         await output.dump(BuildToolType.MAVEN, '', '')

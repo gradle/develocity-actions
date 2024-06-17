@@ -33,6 +33,9 @@ export async function dump(
 }
 
 function dumpToFile(job: Job, buildScanWorkDir: string): void {
+    if (!io.existsSync(buildScanWorkDir)) {
+        io.mkdirSync(buildScanWorkDir)
+    }
     io.writeContentToFileSync(path.resolve(buildScanWorkDir, DUMP_FILENAME), JSON.stringify(job))
 }
 
