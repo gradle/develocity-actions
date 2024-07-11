@@ -22,6 +22,9 @@ export async function getAccessToken(
         } catch (e) {
             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
         }
+
+        core.info(`Falling back to using the access key from the input`)
+        return develocityAccessKeyFomInput
     }
 
     const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY]

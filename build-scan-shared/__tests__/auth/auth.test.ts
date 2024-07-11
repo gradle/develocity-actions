@@ -34,9 +34,22 @@ describe('auth', () => {
 
     it('Fall back to Develocity access key when short-lived token retrieval fails', async () => {
         // given
+        const develocityAccessKeyFromInput = 'dev=key1'
+        const develocityTokenExpiryFromInput = ''
+        nock('http://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
+
+        // when
+        const accessToken = await auth.getAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput)
+
+        // then
+        expect(accessToken).toBe(develocityAccessKeyFromInput)
+    })
+
+    it('Fall back to Develocity access key when no access key is provided as input', async () => {
+        // given
         const fallbackAccessKey = 'dev=foo'
         process.env[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY] = fallbackAccessKey
-        const develocityAccessKeyFromInput = 'dev=key1'
+        const develocityAccessKeyFromInput = ''
         const develocityTokenExpiryFromInput = ''
         nock('http://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
 
@@ -47,12 +60,12 @@ describe('auth', () => {
         expect(accessToken).toBe(fallbackAccessKey)
     })
 
-    it('Fall back to Gradle Enterprise access key when short-lived token retrieval fails', async () => {
+    it('Fall back to Gradle Enterprise access key when no access key is provided as input', async () => {
         // given
         const fallbackAccessKey = 'dev=bar'
         process.env[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY] = ''
         process.env[auth.ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY] = fallbackAccessKey
-        const develocityAccessKeyFromInput = 'dev=key1'
+        const develocityAccessKeyFromInput = ''
         const develocityTokenExpiryFromInput = ''
         nock('http://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
 
