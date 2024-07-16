@@ -24,6 +24,8 @@ jobs:
         run: ./mvnw clean package
 [...]
 ```
+_Note:_<br>
+When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
 ### Implementation details
 
@@ -110,15 +112,17 @@ The following permissions are required for this action to operate:
 
 **Action inputs**:
 
-| Name                              | Description                                                             | Default  |
-|-----------------------------------|-------------------------------------------------------------------------|----------|
-| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) | `ALWAYS` |
-| `capture-unpublished-build-scans` | *Optional*: Enable unpublished Build Scans capture                      | `true`   |
-| `capture-build-scan-links`        | *Optional*: Enable Build Scan links capture                             | `true`   |
-| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)           |          |
-| `add-pr-comment`                  | *Optional*: Comment the pull-request with Build Scan links              | `true`   |
-| `add-job-summary`                 | *Optional*: Add a summary to the GitHub workflow                        | `true`   |
-| `add-project-id-in-job-summary`   | *Optional*: Add project id to the job summary / comment                 | `false`  |  
+| Name                              | Description                                                                                       | Default  |
+|-----------------------------------|---------------------------------------------------------------------------------------------------|----------|
+| `develocity-access-key`           | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key | ``       |
+| `develocity-token-expiry`         | *Optional*: Develocity short-lived access tokens expiry in hours                                  | `2`      |
+| `capture-strategy`                | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                           | `ALWAYS` |
+| `capture-unpublished-build-scans` | *Optional*: Enable unpublished Build Scans capture                                                | `true`   |
+| `capture-build-scan-links`        | *Optional*: Enable Build Scan links capture                                                       | `true`   |
+| `job-name`                        | *Optional*: Job name (used in summary and as artifact suffix)                                     |          |
+| `add-pr-comment`                  | *Optional*: Comment the pull-request with Build Scan links                                        | `true`   |
+| `add-job-summary`                 | *Optional*: Add a summary to the GitHub workflow                                                  | `true`   |
+| `add-project-id-in-job-summary`   | *Optional*: Add project id to the job summary / comment                                           | `false`  |  
 
 ## Publish Build Scans® for pull-requests issued from forked repositories
 
