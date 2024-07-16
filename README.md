@@ -36,7 +36,7 @@ The action enables two features:
 
 #### Summary
 
-By default, a summary will be added to the GitHub workflow calling the action (can be skipped with `add-job-summary` is set to `false`):
+By default, a summary will be added to the GitHub workflow calling the action (can be skipped if `add-job-summary` is set to `false`):
 
 ![workflow](./doc/summary-workflow.png)
 
@@ -48,6 +48,8 @@ By default, a comment will be added to the pull-request with the summary (can be
 > - The job name is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
 > - The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
   only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`add-pr-comment: false`).  
+
+#### Raw Summary data
 
 Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
 
