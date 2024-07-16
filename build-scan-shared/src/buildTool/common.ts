@@ -3,7 +3,8 @@ import * as exec from '@actions/exec'
 import * as glob from '@actions/glob'
 import * as core from '@actions/core'
 
-import * as input from '../publish/input'
+import * as auth from '../auth/auth'
+import * as input from '../setup/input'
 import * as io from '../utils/io'
 
 const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP'
@@ -106,6 +107,9 @@ export abstract class BuildTool {
             return
         }
 
+        // collect authentication token
+        const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
+
         // Create publisher directory
         if (!io.existsSync(publisherProjectDir)) {
             core.debug(`Creating ${publisherProjectDir}`)
@@ -144,7 +148,7 @@ export abstract class BuildTool {
                     env: {
                         IS_BUILD_SCAN_REPUBLICATION: 'true',
                         MAVEN_OPTS: process.env['MAVEN_OPTS'] ? process.env['MAVEN_OPTS'] : '',
-                        DEVELOCITY_ACCESS_KEY: input.getDevelocityAccessKey(),
+                        DEVELOCITY_ACCESS_KEY: accessToken,
                         BUILD_ID: scanFileData.buildId,
                         BUILD_SCAN_DATA_DIR: this.getBuildScanDataDir(),
                         BUILD_SCAN_DATA_COPY_DIR: this.getBuildScanDataCopyDir(),

@@ -3,6 +3,12 @@ description: Setup action to capture Maven Build Scans metadata
 author: Gradle team
 
 inputs:
+  develocity-access-key:
+    description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
+    required: false
+  develocity-token-expiry:
+    description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
   capture-strategy:
     description: 'Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)'
     required: false

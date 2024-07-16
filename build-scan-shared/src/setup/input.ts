@@ -1,9 +1,18 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
+import * as auth from '../auth/auth'
 import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
 import {getBooleanInput} from '../input'
+
+export function getDevelocityAccessKey(): string {
+    return sharedInput.getInput('develocity-access-key')
+}
+
+export function getDevelocityTokenExpiry(): string {
+    return sharedInput.getInput('develocity-token-expiry')
+}
 
 export function getWorkflowName(): string {
     // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
@@ -53,7 +62,11 @@ export function isAddProjectIdInJobSummary(): boolean {
     return getBooleanInput('add-project-id-in-job-summary')
 }
 
-export function exportVariables(buildTool: commonBuildTool.BuildTool): void {
+export function exportVariables(accessToken: string, buildTool: commonBuildTool.BuildTool): void {
+    if (accessToken) {
+        core.setSecret(accessToken)
+        core.exportVariable(auth.ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken)
+    }
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy())
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans())
     core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks())
