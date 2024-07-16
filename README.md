@@ -24,8 +24,9 @@ jobs:
         run: ./mvnw clean package
 [...]
 ```
-_Note:_<br>
-When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
+
+> [!NOTE]  
+> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
 ### Implementation details
 
@@ -43,9 +44,9 @@ By default, a comment will be added to the pull-request with the summary (can be
 
 ![comment](./doc/summary-comment.png)
 
-_Note:_<br>
-- The job name is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
-- The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
+> [!NOTE]
+> - The job name is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
+> - The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
   only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`add-pr-comment: false`).  
 
 Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
@@ -94,8 +95,8 @@ The _capture_ can be _enabled_/_disabled_ separately:
 The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
 The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
 
-_Note:_<br>
-If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered.
+> [!NOTE]
+> If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered.
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
 The captured files are added as workflow artifact (one artifact per job).
@@ -130,8 +131,8 @@ The following permissions are required for this action to operate:
 When submitting a pull request from a forked GitHub repository, a GitHub workflow that validates the change cannot publish a Build Scan® 
 as workflows from forked repositories do not have access to secrets. An access token is required to publish a Build Scan®.
 
-_Note:_<br>
-The `Approve and Run` manual step documented [here](https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks) must be enabled on the GitHub repository configuration to meet legal requirements (this is the default configuration).
+> [!NOTE]
+> The `Approve and Run` manual step documented [here](https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks) must be enabled on the GitHub repository configuration to meet legal requirements (this is the default configuration).
 
 ### Maven workflow
 
@@ -180,11 +181,11 @@ jobs:
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
 ```
 
-_Note:_<br>
-Some parameters need to be adjusted here:
-- The workflow name (here `PR Build`) triggered when a pull-request is submitted
-- The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)
-- The secret name holding the Develocity access key (here `<DEVELOCITY_ACCESS_KEY>`)
+> [!NOTE]
+> Some parameters need to be adjusted here:
+> - The workflow name (here `PR Build`) triggered when a pull-request is submitted
+> - The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)
+> - The secret name holding the Develocity access key (here `<DEVELOCITY_ACCESS_KEY>`)
  
 #### Implementation details
 
