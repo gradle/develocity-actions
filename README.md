@@ -34,11 +34,12 @@ The action enables two features:
 - Display a summary of the Maven builds as a GitHub workflow summary or as a pull-request comment
 - Capture unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
 
-#### Summary
-
+#### Workflow Summary
 By default, a summary will be added to the GitHub workflow calling the action (can be skipped if `add-job-summary` is set to `false`):
 
 ![workflow](./doc/summary-workflow.png)
+
+#### Pull-request Comment
 
 By default, a comment will be added to the pull-request with the summary (can be skipped if `add-pr-comment` is set to `false`):
 
@@ -102,6 +103,9 @@ The extension is automatically registered by configuring the environment `MAVEN_
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
 The captured files are added as workflow artifact (one artifact per job).
+
+When a Build Scan link is captured, it is added as output to the step invoking Maven.
+The output name is `build-scan-url` and can be used in subsequent steps of the workflow.
 
 **Event Triggers**:
 

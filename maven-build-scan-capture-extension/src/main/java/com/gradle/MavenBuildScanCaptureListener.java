@@ -12,8 +12,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -84,9 +87,22 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
     void captureBuildScanLink(PublishedBuildScan publishedBuildScan) {
         if(configuration.isCaptureBuildScanLinks(buildState.isBuildFailure())) {
             LOGGER.info("Capturing build scan link");
-            buildState.setBuildScanLink(publishedBuildScan.getBuildScanUri().toString());
+            String buildScanLink = publishedBuildScan.getBuildScanUri().toString();
+            buildState.setBuildScanLink(buildScanLink);
+            addToGitHubOutput("build-scan-url", buildScanLink);
         } else {
             LOGGER.debug("Build scan link capture disabled");
+        }
+    }
+
+    private void addToGitHubOutput(String key, String value) {
+        try {
+            String githubOutput = System.getenv("GITHUB_OUTPUT");
+            if (githubOutput != null) {
+                Files.writeString(Paths.get(githubOutput), key + "=" + value + "\n", StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+            }
+        } catch (IOException e) {
+            LOGGER.info("Unable to add " + key + " to GitHub output " + e.getMessage());
         }
     }
 
