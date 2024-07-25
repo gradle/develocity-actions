@@ -44,8 +44,6 @@ jobs:
 [...]
 ```
 
-```yaml
-
 ### Implementation details
 
 The action enables two features:
