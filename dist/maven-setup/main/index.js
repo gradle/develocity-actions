@@ -39461,6 +39461,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getDevelocityUrl = getDevelocityUrl;
+exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
+exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
+exports.getCcudExtensionVersion = getCcudExtensionVersion;
+exports.getDevelocityAllowUntrustedServer = getDevelocityAllowUntrustedServer;
 exports.getDevelocityAccessKey = getDevelocityAccessKey;
 exports.getDevelocityTokenExpiry = getDevelocityTokenExpiry;
 exports.getWorkflowName = getWorkflowName;
@@ -39474,6 +39479,21 @@ const github = __importStar(__nccwpck_require__(5438));
 const auth = __importStar(__nccwpck_require__(1148));
 const sharedInput = __importStar(__nccwpck_require__(169));
 const input_1 = __nccwpck_require__(169);
+function getDevelocityUrl() {
+    return sharedInput.getInput('develocity-url');
+}
+function getDevelocityInjectionEnabled() {
+    return sharedInput.getBooleanInput('develocity-injection-enabled');
+}
+function getDevelocityMavenExtensionVersion() {
+    return sharedInput.getInput('develocity-maven-extension-version');
+}
+function getCcudExtensionVersion() {
+    return sharedInput.getInput('develocity-ccud-extension-version');
+}
+function getDevelocityAllowUntrustedServer() {
+    return sharedInput.getInput('develocity-allow-untrusted-server');
+}
 function getDevelocityAccessKey() {
     return sharedInput.getInput('develocity-access-key');
 }
@@ -39667,10 +39687,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const path_1 = __importDefault(__nccwpck_require__(1017));
+const https = __importStar(__nccwpck_require__(5687));
+const fs = __importStar(__nccwpck_require__(7147));
 const auth = __importStar(__nccwpck_require__(1148));
 const errorHandler = __importStar(__nccwpck_require__(2766));
 const input = __importStar(__nccwpck_require__(4758));
 const maven = __importStar(__nccwpck_require__(37));
+const input_1 = __nccwpck_require__(4758);
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`;
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
 const ENV_KEY_MAVEN_OPTS = 'MAVEN_OPTS';
@@ -39682,8 +39705,19 @@ async function run() {
     try {
         // configure authentication
         const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry());
+        const downloadFolder = './maven-extensions';
+        let develocityMavenExtensionJar = '';
+        let ccudMavenExtensionJar = '';
+        if ((0, input_1.getDevelocityInjectionEnabled)() && (0, input_1.getDevelocityUrl)() != null) {
+            if ((0, input_1.getDevelocityMavenExtensionVersion)()) {
+                develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + (0, input_1.getDevelocityMavenExtensionVersion)() + '/develocity-maven-extension-' + (0, input_1.getDevelocityMavenExtensionVersion)() + '.jar', downloadFolder);
+            }
+            if ((0, input_1.getCcudExtensionVersion)()) {
+                ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + (0, input_1.getCcudExtensionVersion)() + '/common-custom-user-data-maven-extension-' + (0, input_1.getCcudExtensionVersion)() + '.jar', downloadFolder);
+            }
+        }
         // Configure environment to inject capture extension on Maven builds
-        configureEnvironment();
+        configureEnvironment(develocityMavenExtensionJar, ccudMavenExtensionJar);
         // Propagate environment variables to subsequent steps
         input.exportVariables(accessToken, maven.mavenBuildTool);
     }
@@ -39691,10 +39725,19 @@ async function run() {
         errorHandler.handle(error);
     }
 }
-function configureEnvironment() {
+function configureEnvironment(develocityMavenExtensionJar, ccudMavenExtensionJar) {
     const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
     const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS];
     let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}`;
+    if (develocityMavenExtensionJar != '') {
+        mavenOptsNew = `${mavenOptsNew}${path_1.default.delimiter}${develocityMavenExtensionJar}`;
+    }
+    if (ccudMavenExtensionJar != '') {
+        mavenOptsNew = `${mavenOptsNew}${path_1.default.delimiter}${ccudMavenExtensionJar}`;
+    }
+    if ((0, input_1.getDevelocityAllowUntrustedServer)()) {
+        mavenOptsNew = `${mavenOptsNew}${path_1.default.delimiter}-Ddevelocity.allowUntrustedServer=true`;
+    }
     if (mavenOptsCurrent) {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`);
         if (extClassPathIndex !== -1) {
@@ -39711,6 +39754,30 @@ function configureEnvironment() {
     }
     core.setOutput('build-metadata-file-path', path_1.default.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'));
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew);
+}
+async function downloadFile(url, downloadFolder) {
+    const fileName = path_1.default.basename(url);
+    const filePath = path_1.default.join(downloadFolder, fileName);
+    return new Promise((resolve, reject) => {
+        // Ensure the download folder exists
+        if (!fs.existsSync(downloadFolder)) {
+            fs.mkdirSync(downloadFolder);
+        }
+        const file = fs.createWriteStream(filePath);
+        https.get(url, (response) => {
+            if (response.statusCode !== 200) {
+                reject(`Failed to get '${url}' (${response.statusCode})`);
+                return;
+            }
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                resolve(filePath);
+            });
+        }).on('error', (err) => {
+            fs.unlink(filePath, () => reject(err.message));
+        });
+    });
 }
 run();
 
