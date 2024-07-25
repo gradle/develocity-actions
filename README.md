@@ -28,6 +28,7 @@ jobs:
 > [!NOTE]  
 > When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
+### Enabling Develocity/CCUD Maven Extension injection
 If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
 ```yaml
 name: PR Build
@@ -46,8 +47,9 @@ jobs:
 
 ### Implementation details
 
-The action enables two features:
+The action enables three features:
 - Display a summary of the Maven builds as a GitHub workflow summary or as a pull-request comment
+- Inject Develocity/CCUD Maven extensions
 - Capture unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
 
 #### Workflow Summary
