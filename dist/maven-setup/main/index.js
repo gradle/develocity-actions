@@ -39693,7 +39693,6 @@ const auth = __importStar(__nccwpck_require__(1148));
 const errorHandler = __importStar(__nccwpck_require__(2766));
 const input = __importStar(__nccwpck_require__(4758));
 const maven = __importStar(__nccwpck_require__(37));
-const input_1 = __nccwpck_require__(4758);
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`;
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`;
 const ENV_KEY_MAVEN_OPTS = 'MAVEN_OPTS';
@@ -39705,15 +39704,15 @@ async function run() {
     try {
         // configure authentication
         const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry());
-        const downloadFolder = './maven-extensions';
+        const downloadFolder = maven.mavenBuildTool.getBuildScanWorkDir();
         let develocityMavenExtensionJar = '';
         let ccudMavenExtensionJar = '';
-        if ((0, input_1.getDevelocityInjectionEnabled)() && (0, input_1.getDevelocityUrl)()) {
-            if ((0, input_1.getDevelocityMavenExtensionVersion)()) {
-                develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + (0, input_1.getDevelocityMavenExtensionVersion)() + '/develocity-maven-extension-' + (0, input_1.getDevelocityMavenExtensionVersion)() + '.jar', downloadFolder);
+        if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
+            if (input.getDevelocityMavenExtensionVersion()) {
+                develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
             }
-            if ((0, input_1.getCcudExtensionVersion)()) {
-                ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + (0, input_1.getCcudExtensionVersion)() + '/common-custom-user-data-maven-extension-' + (0, input_1.getCcudExtensionVersion)() + '.jar', downloadFolder);
+            if (input.getCcudExtensionVersion()) {
+                ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
             }
         }
         // Configure environment to inject capture extension on Maven builds
@@ -39735,8 +39734,8 @@ function configureEnvironment(develocityMavenExtensionJar, ccudMavenExtensionJar
     if (ccudMavenExtensionJar != '') {
         mavenOptsNew = `${mavenOptsNew}${path_1.default.delimiter}${ccudMavenExtensionJar}`;
     }
-    if ((0, input_1.getDevelocityAllowUntrustedServer)()) {
-        mavenOptsNew = `${mavenOptsNew}${path_1.default.delimiter}-Ddevelocity.allowUntrustedServer=true`;
+    if (input.getDevelocityAllowUntrustedServer()) {
+        mavenOptsNew = `${mavenOptsNew}${path_1.default.delimiter}-Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
     }
     if (mavenOptsCurrent) {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`);

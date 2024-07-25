@@ -7,13 +7,6 @@ import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
 import * as input from '../../build-scan-shared/src/setup/input'
 import * as maven from '../../build-scan-shared/src/buildTool/maven'
-import {
-    getCcudExtensionVersion,
-    getDevelocityAllowUntrustedServer,
-    getDevelocityInjectionEnabled,
-    getDevelocityMavenExtensionVersion,
-    getDevelocityUrl
-} from '../../build-scan-shared/src/setup/input'
 
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR = `${MAVEN_BUILD_SCAN_CAPTURE_EXTENSION}.jar`
@@ -29,15 +22,15 @@ export async function run(): Promise<void> {
         // configure authentication
         const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
 
-        const downloadFolder = './maven-extensions'
+        const downloadFolder = maven.mavenBuildTool.getBuildScanWorkDir()
         let develocityMavenExtensionJar = ''
         let ccudMavenExtensionJar = ''
-        if (getDevelocityInjectionEnabled() && getDevelocityUrl()) {
-            if (getDevelocityMavenExtensionVersion()) {
-                develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
+        if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
+            if (input.getDevelocityMavenExtensionVersion()) {
+                develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
             }
-            if (getCcudExtensionVersion()) {
-                ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + getCcudExtensionVersion() + '.jar', downloadFolder);
+            if (input.getCcudExtensionVersion()) {
+                ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
             }
         }
 
@@ -70,8 +63,8 @@ function configureEnvironment(develocityMavenExtensionJar: string, ccudMavenExte
         mavenOptsNew = `${mavenOptsNew}${path.delimiter}${ccudMavenExtensionJar}`
     }
 
-    if (getDevelocityAllowUntrustedServer()) {
-        mavenOptsNew = `${mavenOptsNew}${path.delimiter}-Ddevelocity.allowUntrustedServer=true`
+    if (input.getDevelocityAllowUntrustedServer()) {
+        mavenOptsNew = `${mavenOptsNew}${path.delimiter}-Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`
     }
 
     if (mavenOptsCurrent) {
@@ -117,6 +110,5 @@ async function downloadFile(url: string, downloadFolder: string): Promise<string
         });
     });
 }
-
 
 run()

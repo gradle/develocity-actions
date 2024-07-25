@@ -3,21 +3,6 @@ description: Setup action to capture Maven Build Scans metadata
 author: Gradle team
 
 inputs:
-  develocity-injection-enabled:
-    description: 'Whether to enable or not Develocity injection'
-    required: false
-  develocity-url:
-    description: 'Develocity server URL'
-    required: false
-  develocity-maven-extension-version:
-    description: 'Develocity Maven Extension version'
-    required: false
-  develocity-ccud-maven-extension-version:
-    description: 'Common Custom User Data Maven Extension version'
-    required: false
-  develocity-allow-untrusted-server:
-    description: 'Whether to allow communicating with untrusted server'
-    required: false
   develocity-access-key:
     description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
     required: false
@@ -55,6 +40,21 @@ inputs:
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}
+    required: false
+  develocity-injection-enabled:
+    description: 'Whether to enable or not Develocity injection'
+    required: false
+  develocity-url:
+    description: 'Develocity server URL'
+    required: false
+  develocity-maven-extension-version:
+    description: 'Develocity Maven Extension version'
+    required: false
+  develocity-ccud-maven-extension-version:
+    description: 'Common Custom User Data Maven Extension version'
+    required: false
+  develocity-allow-untrusted-server:
+    description: 'Whether to allow communicating with untrusted server'
     required: false
 
 outputs:
