@@ -39708,7 +39708,7 @@ async function run() {
         const downloadFolder = './maven-extensions';
         let develocityMavenExtensionJar = '';
         let ccudMavenExtensionJar = '';
-        if ((0, input_1.getDevelocityInjectionEnabled)() && (0, input_1.getDevelocityUrl)() != null) {
+        if ((0, input_1.getDevelocityInjectionEnabled)() && (0, input_1.getDevelocityUrl)()) {
             if ((0, input_1.getDevelocityMavenExtensionVersion)()) {
                 develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + (0, input_1.getDevelocityMavenExtensionVersion)() + '/develocity-maven-extension-' + (0, input_1.getDevelocityMavenExtensionVersion)() + '.jar', downloadFolder);
             }
