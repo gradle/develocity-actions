@@ -6,6 +6,26 @@ import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
 import {getBooleanInput} from '../input'
 
+export function getDevelocityUrl(): string {
+    return sharedInput.getInput('develocity-url')
+}
+
+export function getDevelocityInjectionEnabled(): boolean {
+    return sharedInput.getBooleanInput('develocity-injection-enabled')
+}
+
+export function getDevelocityMavenExtensionVersion(): string {
+    return sharedInput.getInput('develocity-maven-extension-version')
+}
+
+export function getCcudExtensionVersion(): string {
+    return sharedInput.getInput('develocity-ccud-extension-version')
+}
+
+export function getDevelocityAllowUntrustedServer(): string {
+    return sharedInput.getInput('develocity-allow-untrusted-server')
+}
+
 export function getDevelocityAccessKey(): string {
     return sharedInput.getInput('develocity-access-key')
 }
