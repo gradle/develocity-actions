@@ -31,13 +31,18 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MavenBuildScanCaptureListener.class);
     private static final String SCAN_DUMP_REGEX = ".*/build-scan-data/.*/previous/.*/scan.scan";
-    private final BuildState buildState = new BuildState();
+    private BuildState buildState = new BuildState();
     private Configuration configuration = DefaultConfiguration.get();
     private FileManager fileManager = new DefaultFileManager();
+
+    public void setBuildState(BuildState buildState) {
+        this.buildState = buildState;
+    }
 
     public void setConfiguration(Configuration configuration) {
         this.configuration = configuration;
     }
+
     public void setFileManager(FileManager fileManager) {
         this.fileManager = fileManager;
     }
@@ -99,7 +104,8 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
         try {
             String githubOutput = System.getenv("GITHUB_OUTPUT");
             if (githubOutput != null) {
-                Files.writeString(Paths.get(githubOutput), key + "=" + value + "\n", StandardCharsets.UTF_8, StandardOpenOption.APPEND);
+                String content = key + "=" + value + "\n";
+                Files.write(Paths.get(githubOutput), content.getBytes(StandardCharsets.UTF_8), StandardOpenOption.APPEND);
             }
         } catch (IOException e) {
             LOGGER.info("Unable to add " + key + " to GitHub output " + e.getMessage());
