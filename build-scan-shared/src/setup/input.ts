@@ -26,6 +26,14 @@ export function getDevelocityAllowUntrustedServer(): string {
     return sharedInput.getInput('develocity-allow-untrusted-server')
 }
 
+export function getDevelocityEnforceUrl(): boolean {
+    return getBooleanInput('develocity-enforce-url')
+}
+
+export function getDevelocityCaptureFileFingerprints(): boolean {
+    return getBooleanInput('develocity-capture-file-fingerprints')
+}
+
 export function getDevelocityAccessKey(): string {
     return sharedInput.getInput('develocity-access-key')
 }
