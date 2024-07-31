@@ -146,9 +146,10 @@ async function extensionsXMLDetected(filePath: string): Promise<boolean> {
 
             core.info(`Parsed extensions.xml file: ${JSON.stringify(result)}`)
 
-            for (const extension of result.extensions.extension) {
-                if (extension.artifactId === "develocity-maven-extension" || extension.artifactId === "gradle-enterprise-maven-extension") {
-                    core.info(`Found extension: ${extension.artifactId}`)
+            for (const ext of result.extensions.extension) {
+                core.info(`Checking for extension artifact id: ${ext.artifactId}`)
+                if (ext.artifactId === "develocity-maven-extension" || ext.artifactId === "gradle-enterprise-maven-extension") {
+                    core.info(`Found extension: ${ext.artifactId}`)
                     resolve(true)
                 }
             }
