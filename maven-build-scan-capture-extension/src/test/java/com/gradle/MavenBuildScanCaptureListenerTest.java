@@ -1,25 +1,27 @@
 package com.gradle;
 
 import com.gradle.develocity.agent.maven.api.scan.PublishedBuildScan;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.function.BiPredicate;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-public class MavenBuildScanCaptureListenerTest {
+class MavenBuildScanCaptureListenerTest {
 
     private final MavenBuildScanCaptureListener underTest = new MavenBuildScanCaptureListener();
 
+    @Mock
+    private BuildState buildStateMock;
     @Mock
     private Configuration configurationMock;
     @Mock
@@ -27,11 +29,18 @@ public class MavenBuildScanCaptureListenerTest {
     @Mock
     private PublishedBuildScan publishedBuildScanMock;
 
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
+    }
+
     @Test
     void captureBuildScanMetadata_withRepublication_success() throws Exception {
         // given
+        when(buildStateMock.getBuildScanLink()).thenReturn("buildScanLink");
         when(configurationMock.isBuildScanRepublication()).thenReturn(true);
         when(configurationMock.getBuildScanMetadataDir()).thenReturn("metadataDir");
+        underTest.setBuildState(buildStateMock);
         underTest.setConfiguration(configurationMock);
         underTest.setFileManager(fileManagerMock);
 
@@ -50,9 +59,10 @@ public class MavenBuildScanCaptureListenerTest {
         when(configurationMock.isBuildScanRepublication()).thenReturn(false);
         when(configurationMock.isCaptureUnpublishedBuildScans(anyBoolean())).thenReturn(true);
         when(configurationMock.getBuildScanDataCopyDir()).thenReturn("dataCopyDir");
+        when(configurationMock.getBuildScanMetadataDir()).thenReturn("metadataDir");
         when(configurationMock.getBuildScanMetadataCopyDir()).thenReturn("metadataCopyDir");
         when(configurationMock.getBuildScanDataDir()).thenReturn("dataDir");
-        Path[] paths = {Path.of("foo", "bar"), Path.of("bar", "baz")};
+        Path[] paths = {Paths.get("foo", "bar"), Paths.get("bar", "baz")};
         when(fileManagerMock.find(any(File.class),anyInt(),any(BiPredicate.class))).thenReturn(Arrays.stream(paths));
         underTest.setConfiguration(configurationMock);
         underTest.setFileManager(fileManagerMock);
@@ -71,6 +81,7 @@ public class MavenBuildScanCaptureListenerTest {
         // given
         when(configurationMock.isBuildScanRepublication()).thenReturn(false);
         when(configurationMock.isCaptureUnpublishedBuildScans(anyBoolean())).thenReturn(false);
+        when(configurationMock.getBuildScanMetadataDir()).thenReturn("metadataDir");
         when(configurationMock.getBuildScanMetadataCopyDir()).thenReturn("metadataCopyDir");
         underTest.setFileManager(fileManagerMock);
         underTest.setConfiguration(configurationMock);
@@ -89,6 +100,7 @@ public class MavenBuildScanCaptureListenerTest {
         // given
         when(configurationMock.isCaptureUnpublishedBuildScans(anyBoolean())).thenReturn(true);
         when(configurationMock.getBuildScanDataDir()).thenReturn("dataDir");
+        when(configurationMock.getBuildScanMetadataDir()).thenReturn("metadataDir");
         when(configurationMock.getBuildScanMetadataCopyDir()).thenReturn("metadataCopyDir");
         when(fileManagerMock.find(any(File.class),anyInt(),any(BiPredicate.class))).thenReturn(Arrays.stream(new Path[]{}));
         underTest.setFileManager(fileManagerMock);
