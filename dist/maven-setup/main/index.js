@@ -41850,8 +41850,7 @@ async function run() {
         if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
             const extensionsFileName = '.mvn/extensions.xml';
             const absoluteFilePath = path_1.default.resolve(process.cwd(), extensionsFileName);
-            core.info(`Parsing XML file at: ${absoluteFilePath}`);
-            if (await extensionsXMLDetected(absoluteFilePath)) {
+            if (extensionsXMLDetected(absoluteFilePath)) {
                 core.info(`Develocity Maven extension is already configured in the project`);
                 if (input.getDevelocityEnforceUrl()) {
                     core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`);
@@ -41935,7 +41934,6 @@ function extensionsXMLDetected(filePath) {
     const xmlContent = fs.readFileSync(filePath, 'utf-8');
     const parser = new fast_xml_parser_1.XMLParser();
     const result = parser.parse(xmlContent);
-    // Assuming result structure matches Extensions interface
     if (result.extensions && result.extensions.extension) {
         for (const ext of result.extensions.extension) {
             const artifact = String(ext.artifactId);
