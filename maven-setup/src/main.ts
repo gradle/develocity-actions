@@ -88,6 +88,7 @@ function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
     }
 
     core.setOutput('build-metadata-file-path', path.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'))
+    core.info(`Exporting MAVEN_OPTS ${develocityMavenExtensionMavenOpts}`)
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew)
 }
 

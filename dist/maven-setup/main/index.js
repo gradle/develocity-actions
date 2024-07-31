@@ -41901,6 +41901,7 @@ function configureEnvironment(develocityMavenExtensionMavenOpts) {
         // MAVEN_OPTS not configured
     }
     core.setOutput('build-metadata-file-path', path_1.default.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'));
+    core.info(`Exporting MAVEN_OPTS ${develocityMavenExtensionMavenOpts}`);
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew);
 }
 async function downloadFile(url, downloadFolder) {
