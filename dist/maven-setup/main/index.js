@@ -41935,7 +41935,10 @@ function extensionsXMLDetected(filePath) {
     const parser = new fast_xml_parser_1.XMLParser();
     const result = parser.parse(xmlContent);
     if (result.extensions && result.extensions.extension) {
-        for (const ext of result.extensions.extension) {
+        const extensions = Array.isArray(result.extensions.extension)
+            ? result.extensions.extension
+            : [result.extensions.extension];
+        for (const ext of extensions) {
             const artifact = String(ext.artifactId);
             if (artifact === "develocity-maven-extension" || artifact === "gradle-enterprise-maven-extension") {
                 return true;

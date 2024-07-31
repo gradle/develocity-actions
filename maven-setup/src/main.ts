@@ -124,7 +124,7 @@ interface Extension {
 
 interface Extensions {
     extensions: {
-        extension: Extension[]
+        extension: Extension | Extension[]
     }
 }
 
@@ -138,7 +138,11 @@ function extensionsXMLDetected(filePath: string): boolean {
     const result = parser.parse(xmlContent) as Extensions
 
     if (result.extensions && result.extensions.extension) {
-        for (const ext of result.extensions.extension) {
+        const extensions = Array.isArray(result.extensions.extension)
+            ? result.extensions.extension
+            : [result.extensions.extension]
+
+        for (const ext of extensions) {
             const artifact = String(ext.artifactId)
             if (artifact === "develocity-maven-extension" || artifact === "gradle-enterprise-maven-extension") {
                 return true
