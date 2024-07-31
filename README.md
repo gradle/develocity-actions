@@ -2,6 +2,8 @@
 
 A collection of composite GitHub Actions related to [Develocity](https://gradle.com/)
 
+---
+
 ## maven-setup action
 
 ### Features
@@ -31,6 +33,8 @@ jobs:
 
 > [!NOTE]  
 > When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
+
+---
 
 #### Build Summary
 
@@ -103,6 +107,8 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
 }
 ```
 
+---
+
 #### Develocity extensions injection
 
 If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
@@ -123,6 +129,8 @@ jobs:
 
 > [!NOTE]
 > DV_EXTENSION_VERSION needs to be adjusted to the expected version of the Develocity Maven Extension.
+
+---
 
 #### Capture Build Scan® data
 
@@ -157,7 +165,9 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 - `pull_request`: To capture unpublished Build Scan®
 - `workflow_run`: To capture Build Scan® links
 
-**Action inputs**:
+---
+
+### Action inputs
 
 | Name                                      | Description                                                                                       | Default  |
 |-------------------------------------------|---------------------------------------------------------------------------------------------------|----------|
@@ -176,7 +186,10 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 | `develocity-ccud-maven-extension-version` | *Optional*: Common Custom User Data Maven Extension version to be injected                        |          |  
 | `develocity-allow-untrusted-server`       | *Optional*: Whether to allow communicating with untrusted server                                  |          |  
 
-## Publish Build Scans® for pull-requests issued from forked repositories
+---
+
+## maven-publish-build-scan action
+Publish Build Scans® for pull-requests issued from forked repositories
 
 ### Description
 When submitting a pull request from a forked GitHub repository, a GitHub workflow that validates the change cannot publish a Build Scan® 
@@ -254,7 +267,7 @@ The action will publish Build Scans® if the initial pull-request author belongs
 The following permissions are required for this action to operate:
 - `actions: write`: to delete a workflow artifact
 
-**Action inputs**:
+### Action inputs
 
 | Name                             | Description                                                                  | Default               |
 |----------------------------------|------------------------------------------------------------------------------|-----------------------|
@@ -263,6 +276,8 @@ The following permissions are required for this action to operate:
 | `develocity-allow-untrusted`     | *Optional*: Develocity allow-untrusted flag                                  | `false`               |
 | `authorized-users-list`          | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                  |
 | `github-token`                   | *Optional*: Github token                                                     | `${{ github.token }}` |
+
+---
 
 ## Build the action
 
