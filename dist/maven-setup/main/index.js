@@ -41865,6 +41865,9 @@ async function run() {
                         develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
                     }
                     develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
+                    if (fs.existsSync(develocityMavenExtensionJar)) {
+                        core.info(`File ${develocityMavenExtensionJar} exists`);
+                    }
                 }
                 if (input.getCcudExtensionVersion()) {
                     const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
@@ -41872,7 +41875,6 @@ async function run() {
                 }
             }
         }
-        core.info(`Develocity Maven extension Maven opts: ${develocityMavenExtensionMavenOpts}`);
         // Configure environment to inject capture extension on Maven builds
         configureEnvironment(develocityMavenExtensionMavenOpts);
         // Propagate environment variables to subsequent steps
