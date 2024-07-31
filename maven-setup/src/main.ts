@@ -43,9 +43,7 @@ export async function run(): Promise<void> {
                     if (input.getDevelocityAllowUntrustedServer()) {
                         develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts}${path.delimiter}-Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`
                     }
-                    if (input.getDevelocityCaptureFileFingerprints()) {
-                        develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts}${path.delimiter}-Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`
-                    }
+                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts}${path.delimiter}-Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`
                 }
                 if (input.getCcudExtensionVersion()) {
                     const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder)

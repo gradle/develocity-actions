@@ -62,6 +62,7 @@ inputs:
   develocity-capture-file-fingerprints:
     description: 'Whether to enable/disable capturing of file fingerprints. This setting is enabled by default.'
     required: false
+    default: 'true'
 
 
 outputs:
