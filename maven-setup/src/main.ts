@@ -54,6 +54,8 @@ export async function run(): Promise<void> {
             }
         }
 
+        core.info(`Develocity Maven extension Maven opts: ${develocityMavenExtensionMavenOpts}`)
+
         // Configure environment to inject capture extension on Maven builds
         configureEnvironment(develocityMavenExtensionMavenOpts)
 

@@ -46341,6 +46341,7 @@ async function run() {
                 }
             }
         }
+        core.info(`Develocity Maven extension Maven opts: ${develocityMavenExtensionMavenOpts}`);
         // Configure environment to inject capture extension on Maven builds
         configureEnvironment(develocityMavenExtensionMavenOpts);
         // Propagate environment variables to subsequent steps
