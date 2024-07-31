@@ -2,13 +2,17 @@
 
 A collection of composite GitHub Actions related to [Develocity](https://gradle.com/)
 
-## Add a workflow summary to Maven builds 
+## maven-setup action
 
-### Description
-The `maven-setup` action adds a workflow summary for each Maven invocation.
-The summary is also added as a pull-request comment in a pull-request context. This can be disabled via [configuration](#summary).
+### Features
 
-This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#publish-build-scans-for-pull-requests-issued-from-forked-repositories) for details.
+The action enables three features:
+- [Build Summary](#build-summary): Display a summary of the Maven builds as a GitHub workflow summary or as a pull-request comment
+- [Develocity extensions injection](#develocity-extensions-injection): Inject Develocity/CCUD Maven extensions
+- [Capture Build Scan® data](#capture-build-scan-data): Capture published Build Scan® links and unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
+
+> [!NOTE]  
+> This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#publish-build-scans-for-pull-requests-issued-from-forked-repositories) for details.
 
 ### Usage
 
@@ -28,47 +32,43 @@ jobs:
 > [!NOTE]  
 > When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
-### Enabling Develocity/CCUD Maven Extension injection
-If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
-```yaml
-name: PR Build
-jobs:
-  build:  
-      - name: Setup Maven
-        uses: gradle/develocity-actions/maven-setup@v1
-        with:
-          develocity-url: 'https://scans.gradle.com'
-          develocity-injection-enabled: 'true'
-          develocity-maven-extension-version: '1.21.6'
-      - name: Build with Maven
-        run: ./mvnw clean package
-[...]
-```
+#### Build Summary
 
-### Implementation details
+###### Requirements
+- The Maven project must be compiled with JDK 8 or above
+- The Maven project must have the Develocity extension applied (or injected)
 
-The action enables three features:
-- Display a summary of the Maven builds as a GitHub workflow summary or as a pull-request comment
-- Inject Develocity/CCUD Maven extensions
-- Capture unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
+The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
+The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
 
-#### Workflow Summary
+> [!WARNING]
+> If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered.
+Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
+
+> [!WARNING]  
+> The job name is computed by appending `github.job` to the current matrix value (if present). This works only when the matrix contains entries defined as single-dimension array. If a matrix entry is an array of objects, the computed `job-name` can be overridden with the `job-name` action input to avoid having `-object` in the job name.
+
+###### Workflow Summary
 By default, a summary will be added to the GitHub workflow calling the action (can be skipped if `add-job-summary` is set to `false`):
 
 ![workflow](./doc/summary-workflow.png)
 
-#### Pull-request Comment
+###### Pull-request Comment
 
 By default, a comment will be added to the pull-request with the summary (can be skipped if `add-pr-comment` is set to `false`):
 
 ![comment](./doc/summary-comment.png)
 
+**Permissions**:
+
+The following permissions are required for this feature to work:
+- `pull-requests: write`: to comment the pull-request
+
 > [!NOTE]
-> - The job name is computed by appending `github.job` to the current matrix value (if present) but can be overridden with `job-name` input.
-> - The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
+> The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
   only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`add-pr-comment: false`).  
 
-#### Raw Summary data
+###### Raw Summary data
 
 Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan-data-maven/build-metadata.json` with the format below:
 
@@ -102,8 +102,42 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
   ]
 }
 ```
-#### Capture unpublished Build Scan®
 
+#### Develocity extensions injection
+
+If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
+```yaml
+name: PR Build
+jobs:
+  build:  
+      - name: Setup Maven
+        uses: gradle/develocity-actions/maven-setup@v1
+        with:
+          develocity-url: 'https://scans.gradle.com'
+          develocity-injection-enabled: 'true'
+          develocity-maven-extension-version: '<DV_EXTENSION_VERSION>'
+      - name: Build with Maven
+        run: ./mvnw clean package
+[...]
+```
+
+> [!NOTE]
+> DV_EXTENSION_VERSION needs to be adjusted to the expected version of the Develocity Maven Extension.
+
+#### Capture Build Scan® data
+
+###### Requirements
+- The Maven project must be compiled with JDK 8 or above
+- The Maven project must have the Develocity extension applied (or injected)
+
+The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
+The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
+
+> [!WARNING]
+> If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered.
+Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
+
+###### Configuration
 The _capture strategy_ can be customized:
 - `ALWAYS`: default behavior, capture will be attempted on each Maven invocation
 - `ON_FAILURE`: capture will be attempted only on failed builds
@@ -112,13 +146,6 @@ The _capture strategy_ can be customized:
 The _capture_ can be _enabled_/_disabled_ separately:
 - `capture-unpublished-build-scans`: to disable unpublished Build Scan® capture
 - `capture-build-scan-links`: to disable Build Scan® link capture
-
-The process is handled by a [Maven extension](https://maven.apache.org/guides/mini/guide-using-extensions.html) `maven-build-scan-capture-extension.jar` which is running during each Maven invocation.
-The extension is automatically registered by configuring the environment `MAVEN_OPTS=-Dmaven.ext.classpath=<PATH_TO_EXTENSION>`.
-
-> [!NOTE]
-> If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered.
-Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
 The captured files are added as workflow artifact (one artifact per job).
 
@@ -129,11 +156,6 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 
 - `pull_request`: To capture unpublished Build Scan®
 - `workflow_run`: To capture Build Scan® links
-
-**Permissions**:
-
-The following permissions are required for this action to operate:
-- `pull-requests: write`: to comment the pull-request
 
 **Action inputs**:
 
@@ -241,3 +263,9 @@ The following permissions are required for this action to operate:
 | `develocity-allow-untrusted`     | *Optional*: Develocity allow-untrusted flag                                  | `false`               |
 | `authorized-users-list`          | *Optional*: CSV List of users allowed to publish Build Scans                 | `''`                  |
 | `github-token`                   | *Optional*: Github token                                                     | `${{ github.token }}` |
+
+## Build the action
+
+```bash
+npm run all
+```
