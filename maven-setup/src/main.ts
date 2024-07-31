@@ -132,6 +132,7 @@ interface Extensions {
 async function extensionsXMLDetected(filePath: string): Promise<boolean> {
     return new Promise((resolve) => {
         if (!fs.existsSync(filePath)) {
+            core.info(`extensions.xml file not found: ${filePath}`)
             resolve(false)
         }
 
@@ -143,7 +144,10 @@ async function extensionsXMLDetected(filePath: string): Promise<boolean> {
                 return resolve(false)
             }
 
+            core.info(`Parsed extensions.xml file: ${JSON.stringify(result)}`)
+
             for (const extension of result.extensions.extension) {
+                core.info(`Found extension: ${extension.artifactId}`)
                 if (extension.artifactId === 'develocity-maven-extension' || extension.artifactId === 'gradle-enterprise-maven-extension') {
                     resolve(true)
                 }
