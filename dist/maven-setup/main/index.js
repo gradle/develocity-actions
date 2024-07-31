@@ -41885,7 +41885,7 @@ async function run() {
 function configureEnvironment(develocityMavenExtensionMavenOpts) {
     const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
     const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS];
-    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}${path_1.default.delimiter}${develocityMavenExtensionMavenOpts}`;
+    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}${develocityMavenExtensionMavenOpts}`;
     if (mavenOptsCurrent) {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`);
         if (extClassPathIndex !== -1) {

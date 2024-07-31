@@ -73,7 +73,7 @@ function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
     )
 
     const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS]
-    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}${path.delimiter}${develocityMavenExtensionMavenOpts}`
+    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}${develocityMavenExtensionMavenOpts}`
     if (mavenOptsCurrent) {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`)
         if (extClassPathIndex !== -1) {
