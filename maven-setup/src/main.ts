@@ -33,20 +33,20 @@ export async function run(): Promise<void> {
                 core.info(`Develocity Maven extension is already configured in the project`)
                 if (input.getDevelocityEnforceUrl()) {
                     core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`)
-                    develocityMavenExtensionMavenOpts = `${path.delimiter}-Ddevelocity.url=${input.getDevelocityUrl()}`
+                    develocityMavenExtensionMavenOpts = `-Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`
                 }
             } else {
                 if (input.getDevelocityMavenExtensionVersion()) {
                     const develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder)
-                    develocityMavenExtensionMavenOpts = `${path.delimiter}${develocityMavenExtensionJar}${path.delimiter}-Ddevelocity.url=${input.getDevelocityUrl()}`
+                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`
                     if (input.getDevelocityAllowUntrustedServer()) {
-                        develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts}${path.delimiter}-Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`
+                        develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`
                     }
-                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts}${path.delimiter}-Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`
+                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`
                 }
                 if (input.getCcudExtensionVersion()) {
                     const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder)
-                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts}${path.delimiter}${ccudMavenExtensionJar}`
+                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`
                 }
             }
         }
@@ -73,7 +73,7 @@ function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
     )
 
     const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS]
-    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath}${develocityMavenExtensionMavenOpts}`
+    let mavenOptsNew = `${MAVEN_OPTS_EXT_CLASS_PATH}=${captureExtensionSourcePath} ${develocityMavenExtensionMavenOpts}`
     if (mavenOptsCurrent) {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`)
         if (extClassPathIndex !== -1) {
@@ -88,7 +88,7 @@ function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
     }
 
     core.setOutput('build-metadata-file-path', path.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'))
-    core.info(`Exporting MAVEN_OPTS ${develocityMavenExtensionMavenOpts}`)
+    core.info(`Exporting MAVEN_OPTS ${mavenOptsNew}`)
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew)
 }
 
