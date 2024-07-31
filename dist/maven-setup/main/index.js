@@ -46409,9 +46409,10 @@ async function extensionsXMLDetected(filePath) {
             core.info(`Parsed extensions.xml file: ${JSON.stringify(result)}`);
             for (const ext of result.extensions.extension) {
                 core.info(`Checking for extension artifact id: ${ext.artifactId}`);
-                if (ext.artifactId === "develocity-maven-extension" || ext.artifactId === "gradle-enterprise-maven-extension") {
+                if (ext.artifactId.trim() === "develocity-maven-extension" || ext.artifactId.trim() === "gradle-enterprise-maven-extension") {
                     core.info(`Found extension: ${ext.artifactId}`);
                     resolve(true);
+                    break;
                 }
             }
             core.info(`No Develocity Maven extension found in extensions.xml`);
