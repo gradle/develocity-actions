@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import path from 'path'
 import * as https from 'https'
 import * as fs from 'fs'
-import * as xml2js from 'xml2js'
+import { XMLParser } from 'fast-xml-parser'
 
 import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
@@ -28,7 +28,6 @@ export async function run(): Promise<void> {
         if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
             const extensionsFileName = '.mvn/extensions.xml'
             const absoluteFilePath = path.resolve(process.cwd(), extensionsFileName)
-            core.info(`Parsing XML file at: ${absoluteFilePath}`)
 
             if (await extensionsXMLDetected(absoluteFilePath)) {
                 core.info(`Develocity Maven extension is already configured in the project`)
@@ -129,36 +128,26 @@ interface Extensions {
     }
 }
 
-async function extensionsXMLDetected(filePath: string): Promise<boolean> {
-    return new Promise((resolve) => {
-        if (!fs.existsSync(filePath)) {
-            core.info(`extensions.xml file not found: ${filePath}`)
-            resolve(false)
+function extensionsXMLDetected(filePath: string): boolean {
+    if (!fs.existsSync(filePath)) {
+        return false
+    }
+
+    const xmlContent = fs.readFileSync(filePath, 'utf-8');
+    const parser = new XMLParser();
+    const result = parser.parse(xmlContent);
+
+    // Assuming result structure matches Extensions interface
+    if (result.extensions && result.extensions.extension) {
+        for (const ext of result.extensions.extension) {
+            const artifact = String(ext.artifactId)
+            if (artifact === "develocity-maven-extension" || artifact === "gradle-enterprise-maven-extension") {
+                return true
+            }
         }
+    }
 
-        const xmlContent = fs.readFileSync(filePath, 'utf-8')
-        const parser = new xml2js.Parser()
-
-        parser.parseString(xmlContent, (err: any, result: Extensions) => {
-            if (err) {
-                return resolve(false)
-            }
-
-            core.info(`Parsed extensions.xml file: ${JSON.stringify(result)}`)
-
-            for (const ext of result.extensions.extension) {
-                core.info(`Checking for extension artifact id: ${ext.artifactId}`)
-                const artifact = String(ext.artifactId)
-                if (artifact === "develocity-maven-extension" || artifact === "gradle-enterprise-maven-extension") {
-                    core.info(`Found extension: ${ext.artifactId}`)
-                    resolve(true)
-                    break
-                }
-            }
-            core.info(`No Develocity Maven extension found in extensions.xml`)
-            resolve(false)
-        })
-    })
+    return false
 }
 
 run()
