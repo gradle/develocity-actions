@@ -68,6 +68,7 @@
     "@actions/github": "6.0.0",
     "@actions/glob": "0.4.0",
     "@actions/tool-cache": "^2.0.1",
+    "fast-xml-parser": "^4.4.1",
     "properties-reader": "^2.2.0",
     "typed-rest-client": "^2.0.1"
   },
