@@ -41853,33 +41853,7 @@ async function run() {
     try {
         // configure authentication
         const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry());
-        const downloadFolder = maven.mavenBuildTool.getBuildScanWorkDir();
-        let develocityMavenExtensionMavenOpts = '';
-        if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
-            const extensionsFileName = '.mvn/extensions.xml';
-            const absoluteFilePath = path_1.default.resolve(process.cwd(), extensionsFileName);
-            if (develocityExtensionApplied(absoluteFilePath)) {
-                core.info(`Develocity Maven extension is already configured in the project`);
-                if (input.getDevelocityEnforceUrl()) {
-                    core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`);
-                    develocityMavenExtensionMavenOpts = ` -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
-                }
-            }
-            else {
-                if (input.getDevelocityMavenExtensionVersion()) {
-                    const develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
-                    develocityMavenExtensionMavenOpts = `${path_1.default.delimiter}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
-                    if (input.getDevelocityAllowUntrustedServer()) {
-                        develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
-                    }
-                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
-                }
-                if (input.getCcudExtensionVersion() && !ccudExtensionApplied(absoluteFilePath)) {
-                    const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
-                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`;
-                }
-            }
-        }
+        const develocityMavenExtensionMavenOpts = await constructDevelocityMavenOpts(maven.mavenBuildTool.getBuildScanWorkDir());
         // Configure environment to inject capture extension on Maven builds
         configureEnvironment(develocityMavenExtensionMavenOpts);
         // Propagate environment variables to subsequent steps
@@ -41888,6 +41862,35 @@ async function run() {
     catch (error) {
         errorHandler.handle(error);
     }
+}
+async function constructDevelocityMavenOpts(downloadFolder) {
+    let develocityMavenExtensionMavenOpts = '';
+    if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
+        const extensionsFileName = '.mvn/extensions.xml';
+        const absoluteFilePath = path_1.default.resolve(process.cwd(), extensionsFileName);
+        if (develocityExtensionApplied(absoluteFilePath)) {
+            core.info(`Develocity Maven extension is already configured in the project`);
+            if (input.getDevelocityEnforceUrl()) {
+                core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`);
+                develocityMavenExtensionMavenOpts = ` -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
+            }
+        }
+        else {
+            if (input.getDevelocityMavenExtensionVersion()) {
+                const develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
+                develocityMavenExtensionMavenOpts = `${path_1.default.delimiter}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
+                if (input.getDevelocityAllowUntrustedServer()) {
+                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
+                }
+                develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
+            }
+            if (input.getCcudExtensionVersion() && !ccudExtensionApplied(absoluteFilePath)) {
+                const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
+                develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`;
+            }
+        }
+    }
+    return develocityMavenExtensionMavenOpts;
 }
 function configureEnvironment(develocityMavenExtensionMavenOpts) {
     const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
