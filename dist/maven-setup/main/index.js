@@ -41597,6 +41597,8 @@ exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
 exports.getCcudExtensionVersion = getCcudExtensionVersion;
+exports.getDevelocityCustomMavenExtensionCoordinates = getDevelocityCustomMavenExtensionCoordinates;
+exports.getDevelocityCustomCcudExtensionCoordinates = getDevelocityCustomCcudExtensionCoordinates;
 exports.getDevelocityAllowUntrustedServer = getDevelocityAllowUntrustedServer;
 exports.getDevelocityEnforceUrl = getDevelocityEnforceUrl;
 exports.getDevelocityCaptureFileFingerprints = getDevelocityCaptureFileFingerprints;
@@ -41624,6 +41626,12 @@ function getDevelocityMavenExtensionVersion() {
 }
 function getCcudExtensionVersion() {
     return sharedInput.getInput('develocity-ccud-extension-version');
+}
+function getDevelocityCustomMavenExtensionCoordinates() {
+    return sharedInput.getInput('develocity-custom-develocity-maven-extension-coordinates');
+}
+function getDevelocityCustomCcudExtensionCoordinates() {
+    return sharedInput.getInput('develocity-custom-ccud-extension-coordinates');
 }
 function getDevelocityAllowUntrustedServer() {
     return sharedInput.getInput('develocity-allow-untrusted-server');
@@ -41850,7 +41858,7 @@ async function run() {
         if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
             const extensionsFileName = '.mvn/extensions.xml';
             const absoluteFilePath = path_1.default.resolve(process.cwd(), extensionsFileName);
-            if (extensionsXMLDetected(absoluteFilePath)) {
+            if (develocityExtensionApplied(absoluteFilePath)) {
                 core.info(`Develocity Maven extension is already configured in the project`);
                 if (input.getDevelocityEnforceUrl()) {
                     core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`);
@@ -41866,7 +41874,7 @@ async function run() {
                     }
                     develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
                 }
-                if (input.getCcudExtensionVersion()) {
+                if (input.getCcudExtensionVersion() && !ccudExtensionApplied(absoluteFilePath)) {
                     const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
                     develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`;
                 }
@@ -41927,7 +41935,13 @@ async function downloadFile(url, downloadFolder) {
         });
     });
 }
-function extensionsXMLDetected(filePath) {
+function develocityExtensionApplied(filePath) {
+    return extensionApplied(filePath, ["develocity-maven-extension", "gradle-enterprise-maven-extension"], input.getDevelocityCustomMavenExtensionCoordinates());
+}
+function ccudExtensionApplied(filePath) {
+    return extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates());
+}
+function extensionApplied(filePath, artifacts, customCoordinates) {
     if (!fs.existsSync(filePath)) {
         return false;
     }
@@ -41940,7 +41954,7 @@ function extensionsXMLDetected(filePath) {
             : [result.extensions.extension];
         for (const ext of extensions) {
             const artifact = String(ext.artifactId);
-            if (artifact === "develocity-maven-extension" || artifact === "gradle-enterprise-maven-extension") {
+            if (artifacts.includes(artifact) || artifact === customCoordinates) {
                 return true;
             }
         }
