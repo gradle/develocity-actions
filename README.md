@@ -284,3 +284,15 @@ The following permissions are required for this action to operate:
 ```bash
 npm run all
 ```
+
+---
+
+## Release the action
+
+- Upgrade the release notes in `release/changelog.md`
+- Push the new version as a tag:
+
+```bash
+git tag vX.Y
+git push origin vX.Y
+```
