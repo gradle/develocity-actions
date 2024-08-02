@@ -41741,6 +41741,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getDelimiter = getDelimiter;
+exports.getAbsoluteFilePath = getAbsoluteFilePath;
 exports.existsSync = existsSync;
 exports.extractZip = extractZip;
 exports.mkdirSync = mkdirSync;
@@ -41750,10 +41752,18 @@ exports.writeFileSync = writeFileSync;
 exports.writeContentToFileSync = writeContentToFileSync;
 exports.copyFileSync = copyFileSync;
 exports.renameSync = renameSync;
+exports.downloadFile = downloadFile;
 const core = __importStar(__nccwpck_require__(2186));
 const fs_1 = __importDefault(__nccwpck_require__(7147));
 const path_1 = __importDefault(__nccwpck_require__(1017));
 const toolCache = __importStar(__nccwpck_require__(7784));
+const https_1 = __importDefault(__nccwpck_require__(5687));
+function getDelimiter() {
+    return path_1.default.delimiter;
+}
+function getAbsoluteFilePath(extensionsFileName) {
+    return path_1.default.resolve(process.cwd(), extensionsFileName);
+}
 function existsSync(fileName) {
     return fs_1.default.existsSync(fileName);
 }
@@ -41796,6 +41806,125 @@ function renameSync(oldPath, newPath) {
     }
     fs_1.default.renameSync(oldPath, newPath);
 }
+async function downloadFile(url, downloadFolder) {
+    const fileName = path_1.default.basename(url);
+    const filePath = path_1.default.join(downloadFolder, fileName);
+    return new Promise((resolve, reject) => {
+        // Ensure the download folder exists
+        if (!existsSync(downloadFolder)) {
+            mkdirSync(downloadFolder);
+        }
+        const file = fs_1.default.createWriteStream(filePath);
+        https_1.default
+            .get(url, response => {
+            if (response.statusCode !== 200) {
+                reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
+                return;
+            }
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                resolve(filePath);
+            });
+        })
+            .on('error', err => {
+            fs_1.default.unlink(filePath, () => reject(err.message));
+        });
+    });
+}
+
+
+/***/ }),
+
+/***/ 4593:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.constructDevelocityMavenOpts = constructDevelocityMavenOpts;
+const core = __importStar(__nccwpck_require__(2186));
+const fast_xml_parser_1 = __nccwpck_require__(2603);
+const input = __importStar(__nccwpck_require__(4758));
+const io = __importStar(__nccwpck_require__(6545));
+async function constructDevelocityMavenOpts(downloadFolder) {
+    let develocityMavenExtensionMavenOpts = '';
+    if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
+        const extensionsFileName = '.mvn/extensions.xml';
+        const absoluteFilePath = io.getAbsoluteFilePath(extensionsFileName);
+        if (develocityExtensionApplied(absoluteFilePath)) {
+            core.info(`Develocity Maven extension is already configured in the project`);
+            if (input.getDevelocityEnforceUrl()) {
+                core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`);
+                develocityMavenExtensionMavenOpts = ` -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
+            }
+        }
+        else {
+            if (input.getDevelocityMavenExtensionVersion()) {
+                const develocityMavenExtensionJar = await io.downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
+                develocityMavenExtensionMavenOpts = `${io.getDelimiter()}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
+                if (input.getDevelocityAllowUntrustedServer()) {
+                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
+                }
+                develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
+            }
+            if (input.getCcudExtensionVersion() && !ccudExtensionApplied(absoluteFilePath)) {
+                const ccudMavenExtensionJar = await io.downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
+                develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`;
+            }
+        }
+    }
+    return develocityMavenExtensionMavenOpts;
+}
+function develocityExtensionApplied(filePath) {
+    return extensionApplied(filePath, ["develocity-maven-extension", "gradle-enterprise-maven-extension"], input.getDevelocityCustomMavenExtensionCoordinates());
+}
+function ccudExtensionApplied(filePath) {
+    return extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates());
+}
+function extensionApplied(filePath, artifacts, customCoordinates) {
+    if (!io.existsSync(filePath)) {
+        return false;
+    }
+    const xmlContent = io.readFileSync(filePath);
+    const parser = new fast_xml_parser_1.XMLParser();
+    const result = parser.parse(xmlContent);
+    if (result.extensions && result.extensions.extension) {
+        const extensions = Array.isArray(result.extensions.extension)
+            ? result.extensions.extension
+            : [result.extensions.extension];
+        for (const ext of extensions) {
+            const artifact = String(ext.artifactId);
+            if (artifacts.includes(artifact) || artifact === customCoordinates) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 
 /***/ }),
@@ -41835,11 +41964,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const path_1 = __importDefault(__nccwpck_require__(1017));
-const https = __importStar(__nccwpck_require__(5687));
-const fs = __importStar(__nccwpck_require__(7147));
-const fast_xml_parser_1 = __nccwpck_require__(2603);
 const auth = __importStar(__nccwpck_require__(1148));
 const errorHandler = __importStar(__nccwpck_require__(2766));
+const injection = __importStar(__nccwpck_require__(4593));
 const input = __importStar(__nccwpck_require__(4758));
 const maven = __importStar(__nccwpck_require__(37));
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`;
@@ -41853,7 +41980,7 @@ async function run() {
     try {
         // configure authentication
         const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry());
-        const develocityMavenExtensionMavenOpts = await constructDevelocityMavenOpts(maven.mavenBuildTool.getBuildScanWorkDir());
+        const develocityMavenExtensionMavenOpts = await injection.constructDevelocityMavenOpts(maven.mavenBuildTool.getBuildScanWorkDir());
         // Configure environment to inject capture extension on Maven builds
         configureEnvironment(develocityMavenExtensionMavenOpts);
         // Propagate environment variables to subsequent steps
@@ -41862,35 +41989,6 @@ async function run() {
     catch (error) {
         errorHandler.handle(error);
     }
-}
-async function constructDevelocityMavenOpts(downloadFolder) {
-    let develocityMavenExtensionMavenOpts = '';
-    if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
-        const extensionsFileName = '.mvn/extensions.xml';
-        const absoluteFilePath = path_1.default.resolve(process.cwd(), extensionsFileName);
-        if (develocityExtensionApplied(absoluteFilePath)) {
-            core.info(`Develocity Maven extension is already configured in the project`);
-            if (input.getDevelocityEnforceUrl()) {
-                core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`);
-                develocityMavenExtensionMavenOpts = ` -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
-            }
-        }
-        else {
-            if (input.getDevelocityMavenExtensionVersion()) {
-                const develocityMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
-                develocityMavenExtensionMavenOpts = `${path_1.default.delimiter}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
-                if (input.getDevelocityAllowUntrustedServer()) {
-                    develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
-                }
-                develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
-            }
-            if (input.getCcudExtensionVersion() && !ccudExtensionApplied(absoluteFilePath)) {
-                const ccudMavenExtensionJar = await downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
-                develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`;
-            }
-        }
-    }
-    return develocityMavenExtensionMavenOpts;
 }
 function configureEnvironment(develocityMavenExtensionMavenOpts) {
     const captureExtensionSourcePath = path_1.default.resolve(__dirname, '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
@@ -41913,56 +42011,6 @@ function configureEnvironment(develocityMavenExtensionMavenOpts) {
     core.setOutput('build-metadata-file-path', path_1.default.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'));
     core.info(`Exporting MAVEN_OPTS: ${mavenOptsNew}`);
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew);
-}
-async function downloadFile(url, downloadFolder) {
-    const fileName = path_1.default.basename(url);
-    const filePath = path_1.default.join(downloadFolder, fileName);
-    return new Promise((resolve, reject) => {
-        // Ensure the download folder exists
-        if (!fs.existsSync(downloadFolder)) {
-            fs.mkdirSync(downloadFolder);
-        }
-        const file = fs.createWriteStream(filePath);
-        https.get(url, (response) => {
-            if (response.statusCode !== 200) {
-                reject(`Failed to get '${url}' (${response.statusCode})`);
-                return;
-            }
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                resolve(filePath);
-            });
-        }).on('error', (err) => {
-            fs.unlink(filePath, () => reject(err.message));
-        });
-    });
-}
-function develocityExtensionApplied(filePath) {
-    return extensionApplied(filePath, ["develocity-maven-extension", "gradle-enterprise-maven-extension"], input.getDevelocityCustomMavenExtensionCoordinates());
-}
-function ccudExtensionApplied(filePath) {
-    return extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates());
-}
-function extensionApplied(filePath, artifacts, customCoordinates) {
-    if (!fs.existsSync(filePath)) {
-        return false;
-    }
-    const xmlContent = fs.readFileSync(filePath, 'utf-8');
-    const parser = new fast_xml_parser_1.XMLParser();
-    const result = parser.parse(xmlContent);
-    if (result.extensions && result.extensions.extension) {
-        const extensions = Array.isArray(result.extensions.extension)
-            ? result.extensions.extension
-            : [result.extensions.extension];
-        for (const ext of extensions) {
-            const artifact = String(ext.artifactId);
-            if (artifacts.includes(artifact) || artifact === customCoordinates) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 run();
 
