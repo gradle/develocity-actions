@@ -20,7 +20,7 @@
   "scripts": {
     "format:check": "prettier --check */src/**/*.ts",
     "format:write": "prettier --write */src/**/*.ts",
-    "format:test": "prettier --write **/__tests__/**/*.ts",
+    "format:test": "prettier --write **/__tests__/*.ts **/__tests__/**/*.ts",
     "lint": "eslint */src/**/*.ts",
     "package-maven-capture-extension": "mvn clean package -f maven-build-scan-capture-extension/pom.xml",
     "package-maven-setup-main": "ncc build maven-setup/src/main.ts --out dist/maven-setup/main",

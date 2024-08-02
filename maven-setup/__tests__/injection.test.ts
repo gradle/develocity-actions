@@ -1,11 +1,10 @@
 import {XMLParser} from 'fast-xml-parser'
 
 import * as injection from '../src/injection'
-import * as input from "../../build-scan-shared/src/setup/input";
+import * as input from '../../build-scan-shared/src/setup/input'
 import * as io from '../../build-scan-shared/src/utils/io'
 
 jest.mock('fast-xml-parser')
-jest.mock('https')
 
 const DOWNLOAD_FOLDER: string = 'foo'
 

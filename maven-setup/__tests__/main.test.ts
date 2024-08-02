@@ -61,5 +61,4 @@ describe('Main Setup Maven', () => {
         expect(runMock).toHaveReturned()
         expect(process.env['MAVEN_OPTS']).toMatch(/^foo -Dmaven.ext.class.path=.*:a:b:c bar$/)
     })
-
 })
