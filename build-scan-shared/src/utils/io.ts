@@ -2,6 +2,15 @@ import * as core from '@actions/core'
 import fs from 'fs'
 import path from 'path'
 import * as toolCache from '@actions/tool-cache'
+import https from 'https'
+
+export function getDelimiter(): string {
+    return path.delimiter
+}
+
+export function getAbsoluteFilePath(extensionsFileName: string): string {
+    return path.resolve(process.cwd(), extensionsFileName)
+}
 
 export function existsSync(fileName: string): boolean {
     return fs.existsSync(fileName)
@@ -50,4 +59,33 @@ export function renameSync(oldPath: string, newPath: string): void {
         fs.mkdirSync(newPath, {recursive: true})
     }
     fs.renameSync(oldPath, newPath)
+}
+
+export async function downloadFile(url: string, downloadFolder: string): Promise<string> {
+    const fileName = path.basename(url)
+    const filePath = path.join(downloadFolder, fileName)
+
+    return new Promise((resolve, reject) => {
+        // Ensure the download folder exists
+        if (!existsSync(downloadFolder)) {
+            mkdirSync(downloadFolder)
+        }
+
+        const file = fs.createWriteStream(filePath)
+        https
+            .get(url, response => {
+                if (response.statusCode !== 200) {
+                    reject(new Error(`Failed to get '${url}' (${response.statusCode})`))
+                    return
+                }
+                response.pipe(file)
+                file.on('finish', () => {
+                    file.close()
+                    resolve(filePath)
+                })
+            })
+            .on('error', err => {
+                fs.unlink(filePath, () => reject(err.message))
+            })
+    })
 }

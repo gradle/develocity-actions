@@ -56,6 +56,20 @@ inputs:
   develocity-allow-untrusted-server:
     description: 'Whether to allow communicating with untrusted server'
     required: false
+  develocity-enforce-url:
+    description: 'Whether to enforce the URL over any defined locally to the project'
+    required: false
+  develocity-capture-file-fingerprints:
+    description: 'Whether to enable/disable capturing of file fingerprints. This setting is enabled by default.'
+    required: false
+    default: 'true'
+  develocity-custom-develocity-maven-extension-coordinates:
+    description: 'Will not inject the Develocity Maven extension if an extension with provided coordinates is found (value is an artifactId of the extension).'
+    required: false
+  develocity-custom-ccud-extension-coordinates:
+    description: 'Will not inject the CCUD extension if an extension with provided coordinates is found (value is an artifactId of the extension).'
+    required: false
+
 
 outputs:
   build-metadata-file-path:

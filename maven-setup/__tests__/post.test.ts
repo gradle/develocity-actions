@@ -40,9 +40,7 @@ describe('Post Setup Maven', () => {
                 }
             })
         )
-        jest
-            .spyOn(artifact, 'DefaultArtifactClient')
-            .mockImplementation()
+        jest.spyOn(artifact, 'DefaultArtifactClient').mockImplementation()
         const uploadArtifactMock = jest
             .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
             .mockImplementation()
@@ -67,9 +65,7 @@ describe('Post Setup Maven', () => {
                 }
             })
         )
-        jest
-            .spyOn(artifact, 'DefaultArtifactClient')
-            .mockImplementation()
+        jest.spyOn(artifact, 'DefaultArtifactClient').mockImplementation()
         const uploadArtifactMock = jest
             .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
             .mockImplementation()

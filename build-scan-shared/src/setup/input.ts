@@ -22,8 +22,24 @@ export function getCcudExtensionVersion(): string {
     return sharedInput.getInput('develocity-ccud-extension-version')
 }
 
+export function getDevelocityCustomMavenExtensionCoordinates(): string {
+    return sharedInput.getInput('develocity-custom-develocity-maven-extension-coordinates')
+}
+
+export function getDevelocityCustomCcudExtensionCoordinates(): string {
+    return sharedInput.getInput('develocity-custom-ccud-extension-coordinates')
+}
+
 export function getDevelocityAllowUntrustedServer(): string {
     return sharedInput.getInput('develocity-allow-untrusted-server')
+}
+
+export function getDevelocityEnforceUrl(): boolean {
+    return getBooleanInput('develocity-enforce-url')
+}
+
+export function getDevelocityCaptureFileFingerprints(): boolean {
+    return getBooleanInput('develocity-capture-file-fingerprints')
 }
 
 export function getDevelocityAccessKey(): string {
