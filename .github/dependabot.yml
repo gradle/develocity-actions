@@ -8,6 +8,8 @@ updates:
       npm-dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "*eslint*"
   - package-ecosystem: "maven"
     directory: "maven-build-scan-capture-extension"
     schedule:
