@@ -19,7 +19,7 @@ updates:
         patterns:
           - "*"
     ignore:
-      - dependency-name: "mockito-core"
+      - dependency-name: "org.mockito:mockito-core"
         # Required for JDK8 compatibility
         versions: [ ">= 5" ]
   - package-ecosystem: "github-actions"
