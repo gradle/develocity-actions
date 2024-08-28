@@ -18,6 +18,10 @@ updates:
       maven-dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "mockito-core"
+        # Required for JDK8 compatibility
+        versions: [ ">= 5" ]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
