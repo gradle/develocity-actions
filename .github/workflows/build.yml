@@ -70,6 +70,8 @@ jobs:
     runs-on: ubuntu-latest
     if: "github.event_name == 'pull_request'"
     needs: build
+    permissions:
+      pull-requests: write
     steps:
       - name: Find PR Comment with publication summary
         uses: peter-evans/find-comment@v3
