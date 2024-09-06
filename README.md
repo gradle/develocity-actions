@@ -14,7 +14,7 @@ The action enables three features:
 - [Capture Build Scan® data](#capture-build-scan-data): Capture published Build Scan® links and unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
 
 > [!NOTE]  
-> This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#publish-build-scans-for-pull-requests-issued-from-forked-repositories) for details.
+> This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#maven-publish-build-scan-action) for details.
 
 ### Usage
 
