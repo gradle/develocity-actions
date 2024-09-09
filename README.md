@@ -293,10 +293,11 @@ npm run all
 
 ## Release the action
 
-- Upgrade the release notes in `release/changelog.md`
 - Push the new version as a tag:
 
 ```bash
 git tag vX.Y
 git push origin vX.Y
 ```
+
+- Empty the release notes in `release/changelog.md` and push the change to prepare for next development iteration
