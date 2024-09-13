@@ -1,0 +1,1 @@
+- Fixes a bug where setting the develocity-token-expiry parameter had no effect
