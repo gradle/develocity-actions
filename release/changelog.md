@@ -1,1 +1,2 @@
 - Fixes a bug where setting the develocity-token-expiry parameter had no effect
+- Update Develocity Maven extension to 1.22.1
