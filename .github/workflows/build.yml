@@ -101,7 +101,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: Setup Build Scan dump capture
-        uses: ./maven-setup
+        uses: ./setup-maven
       - name: Run Maven Build 1
         working-directory: ./sample/common-develocity-maven-configuration
         run: mvn clean -B -X -Ddevelocity.url=${{ env.DV_URL }}
@@ -120,7 +120,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Build Scan link capture
-        uses: ./maven-setup
+        uses: ./setup-maven
       - name: Publish Build Scans
         uses: ./maven-publish-build-scan
         with:

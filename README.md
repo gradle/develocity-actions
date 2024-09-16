@@ -4,7 +4,7 @@ A collection of composite GitHub Actions related to [Develocity](https://gradle.
 
 ---
 
-## maven-setup action
+## setup-maven action
 
 ### Features
 
@@ -25,14 +25,14 @@ name: PR Build
 jobs:
   build:  
       - name: Setup Maven
-        uses: gradle/develocity-actions/maven-setup@v1
+        uses: gradle/develocity-actions/setup-maven@v1
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
 ```
 
 > [!NOTE]  
-> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `maven-setup` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
+> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `setup-maven` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
 ---
 
@@ -117,7 +117,7 @@ name: PR Build
 jobs:
   build:  
       - name: Setup Maven
-        uses: gradle/develocity-actions/maven-setup@v1
+        uses: gradle/develocity-actions/setup-maven@v1
         with:
           develocity-url: 'https://scans.gradle.com'
           develocity-injection-enabled: 'true'
@@ -216,7 +216,7 @@ name: PR Build
 jobs:
   build:  
       - name: Setup Maven
-        uses: gradle/develocity-actions/maven-setup@v1
+        uses: gradle/develocity-actions/setup-maven@v1
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
@@ -241,7 +241,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/develocity-actions/maven-setup@v1
+        uses: gradle/develocity-actions/setup-maven@v1
       - name: Publish Build Scans
         uses: gradle/develocity-actions/maven-publish-build-scan@v1
         with:

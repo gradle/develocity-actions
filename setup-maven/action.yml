@@ -77,6 +77,5 @@ outputs:
 
 runs:
   using: node20
-  pre: ../dist/maven-setup/pre/index.js
   main: ../dist/maven-setup/main/index.js
   post: ../dist/maven-setup/post/index.js
