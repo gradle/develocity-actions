@@ -4,6 +4,7 @@ import {DefaultArtifactClient} from '@actions/artifact'
 
 import * as input from './input'
 import * as commonBuildTool from '../buildTool/common'
+import * as githubUtils from '../utils/github'
 import * as summary from '../summary/dump'
 
 export async function post(buildTool: commonBuildTool.BuildTool): Promise<void> {
@@ -48,5 +49,5 @@ async function uploadArtifacts(
 function getArtifactName(buildScanArtifactName: string): string {
     return `${buildScanArtifactName}-${input.getWorkflowName().replaceAll(' ', '-')}-${input
         .getJobName()
-        .replaceAll(' ', '-')}`
+        .replaceAll(' ', '-')}-${githubUtils.getRunNumber()}`
 }

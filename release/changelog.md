@@ -1,2 +1,3 @@
 - Fixes a bug where setting the develocity-token-expiry parameter had no effect
+- Add run attempt number to the artifact name containing the build scan data and metadata
 - Update Develocity Maven extension to 1.22.1

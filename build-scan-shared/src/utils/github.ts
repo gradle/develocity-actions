@@ -43,6 +43,10 @@ function getRunActorForTest(): string {
     return github.context.actor
 }
 
+export function getRunNumber(): number {
+    return github.context.runNumber
+}
+
 function getListArtifactsOptions(): any {
     return isUnderTest() ? getListArtifactsOptionsForTest() : getListArtifactsOptionsForWorkflowRun()
 }
