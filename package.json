@@ -23,6 +23,7 @@
     "format:test": "prettier --write **/__tests__/*.ts **/__tests__/**/*.ts",
     "lint": "eslint */src/**/*.ts",
     "package-maven-capture-extension": "mvn clean package -f maven-build-scan-capture-extension/pom.xml",
+    "package-maven-setup-pre": "ncc build maven-setup/src/pre.ts --out dist/maven-setup/pre",
     "package-maven-setup-main": "ncc build maven-setup/src/main.ts --out dist/maven-setup/main",
     "package-maven-setup-post": "ncc build maven-setup/src/post.ts --out dist/maven-setup/post",
     "package-maven-publish": "ncc build maven-publish-build-scan/src/main.ts --out dist/maven-publish-build-scan",
