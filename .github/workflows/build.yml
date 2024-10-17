@@ -10,7 +10,7 @@ on:
 env:
   DV_URL: "https://ge.solutions-team.gradle.com"
   DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
-  MAVEN_SETUP_DIST: "dist/maven-setup"
+  MAVEN_SETUP_DIST: "dist/setup-maven"
   MAVEN_PUBLISH_DIST: "dist/maven-publish-build-scan"
   MAVEN_CAPTURE_EXTENSION_JAR: "dist/maven-build-scan-capture-extension/maven-build-scan-capture-extension.jar"
 
@@ -35,7 +35,7 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run all
-      - name: Check maven-setup dist
+      - name: Check setup-maven dist
         run: |
           if [ "$(git diff --ignore-space-at-eol --text ${{ env.MAVEN_SETUP_DIST }} | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"
