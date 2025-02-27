@@ -1,5 +1,4 @@
 import * as core from '@actions/core'
-import { XMLParser } from 'fast-xml-parser'
 
 import * as input from '../../build-scan-shared/src/setup/input'
 import * as io from '../../build-scan-shared/src/utils/io'
@@ -10,7 +9,7 @@ export async function constructDevelocityMavenOpts(downloadFolder: string): Prom
         const extensionsFileName = '.mvn/extensions.xml'
         const absoluteFilePath = io.getAbsoluteFilePath(extensionsFileName)
 
-        if (develocityExtensionApplied(absoluteFilePath)) {
+        if (await develocityExtensionApplied(absoluteFilePath)) {
             core.info(`Develocity Maven extension is already configured in the project`)
             if (input.getDevelocityEnforceUrl()) {
                 core.info(`Enforcing Develocity URL to: ${input.getDevelocityUrl()}`)
@@ -25,7 +24,7 @@ export async function constructDevelocityMavenOpts(downloadFolder: string): Prom
                 }
                 develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`
             }
-            if (input.getCcudExtensionVersion() && !ccudExtensionApplied(absoluteFilePath)) {
+            if (input.getCcudExtensionVersion() && !(await ccudExtensionApplied(absoluteFilePath))) {
                 const ccudMavenExtensionJar = await io.downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder)
                 develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`
             }
@@ -45,22 +44,28 @@ interface Extensions {
     }
 }
 
-function develocityExtensionApplied(filePath: string): boolean {
-    return extensionApplied(filePath, ["develocity-maven-extension", "gradle-enterprise-maven-extension"], input.getDevelocityCustomMavenExtensionCoordinates())
+async function develocityExtensionApplied(filePath: string): Promise<boolean> {
+    return await extensionApplied(filePath, ["develocity-maven-extension", "gradle-enterprise-maven-extension"], input.getDevelocityCustomMavenExtensionCoordinates())
 }
 
-function ccudExtensionApplied(filePath: string): boolean {
-    return extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates())
+async function ccudExtensionApplied(filePath: string): Promise<boolean> {
+    return await extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates())
 }
 
-function extensionApplied(filePath: string, artifacts: string[], customCoordinates: string): boolean {
+async function parseExtensions(xmlContent: string): Promise<Extensions> {
+    const { XMLParser } = await import('fast-xml-parser')
+    const parser = new XMLParser()
+    return parser.parse(xmlContent) as Extensions
+}
+
+async function extensionApplied(filePath: string, artifacts: string[], customCoordinates: string): Promise<boolean> {
     if (!io.existsSync(filePath)) {
         return false
     }
 
     const xmlContent = io.readFileSync(filePath)
-    const parser = new XMLParser()
-    const result = parser.parse(xmlContent) as Extensions
+
+    const result = await parseExtensions(xmlContent)
 
     if (result.extensions && result.extensions.extension) {
         const extensions = Array.isArray(result.extensions.extension)
