@@ -68,13 +68,13 @@
     "@actions/github": "6.0.0",
     "@actions/glob": "0.5.0",
     "@actions/tool-cache": "^2.0.2",
-    "fast-xml-parser": "^5.0.6",
+    "fast-xml-parser": "^5.0.8",
     "properties-reader": "^2.2.0",
     "typed-rest-client": "^2.1.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.13.5",
+    "@types/node": "^22.13.8",
     "@types/properties-reader": "^2.1.1",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.14.1",
@@ -92,6 +92,6 @@
     "prettier": "^3.5.2",
     "prettier-eslint": "^16.3.0",
     "ts-jest": "^29.2.6",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.2"
   }
 }
