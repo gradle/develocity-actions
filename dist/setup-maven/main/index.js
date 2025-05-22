@@ -1882,6 +1882,7 @@ class Context {
         this.action = process.env.GITHUB_ACTION;
         this.actor = process.env.GITHUB_ACTOR;
         this.job = process.env.GITHUB_JOB;
+        this.runAttempt = parseInt(process.env.GITHUB_RUN_ATTEMPT, 10);
         this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
         this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
         this.apiUrl = (_a = process.env.GITHUB_API_URL) !== null && _a !== void 0 ? _a : `https://api.github.com`;
@@ -39333,7 +39334,7 @@ async function ccudExtensionApplied(filePath) {
     return await extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates());
 }
 async function parseExtensions(xmlContent) {
-    const { XMLParser } = await __nccwpck_require__.e(/* import() */ 734).then(__nccwpck_require__.bind(__nccwpck_require__, 8734));
+    const { XMLParser } = await __nccwpck_require__.e(/* import() */ 671).then(__nccwpck_require__.bind(__nccwpck_require__, 6671));
     const parser = new XMLParser();
     return parser.parse(xmlContent);
 }
