@@ -21,7 +21,9 @@ export async function run(): Promise<void> {
         // configure authentication
         const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
 
-        const develocityMavenExtensionMavenOpts = await injection.constructDevelocityMavenOpts(maven.mavenBuildTool.getBuildScanWorkDir())
+        const develocityMavenExtensionMavenOpts = await injection.constructDevelocityMavenOpts(
+            maven.mavenBuildTool.getBuildScanWorkDir()
+        )
 
         // Configure environment to inject capture extension on Maven builds
         configureEnvironment(develocityMavenExtensionMavenOpts)
@@ -48,7 +50,11 @@ function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`)
         if (extClassPathIndex !== -1) {
             // MAVEN_OPTS already configured with -Dmaven.ext.class.path
-            mavenOptsNew = mavenOptsCurrent.substring(0, extClassPathIndex) + mavenOptsNew + path.delimiter + mavenOptsCurrent.substring(extClassPathIndex + `${MAVEN_OPTS_EXT_CLASS_PATH}=`.length)
+            mavenOptsNew =
+                mavenOptsCurrent.substring(0, extClassPathIndex) +
+                mavenOptsNew +
+                path.delimiter +
+                mavenOptsCurrent.substring(extClassPathIndex + `${MAVEN_OPTS_EXT_CLASS_PATH}=`.length)
         } else {
             // MAVEN_OPTS already configured without -Dmaven.ext.class.path
             mavenOptsNew = `${mavenOptsCurrent} ${mavenOptsNew}`
@@ -57,7 +63,10 @@ function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
         // MAVEN_OPTS not configured
     }
 
-    core.setOutput('build-metadata-file-path', path.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json'))
+    core.setOutput(
+        'build-metadata-file-path',
+        path.resolve(maven.mavenBuildTool.getBuildScanWorkDir(), 'build-metadata.json')
+    )
 
     core.info(`Exporting MAVEN_OPTS: ${mavenOptsNew}`)
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew)

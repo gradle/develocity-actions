@@ -61,9 +61,15 @@ export function renameSync(oldPath: string, newPath: string): void {
     fs.renameSync(oldPath, newPath)
 }
 
-export async function downloadFile(url: string, downloadFolder: string): Promise<string> {
+export type Credentials = {
+    username: string
+    password: string
+}
+
+export async function downloadFile(url: string, downloadFolder: string, credentials?: Credentials): Promise<string> {
     const fileName = path.basename(url)
     const filePath = path.join(downloadFolder, fileName)
+    const options = credentials ? {auth: `${credentials.username}:${credentials.password}`} : {}
 
     return new Promise((resolve, reject) => {
         // Ensure the download folder exists
@@ -73,10 +79,9 @@ export async function downloadFile(url: string, downloadFolder: string): Promise
 
         const file = fs.createWriteStream(filePath)
         https
-            .get(url, response => {
+            .get(url, options, response => {
                 if (response.statusCode !== 200) {
                     reject(new Error(`Failed to get '${url}' (${response.statusCode})`))
-                    return
                 }
                 response.pipe(file)
                 file.on('finish', () => {
@@ -85,7 +90,11 @@ export async function downloadFile(url: string, downloadFolder: string): Promise
                 })
             })
             .on('error', err => {
-                fs.unlink(filePath, () => reject(err.message))
+                file.close()
+                fs.unlink(filePath, unlinkErr =>
+                    core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`)
+                )
+                reject(err)
             })
     })
 }

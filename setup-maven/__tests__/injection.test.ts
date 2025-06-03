@@ -68,10 +68,13 @@ describe('Injection', () => {
         // given
         jest.spyOn(input, 'getDevelocityInjectionEnabled').mockReturnValue(true)
         jest.spyOn(input, 'getDevelocityUrl').mockReturnValue('http://example.com')
+        jest.spyOn(input, 'getDevelocityMavenRepositoryUrl').mockReturnValue('https://some/repo/')
+        jest.spyOn(input, 'getDevelocityMavenRepositoryUsername').mockReturnValue('user')
+        jest.spyOn(input, 'getDevelocityMavenRepositoryPassword').mockReturnValue('passwd')
         jest.spyOn(io, 'getAbsoluteFilePath').mockReturnValue('/absolute/path/.mvn/extensions.xml')
         jest.spyOn(io, 'existsSync').mockReturnValue(false)
         jest.spyOn(io, 'mkdirSync').mockReturnValue()
-        jest.spyOn(io, 'downloadFile').mockResolvedValue('develocity-maven-extension-42.0.jar')
+        const downloadFn = jest.spyOn(io, 'downloadFile').mockResolvedValue('develocity-maven-extension-42.0.jar')
         jest.spyOn(input, 'getDevelocityMavenExtensionVersion').mockReturnValue('42.0')
 
         const mockXmlContent = `
@@ -92,6 +95,11 @@ describe('Injection', () => {
         const result = await injection.constructDevelocityMavenOpts(DOWNLOAD_FOLDER)
 
         // then
+        expect(downloadFn).toHaveBeenCalledWith(
+            'https://some/repo/com/gradle/develocity-maven-extension/42.0/develocity-maven-extension-42.0.jar',
+            'foo',
+            {username: 'user', password: 'passwd'}
+        )
         expect(result).toContain(':develocity-maven-extension-42.0.jar')
         expect(result).toContain('-Dgradle.enterprise.url=http://example.com')
         expect(result).toContain('-Ddevelocity.url=http://example.com')
@@ -101,10 +109,15 @@ describe('Injection', () => {
         // given
         jest.spyOn(input, 'getDevelocityInjectionEnabled').mockReturnValue(true)
         jest.spyOn(input, 'getDevelocityUrl').mockReturnValue('http://example.com')
+        jest.spyOn(input, 'getDevelocityMavenRepositoryUrl').mockReturnValue('https://some/repo/')
+        jest.spyOn(input, 'getDevelocityMavenRepositoryUsername').mockReturnValue('user')
+        jest.spyOn(input, 'getDevelocityMavenRepositoryPassword').mockReturnValue('passwd')
         jest.spyOn(io, 'getAbsoluteFilePath').mockReturnValue('/absolute/path/.mvn/extensions.xml')
         jest.spyOn(io, 'existsSync').mockReturnValue(false)
         jest.spyOn(io, 'mkdirSync').mockReturnValue()
-        jest.spyOn(io, 'downloadFile').mockResolvedValue('common-custom-user-data-maven-extension-42.0.jar')
+        const downloadFn = jest
+            .spyOn(io, 'downloadFile')
+            .mockResolvedValue('common-custom-user-data-maven-extension-42.0.jar')
         jest.spyOn(input, 'getCcudExtensionVersion').mockReturnValue('42.0')
 
         const mockXmlContent = `
@@ -125,6 +138,11 @@ describe('Injection', () => {
         const result = await injection.constructDevelocityMavenOpts(DOWNLOAD_FOLDER)
 
         // then
+        expect(downloadFn).toHaveBeenCalledWith(
+            'https://some/repo/com/gradle/common-custom-user-data-maven-extension/42.0/common-custom-user-data-maven-extension-42.0.jar',
+            'foo',
+            {username: 'user', password: 'passwd'}
+        )
         expect(result).toContain('common-custom-user-data-maven-extension-42.0.jar')
     })
 })

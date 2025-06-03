@@ -53,6 +53,15 @@ inputs:
   develocity-ccud-maven-extension-version:
     description: 'Common Custom User Data Maven Extension version'
     required: false
+  develocity-maven-repository-url:
+    description: The URL of the repository to use when resolving the Develocity and CCUD extensions; Maven central (https://repo1.maven.org/maven2) is used by default.
+    required: false
+  develocity-maven-repository-username:
+    description: The username for the repository URL to use when resolving the Develocity and CCUD extensions.
+    required: false
+  develocity-maven-repository-password:
+    description: The password for the repository URL to use when resolving the Develocity and CCUD extensions; Consider using secrets to pass the value to this variable.
+    required: false
   develocity-allow-untrusted-server:
     description: 'Whether to allow communicating with untrusted server'
     required: false

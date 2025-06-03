@@ -13,7 +13,7 @@ The action enables three features:
 - [Develocity extensions injection](#develocity-extensions-injection): Inject Develocity/CCUD Maven extensions
 - [Capture Build Scan® data](#capture-build-scan-data): Capture published Build Scan® links and unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
 
-> [!NOTE]  
+> [!NOTE]
 > This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#maven-publish-build-scan-action) for details.
 
 ### Usage
@@ -23,7 +23,7 @@ Insert the `Setup Maven` step once in each job having steps invoking Maven. Make
 ```yaml
 name: PR Build
 jobs:
-  build:  
+  build:
       - name: Setup Maven
         uses: gradle/develocity-actions/setup-maven@v1
       - name: Build with Maven
@@ -31,7 +31,7 @@ jobs:
 [...]
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `setup-maven` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
 ---
@@ -49,7 +49,7 @@ The extension is automatically registered by configuring the environment `MAVEN_
 > If `MAVEN_OPTS` environment variable is set in the step invoking the `mvn` command, the extension won't be registered.
 Make sure to use `MAVEN_OPTS: ${{ env.MAVEN_OPTS }} <EXTRA_PARAMETERS>` construction to append the extra parameters and have the extension registered.
 
-> [!WARNING]  
+> [!WARNING]
 > The job name is computed by appending `github.job` to the current matrix value (if present). This works only when the matrix contains entries defined as single-dimension array. If a matrix entry is an array of objects, the computed `job-name` can be overridden with the `job-name` action input to avoid having `-object` in the job name.
 
 ###### Workflow Summary
@@ -69,8 +69,8 @@ The following permissions are required for this feature to work:
 - `pull-requests: write`: to comment the pull-request
 
 > [!NOTE]
-> The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step, 
-  only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`add-pr-comment: false`).  
+> The pull-request comment is overwriting the previous summary comment if present, this means that if several jobs have a setup-maven step,
+  only the last will have its summary commented in the PR. It is recommended to disable the pull-request summary in this case (`add-pr-comment: false`).
 
 ###### Raw Summary data
 
@@ -115,7 +115,7 @@ If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Ext
 ```yaml
 name: PR Build
 jobs:
-  build:  
+  build:
       - name: Setup Maven
         uses: gradle/develocity-actions/setup-maven@v1
         with:
@@ -169,26 +169,29 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 
 ### Action inputs
 
-| Name                                                       | Description                                                                                                                                             | Default  |
-|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
-| `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``       |
-| `develocity-token-expiry`                                  | *Optional*: Develocity short-lived access tokens expiry in hours                                                                                        | `2`      |
-| `capture-strategy`                                         | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                                                                                 | `ALWAYS` |
-| `capture-unpublished-build-scans`                          | *Optional*: Enable unpublished Build Scans capture                                                                                                      | `true`   |
-| `capture-build-scan-links`                                 | *Optional*: Enable Build Scan links capture                                                                                                             | `true`   |
-| `job-name`                                                 | *Optional*: Job name (used in summary and as artifact suffix)                                                                                           |          |
-| `add-pr-comment`                                           | *Optional*: Comment the pull-request with Build Scan links                                                                                              | `true`   |
-| `add-job-summary`                                          | *Optional*: Add a summary to the GitHub workflow                                                                                                        | `true`   |
-| `add-project-id-in-job-summary`                            | *Optional*: Add project id to the job summary / comment                                                                                                 | `false`  |  
-| `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity/CCUD Maven Extensions injection                                                                         |          |  
-| `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |          |  
-| `develocity-maven-extension-version`                       | *Optional*: Develocity Maven Extension version to be injected                                                                                           |          |  
-| `develocity-ccud-maven-extension-version`                  | *Optional*: Common Custom User Data Maven Extension version to be injected                                                                              |          |  
-| `develocity-allow-untrusted-server`                        | *Optional*: Whether to allow communicating with untrusted server                                                                                        |          |  
-| `develocity-enforce-url`                                   | *Optional*: Whether to enforce the URL over any defined locally to the project                                                                          |          |  
-| `develocity-capture-file-fingerprints`                     | *Optional*: Whether to enable/disable capturing of file fingerprints. This setting is enabled by default                                                |          |  
-| `develocity-custom-develocity-maven-extension-coordinates` | *Optional*: Will not inject the Develocity Maven extension if an extension with provided coordinates is found (value is an artifactId of the extension) |          |  
-| `develocity-custom-ccud-extension-coordinates`             | *Optional*: Will not inject the CCUD extension if an extension with provided coordinates is found (value is an artifactId of the extension)             |          |  
+| Name                                                       | Description                                                                                                                                             | Default                        |
+|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``                             |
+| `develocity-token-expiry`                                  | *Optional*: Develocity short-lived access tokens expiry in hours                                                                                        | `2`                            |
+| `capture-strategy`                                         | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                                                                                 | `ALWAYS`                       |
+| `capture-unpublished-build-scans`                          | *Optional*: Enable unpublished Build Scans capture                                                                                                      | `true`                         |
+| `capture-build-scan-links`                                 | *Optional*: Enable Build Scan links capture                                                                                                             | `true`                         |
+| `job-name`                                                 | *Optional*: Job name (used in summary and as artifact suffix)                                                                                           |                                |
+| `add-pr-comment`                                           | *Optional*: Comment the pull-request with Build Scan links                                                                                              | `true`                         |
+| `add-job-summary`                                          | *Optional*: Add a summary to the GitHub workflow                                                                                                        | `true`                         |
+| `add-project-id-in-job-summary`                            | *Optional*: Add project id to the job summary / comment                                                                                                 | `false`                        |
+| `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity/CCUD Maven Extensions injection                                                                         |                                |
+| `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
+| `develocity-maven-extension-version`                       | *Optional*: Develocity Maven Extension version to be injected                                                                                           |                                |
+| `develocity-ccud-maven-extension-version`                  | *Optional*: Common Custom User Data Maven Extension version to be injected                                                                              |                                |
+| `develocity-maven-repository-url`                          | *Optional*: URL of the repository to use when resolving the Develocity and CCUD extensions                                                              | https://repo1.maven.org/maven2 |
+| `develocity-maven-repository-username`                     | *Optional*: Username for the repository URL to use when resolving the Develocity and CCUD extensions                                                    |                                |
+| `develocity-maven-repository-password`                     | *Optional*: Password for the repository URL to use when resolving the Develocity and CCUD extensions                                                    |                                |
+| `develocity-allow-untrusted-server`                        | *Optional*: Whether to allow communicating with untrusted server                                                                                        |                                |
+| `develocity-enforce-url`                                   | *Optional*: Whether to enforce the URL over any defined locally to the project                                                                          |                                |
+| `develocity-capture-file-fingerprints`                     | *Optional*: Whether to enable/disable capturing of file fingerprints. This setting is enabled by default                                                |                                |
+| `develocity-custom-develocity-maven-extension-coordinates` | *Optional*: Will not inject the Develocity Maven extension if an extension with provided coordinates is found (value is an artifactId of the extension) |                                |
+| `develocity-custom-ccud-extension-coordinates`             | *Optional*: Will not inject the CCUD extension if an extension with provided coordinates is found (value is an artifactId of the extension)             |                                |
 
 ---
 
@@ -196,7 +199,7 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 Publish Build Scans® for pull-requests issued from forked repositories
 
 ### Description
-When submitting a pull request from a forked GitHub repository, a GitHub workflow that validates the change cannot publish a Build Scan® 
+When submitting a pull request from a forked GitHub repository, a GitHub workflow that validates the change cannot publish a Build Scan®
 as workflows from forked repositories do not have access to secrets. An access token is required to publish a Build Scan®.
 
 > [!NOTE]
@@ -214,7 +217,7 @@ In the GitHub workflow called to validate a pull-request, insert the `Setup Mave
 ```yaml
 name: PR Build
 jobs:
-  build:  
+  build:
       - name: Setup Maven
         uses: gradle/develocity-actions/setup-maven@v1
       - name: Build with Maven
@@ -254,12 +257,12 @@ jobs:
 > - The workflow name (here `PR Build`) triggered when a pull-request is submitted
 > - The Develocity URL (here `https://<MY_DEVELOCITY_URL>`)
 > - The secret name holding the Develocity access key (here `<DEVELOCITY_ACCESS_KEY>`)
- 
+
 #### Implementation details
 
 The action will download any saved Build Scan® and publish them to Develocity.
 
-The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-users-list`. 
+The list of pull-request authors allowed to publish a Build Scan® can be specified by the csv parameter `authorized-users-list`.
 The action will publish Build Scans® if the initial pull-request author belongs to the list or if the list is empty.
 
 **Event Triggers**:

@@ -8,6 +8,7 @@
     "project": "./tsconfig.json"
   },
   "rules": {
+    "@typescript-eslint/no-floating-promises": "error",
     "eslint-comments/no-use": "off",
     "import/no-namespace": "off",
     "i18n-text/no-en": "off",
