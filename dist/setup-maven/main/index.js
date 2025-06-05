@@ -39006,6 +39006,9 @@ exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
 exports.getCcudExtensionVersion = getCcudExtensionVersion;
+exports.getDevelocityMavenRepositoryUrl = getDevelocityMavenRepositoryUrl;
+exports.getDevelocityMavenRepositoryUsername = getDevelocityMavenRepositoryUsername;
+exports.getDevelocityMavenRepositoryPassword = getDevelocityMavenRepositoryPassword;
 exports.getDevelocityCustomMavenExtensionCoordinates = getDevelocityCustomMavenExtensionCoordinates;
 exports.getDevelocityCustomCcudExtensionCoordinates = getDevelocityCustomCcudExtensionCoordinates;
 exports.getDevelocityAllowUntrustedServer = getDevelocityAllowUntrustedServer;
@@ -39035,6 +39038,15 @@ function getDevelocityMavenExtensionVersion() {
 }
 function getCcudExtensionVersion() {
     return sharedInput.getInput('develocity-ccud-extension-version');
+}
+function getDevelocityMavenRepositoryUrl() {
+    return sharedInput.getInput('develocity-maven-repository-url');
+}
+function getDevelocityMavenRepositoryUsername() {
+    return sharedInput.getInput('develocity-maven-repository-username');
+}
+function getDevelocityMavenRepositoryPassword() {
+    return sharedInput.getInput('develocity-maven-repository-password');
 }
 function getDevelocityCustomMavenExtensionCoordinates() {
     return sharedInput.getInput('develocity-custom-develocity-maven-extension-coordinates');
@@ -39225,9 +39237,14 @@ function renameSync(oldPath, newPath) {
     }
     fs_1.default.renameSync(oldPath, newPath);
 }
-async function downloadFile(url, downloadFolder) {
+async function downloadFile(url, downloadFolder, credentials) {
     const fileName = path_1.default.basename(url);
     const filePath = path_1.default.join(downloadFolder, fileName);
+    const options = credentials ? { auth: `${credentials.username}:${credentials.password}` } : {};
+    function close(file) {
+        file.close();
+        fs_1.default.unlink(filePath, unlinkErr => core.debug(`Could not cleanup ${filePath} after close error: ${unlinkErr}`));
+    }
     return new Promise((resolve, reject) => {
         // Ensure the download folder exists
         if (!existsSync(downloadFolder)) {
@@ -39235,19 +39252,23 @@ async function downloadFile(url, downloadFolder) {
         }
         const file = fs_1.default.createWriteStream(filePath);
         https_1.default
-            .get(url, response => {
+            .get(url, options, response => {
             if (response.statusCode !== 200) {
+                response.resume();
+                close(file);
                 reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
-                return;
             }
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                resolve(filePath);
-            });
+            else {
+                response.pipe(file);
+                file.on('finish', () => {
+                    file.close();
+                    resolve(filePath);
+                });
+            }
         })
             .on('error', err => {
-            fs_1.default.unlink(filePath, () => reject(err.message));
+            close(file);
+            reject(err);
         });
     });
 }
@@ -39300,6 +39321,9 @@ const input = __importStar(__nccwpck_require__(7050));
 const io = __importStar(__nccwpck_require__(7752));
 async function constructDevelocityMavenOpts(downloadFolder) {
     let develocityMavenExtensionMavenOpts = '';
+    function ensureSlash(url) {
+        return url.endsWith('/') ? url : `${url}/`;
+    }
     if (input.getDevelocityInjectionEnabled() && input.getDevelocityUrl()) {
         const extensionsFileName = '.mvn/extensions.xml';
         const absoluteFilePath = io.getAbsoluteFilePath(extensionsFileName);
@@ -39311,8 +39335,15 @@ async function constructDevelocityMavenOpts(downloadFolder) {
             }
         }
         else {
+            const develocityMavenRepositoryUrl = input.getDevelocityMavenRepositoryUrl();
+            const repository = develocityMavenRepositoryUrl
+                ? ensureSlash(develocityMavenRepositoryUrl)
+                : 'https://repo1.maven.org/maven2/';
+            const username = input.getDevelocityMavenRepositoryUsername();
+            const password = input.getDevelocityMavenRepositoryPassword();
+            const credentials = username && password ? { username, password } : undefined;
             if (input.getDevelocityMavenExtensionVersion()) {
-                const develocityMavenExtensionJar = await io.downloadFile('https://repo1.maven.org/maven2/com/gradle/develocity-maven-extension/' + input.getDevelocityMavenExtensionVersion() + '/develocity-maven-extension-' + input.getDevelocityMavenExtensionVersion() + '.jar', downloadFolder);
+                const develocityMavenExtensionJar = await io.downloadFile(`${repository}com/gradle/develocity-maven-extension/${input.getDevelocityMavenExtensionVersion()}/develocity-maven-extension-${input.getDevelocityMavenExtensionVersion()}.jar`, downloadFolder, credentials);
                 develocityMavenExtensionMavenOpts = `${io.getDelimiter()}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
                 if (input.getDevelocityAllowUntrustedServer()) {
                     develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
@@ -39320,7 +39351,7 @@ async function constructDevelocityMavenOpts(downloadFolder) {
                 develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.captureFileFingerprints=${input.getDevelocityCaptureFileFingerprints()}`;
             }
             if (input.getCcudExtensionVersion() && !(await ccudExtensionApplied(absoluteFilePath))) {
-                const ccudMavenExtensionJar = await io.downloadFile('https://repo1.maven.org/maven2/com/gradle/common-custom-user-data-maven-extension/' + input.getCcudExtensionVersion() + '/common-custom-user-data-maven-extension-' + input.getCcudExtensionVersion() + '.jar', downloadFolder);
+                const ccudMavenExtensionJar = await io.downloadFile(`${repository}com/gradle/common-custom-user-data-maven-extension/${input.getCcudExtensionVersion()}/common-custom-user-data-maven-extension-${input.getCcudExtensionVersion()}.jar`, downloadFolder, credentials);
                 develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} ${ccudMavenExtensionJar}`;
             }
         }
@@ -39328,10 +39359,10 @@ async function constructDevelocityMavenOpts(downloadFolder) {
     return develocityMavenExtensionMavenOpts;
 }
 async function develocityExtensionApplied(filePath) {
-    return await extensionApplied(filePath, ["develocity-maven-extension", "gradle-enterprise-maven-extension"], input.getDevelocityCustomMavenExtensionCoordinates());
+    return await extensionApplied(filePath, ['develocity-maven-extension', 'gradle-enterprise-maven-extension'], input.getDevelocityCustomMavenExtensionCoordinates());
 }
 async function ccudExtensionApplied(filePath) {
-    return await extensionApplied(filePath, ["common-custom-user-data-maven-extension"], input.getDevelocityCustomCcudExtensionCoordinates());
+    return await extensionApplied(filePath, ['common-custom-user-data-maven-extension'], input.getDevelocityCustomCcudExtensionCoordinates());
 }
 async function parseExtensions(xmlContent) {
     const { XMLParser } = await __nccwpck_require__.e(/* import() */ 671).then(__nccwpck_require__.bind(__nccwpck_require__, 6671));
@@ -39440,7 +39471,11 @@ function configureEnvironment(develocityMavenExtensionMavenOpts) {
         const extClassPathIndex = mavenOptsCurrent.indexOf(`${MAVEN_OPTS_EXT_CLASS_PATH}=`);
         if (extClassPathIndex !== -1) {
             // MAVEN_OPTS already configured with -Dmaven.ext.class.path
-            mavenOptsNew = mavenOptsCurrent.substring(0, extClassPathIndex) + mavenOptsNew + path_1.default.delimiter + mavenOptsCurrent.substring(extClassPathIndex + `${MAVEN_OPTS_EXT_CLASS_PATH}=`.length);
+            mavenOptsNew =
+                mavenOptsCurrent.substring(0, extClassPathIndex) +
+                    mavenOptsNew +
+                    path_1.default.delimiter +
+                    mavenOptsCurrent.substring(extClassPathIndex + `${MAVEN_OPTS_EXT_CLASS_PATH}=`.length);
         }
         else {
             // MAVEN_OPTS already configured without -Dmaven.ext.class.path

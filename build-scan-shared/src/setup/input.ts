@@ -22,6 +22,18 @@ export function getCcudExtensionVersion(): string {
     return sharedInput.getInput('develocity-ccud-extension-version')
 }
 
+export function getDevelocityMavenRepositoryUrl(): string {
+    return sharedInput.getInput('develocity-maven-repository-url')
+}
+
+export function getDevelocityMavenRepositoryUsername(): string {
+    return sharedInput.getInput('develocity-maven-repository-username')
+}
+
+export function getDevelocityMavenRepositoryPassword(): string {
+    return sharedInput.getInput('develocity-maven-repository-password')
+}
+
 export function getDevelocityCustomMavenExtensionCoordinates(): string {
     return sharedInput.getInput('develocity-custom-develocity-maven-extension-coordinates')
 }

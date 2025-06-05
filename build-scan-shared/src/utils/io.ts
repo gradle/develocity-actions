@@ -61,9 +61,20 @@ export function renameSync(oldPath: string, newPath: string): void {
     fs.renameSync(oldPath, newPath)
 }
 
-export async function downloadFile(url: string, downloadFolder: string): Promise<string> {
+export type Credentials = {
+    username: string
+    password: string
+}
+
+export async function downloadFile(url: string, downloadFolder: string, credentials?: Credentials): Promise<string> {
     const fileName = path.basename(url)
     const filePath = path.join(downloadFolder, fileName)
+    const options = credentials ? {auth: `${credentials.username}:${credentials.password}`} : {}
+
+    function close(file: fs.WriteStream): void {
+        file.close()
+        fs.unlink(filePath, unlinkErr => core.debug(`Could not cleanup ${filePath} after close error: ${unlinkErr}`))
+    }
 
     return new Promise((resolve, reject) => {
         // Ensure the download folder exists
@@ -71,21 +82,24 @@ export async function downloadFile(url: string, downloadFolder: string): Promise
             mkdirSync(downloadFolder)
         }
 
-        const file = fs.createWriteStream(filePath)
+        const file: fs.WriteStream = fs.createWriteStream(filePath)
         https
-            .get(url, response => {
+            .get(url, options, response => {
                 if (response.statusCode !== 200) {
+                    response.resume()
+                    close(file)
                     reject(new Error(`Failed to get '${url}' (${response.statusCode})`))
-                    return
+                } else {
+                    response.pipe(file)
+                    file.on('finish', () => {
+                        file.close()
+                        resolve(filePath)
+                    })
                 }
-                response.pipe(file)
-                file.on('finish', () => {
-                    file.close()
-                    resolve(filePath)
-                })
             })
             .on('error', err => {
-                fs.unlink(filePath, () => reject(err.message))
+                close(file)
+                reject(err)
             })
     })
 }
