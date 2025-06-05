@@ -39243,7 +39243,7 @@ async function downloadFile(url, downloadFolder, credentials) {
     const options = credentials ? { auth: `${credentials.username}:${credentials.password}` } : {};
     function close(file) {
         file.close();
-        fs_1.default.unlink(filePath, unlinkErr => core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`));
+        fs_1.default.unlink(filePath, unlinkErr => core.debug(`Could not cleanup ${filePath} after close error: ${unlinkErr}`));
     }
     return new Promise((resolve, reject) => {
         // Ensure the download folder exists

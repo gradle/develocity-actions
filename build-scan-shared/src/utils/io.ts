@@ -73,7 +73,7 @@ export async function downloadFile(url: string, downloadFolder: string, credenti
 
     function close(file: fs.WriteStream): void {
         file.close()
-        fs.unlink(filePath, unlinkErr => core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`))
+        fs.unlink(filePath, unlinkErr => core.debug(`Could not cleanup ${filePath} after close error: ${unlinkErr}`))
     }
 
     return new Promise((resolve, reject) => {
