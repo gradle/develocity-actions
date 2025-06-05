@@ -39241,6 +39241,10 @@ async function downloadFile(url, downloadFolder, credentials) {
     const fileName = path_1.default.basename(url);
     const filePath = path_1.default.join(downloadFolder, fileName);
     const options = credentials ? { auth: `${credentials.username}:${credentials.password}` } : {};
+    function close(file) {
+        file.close();
+        fs_1.default.unlink(filePath, unlinkErr => core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`));
+    }
     return new Promise((resolve, reject) => {
         // Ensure the download folder exists
         if (!existsSync(downloadFolder)) {
@@ -39250,6 +39254,8 @@ async function downloadFile(url, downloadFolder, credentials) {
         https_1.default
             .get(url, options, response => {
             if (response.statusCode !== 200) {
+                response.resume();
+                close(file);
                 reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
             }
             else {
@@ -39261,8 +39267,7 @@ async function downloadFile(url, downloadFolder, credentials) {
             }
         })
             .on('error', err => {
-            file.close();
-            fs_1.default.unlink(filePath, unlinkErr => core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`));
+            close(file);
             reject(err);
         });
     });

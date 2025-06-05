@@ -71,16 +71,23 @@ export async function downloadFile(url: string, downloadFolder: string, credenti
     const filePath = path.join(downloadFolder, fileName)
     const options = credentials ? {auth: `${credentials.username}:${credentials.password}`} : {}
 
+    function close(file: fs.WriteStream): void {
+        file.close()
+        fs.unlink(filePath, unlinkErr => core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`))
+    }
+
     return new Promise((resolve, reject) => {
         // Ensure the download folder exists
         if (!existsSync(downloadFolder)) {
             mkdirSync(downloadFolder)
         }
 
-        const file = fs.createWriteStream(filePath)
+        const file: fs.WriteStream = fs.createWriteStream(filePath)
         https
             .get(url, options, response => {
                 if (response.statusCode !== 200) {
+                    response.resume()
+                    close(file)
                     reject(new Error(`Failed to get '${url}' (${response.statusCode})`))
                 } else {
                     response.pipe(file)
@@ -91,10 +98,7 @@ export async function downloadFile(url: string, downloadFolder: string, credenti
                 }
             })
             .on('error', err => {
-                file.close()
-                fs.unlink(filePath, unlinkErr =>
-                    core.warning(`Could not cleanup ${filePath} after close error: ${unlinkErr}`)
-                )
+                close(file)
                 reject(err)
             })
     })
