@@ -39252,11 +39252,13 @@ async function downloadFile(url, downloadFolder, credentials) {
             if (response.statusCode !== 200) {
                 reject(new Error(`Failed to get '${url}' (${response.statusCode})`));
             }
-            response.pipe(file);
-            file.on('finish', () => {
-                file.close();
-                resolve(filePath);
-            });
+            else {
+                response.pipe(file);
+                file.on('finish', () => {
+                    file.close();
+                    resolve(filePath);
+                });
+            }
         })
             .on('error', err => {
             file.close();

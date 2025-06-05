@@ -82,12 +82,13 @@ export async function downloadFile(url: string, downloadFolder: string, credenti
             .get(url, options, response => {
                 if (response.statusCode !== 200) {
                     reject(new Error(`Failed to get '${url}' (${response.statusCode})`))
+                } else {
+                    response.pipe(file)
+                    file.on('finish', () => {
+                        file.close()
+                        resolve(filePath)
+                    })
                 }
-                response.pipe(file)
-                file.on('finish', () => {
-                    file.close()
-                    resolve(filePath)
-                })
             })
             .on('error', err => {
                 file.close()
