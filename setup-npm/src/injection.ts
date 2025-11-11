@@ -12,8 +12,9 @@ export async function installDevelocity(): Promise<void> {
   if (input.getDevelocityInjectionEnabled()) {
     const version = input.getDevelocityNpmAgentVersion();
     const agentInstallLocation = input.getDevelocityNpmAgentInstallLocation();
-    await installDevelocityAgent(version, agentInstallLocation);
-    await createNpmWrapper(agentInstallLocation);
+    const expandedInstallLocation = agentInstallLocation.replace(/^~/, os.homedir());
+    await installDevelocityAgent(version, expandedInstallLocation);
+    await createNpmWrapper(expandedInstallLocation);
   }
 }
 
@@ -21,9 +22,7 @@ export async function installDevelocity(): Promise<void> {
  * Install the Develocity npm agent to the specified location
  */
 async function installDevelocityAgent(version: string, develocityAgentInstallLocation: string): Promise<void> {
-  // Expand tilde in the install location
-  const expandedLocation = develocityAgentInstallLocation.replace(/^~/, os.homedir());
-  const agentDir = path.join(expandedLocation, '@gradle-tech', 'develocity-agent');
+  const agentDir = path.join(develocityAgentInstallLocation, '@gradle-tech', 'develocity-agent');
 
   core.info(`Installing Develocity npm agent version ${version} to ${agentDir}`);
 
@@ -64,9 +63,6 @@ async function createNpmWrapper(develocityAgentInstallLocation: string): Promise
     throw new Error(`Found npm at ${actualNpm} but it's not executable or not a valid npm binary`);
   }
 
-  // Expand tilde in the install location for the wrapper script
-  const expandedLocation = develocityAgentInstallLocation.replace(/^~/, '$HOME');
-
   // Set environment variables if server URL and access key are provided
   const develocityUrl = input.getDevelocityUrl();
   if (develocityUrl) {
@@ -88,15 +84,16 @@ async function createNpmWrapper(develocityAgentInstallLocation: string): Promise
 
   // Create the npm wrapper script
   const wrapperScript = `#!/bin/bash
-# Develocity npm wrapper script
 # This wrapper sets NODE_OPTIONS and NODE_PATH to preload the Develocity agent
-export NODE_PATH="${expandedLocation}\${NODE_PATH:+:\$NODE_PATH}"
+export NODE_PATH="${develocityAgentInstallLocation}\${NODE_PATH:+:\$NODE_PATH}"
+
 # Preserves any existing NODE_OPTIONS by appending them
 export NODE_OPTIONS="-r @gradle-tech/develocity-agent/preload\${NODE_OPTIONS:+ \$NODE_OPTIONS}"
 
 # The instrumented project may not have configured our reporter, so
 # we enable auto-injection of the Jest reporter to collect test results.
 export DEVELOCITY_INTERNAL_ENABLE_JEST_REPORTER_INJECTION=true
+
 exec "${actualNpm}" "$@"
 `;
 
