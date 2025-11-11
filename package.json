@@ -27,7 +27,6 @@
     "package-maven-setup-post": "ncc build setup-maven/src/post.ts --out dist/setup-maven/post",
     "package-maven-publish": "ncc build maven-publish-build-scan/src/main.ts --out dist/maven-publish-build-scan",
     "package-npm-setup-main": "ncc build setup-npm/src/main.ts --out dist/setup-npm/main",
-    "package-npm-setup-post": "ncc build setup-npm/src/post.ts --out dist/setup-npm/post",
     "check": "npm-run-all --parallel format:write format:test lint",
     "package": "npm-run-all --parallel package-maven-* package-npm-*",
     "build": "npm run check && npm run package",

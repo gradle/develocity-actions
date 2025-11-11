@@ -66,4 +66,3 @@ outputs:
 runs:
   using: node20
   main: ../dist/setup-npm/main/index.js
-  post: ../dist/setup-npm/post/index.js
