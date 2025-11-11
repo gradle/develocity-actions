@@ -11,7 +11,8 @@ const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP'
 
 export enum BuildToolType {
     GRADLE,
-    MAVEN
+    MAVEN,
+    NPM
 }
 
 export function getWorkDir(): string {

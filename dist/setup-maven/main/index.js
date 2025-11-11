@@ -38526,6 +38526,7 @@ var BuildToolType;
 (function (BuildToolType) {
     BuildToolType[BuildToolType["GRADLE"] = 0] = "GRADLE";
     BuildToolType[BuildToolType["MAVEN"] = 1] = "MAVEN";
+    BuildToolType[BuildToolType["NPM"] = 2] = "NPM";
 })(BuildToolType || (exports.BuildToolType = BuildToolType = {}));
 function getWorkDir() {
     const tmpDir = process.env[ENV_KEY_RUNNER_TMP];
@@ -39005,6 +39006,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
+exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
+exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
 exports.getCcudExtensionVersion = getCcudExtensionVersion;
 exports.getDevelocityMavenRepositoryUrl = getDevelocityMavenRepositoryUrl;
 exports.getDevelocityMavenRepositoryUsername = getDevelocityMavenRepositoryUsername;
@@ -39035,6 +39038,12 @@ function getDevelocityInjectionEnabled() {
 }
 function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
+}
+function getDevelocityNpmAgentVersion() {
+    return sharedInput.getInput('develocity-npm-agent-version');
+}
+function getDevelocityNpmAgentInstallLocation() {
+    return sharedInput.getInput('develocity-npm-agent-install-location');
 }
 function getCcudExtensionVersion() {
     return sharedInput.getInput('develocity-ccud-extension-version');

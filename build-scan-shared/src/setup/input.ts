@@ -18,6 +18,14 @@ export function getDevelocityMavenExtensionVersion(): string {
     return sharedInput.getInput('develocity-maven-extension-version')
 }
 
+export function getDevelocityNpmAgentVersion(): string {
+    return sharedInput.getInput('develocity-npm-agent-version')
+}
+
+export function getDevelocityNpmAgentInstallLocation(): string {
+    return sharedInput.getInput('develocity-npm-agent-install-location')
+}
+
 export function getCcudExtensionVersion(): string {
     return sharedInput.getInput('develocity-ccud-extension-version')
 }
