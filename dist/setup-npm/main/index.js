@@ -38511,7 +38511,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.BuildTool = exports.BuildToolType = void 0;
+exports.PostPublishingBuildTool = exports.BuildTool = exports.BuildToolType = void 0;
 exports.getWorkDir = getWorkDir;
 exports.parseScanDumpPath = parseScanDumpPath;
 const path_1 = __importDefault(__nccwpck_require__(6928));
@@ -38540,7 +38540,6 @@ class BuildTool {
     ENV_KEY_HOMEDRIVE = 'HOMEDRIVE';
     ENV_KEY_HOMEPATH = 'HOMEPATH';
     PUBLISHER_PROJECT_DIR = 'build-scan-publish';
-    SCAN_FILENAME = `scan.scan`;
     BUILD_SCAN_DATA_DIR = 'build-scan-data';
     BUILD_SCAN_METADATA_DIR = 'build-scan-metadata';
     REPLACE_ME_TOKEN = `REPLACE_ME`;
@@ -38552,11 +38551,6 @@ class BuildTool {
         return (process.env[this.ENV_KEY_HOME] ||
             `${process.env[this.ENV_KEY_HOMEDRIVE]}${process.env[this.ENV_KEY_HOMEPATH]}` ||
             '');
-    }
-    createPublisherProjectStructure() { }
-    createPluginDescriptorFileWithCurrentVersion(version) {
-        const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version);
-        io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent);
     }
     getType() {
         return this.type;
@@ -38578,6 +38572,15 @@ class BuildTool {
     }
     getPublisherProjectDir() {
         return path_1.default.resolve(this.getBuildScanWorkDir(), this.PUBLISHER_PROJECT_DIR);
+    }
+}
+exports.BuildTool = BuildTool;
+class PostPublishingBuildTool extends BuildTool {
+    SCAN_FILENAME = `scan.scan`;
+    createPublisherProjectStructure() { }
+    createPluginDescriptorFileWithCurrentVersion(version) {
+        const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version);
+        io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent);
     }
     async buildScanPublish() {
         const buildToolCmd = this.getCommand();
@@ -38639,7 +38642,7 @@ class BuildTool {
         }
     }
 }
-exports.BuildTool = BuildTool;
+exports.PostPublishingBuildTool = PostPublishingBuildTool;
 function parseScanDumpPath(scanDumpPath) {
     // capture extension version and buildId assuming scan name is ${HOME}/.m2/build-scan-data/<version>/previous/<buildId>/scan.scan
     const scanDumpPathMatch = scanDumpPath.match(/^.*\/build-scan-data\/(.*)\/previous\/(.*)\/.*$/);
@@ -38701,15 +38704,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.npmBuildTool = void 0;
 const path_1 = __importDefault(__nccwpck_require__(6928));
-const core = __importStar(__nccwpck_require__(7484));
 const commonBuildTool = __importStar(__nccwpck_require__(7032));
-const input = __importStar(__nccwpck_require__(4976));
-const io = __importStar(__nccwpck_require__(7752));
 class NpmBuildTool extends commonBuildTool.BuildTool {
     BUILD_SCAN_ARTIFACT_NAME = 'npm-build-scan-data';
     DEVELOCITY_DIR = '.develocity/';
     COMMAND = 'npm';
-    PLUGIN_DESCRIPTOR_FILENAME = '.mvn/extensions.xml';
     constructor() {
         super(commonBuildTool.BuildToolType.NPM);
     }
@@ -38724,57 +38723,6 @@ class NpmBuildTool extends commonBuildTool.BuildTool {
     }
     getCommand() {
         return this.COMMAND;
-    }
-    getPublishTask() {
-        return [];
-    }
-    getPluginDescriptorFileName() {
-        return path_1.default.resolve(this.getPublisherProjectDir(), this.PLUGIN_DESCRIPTOR_FILENAME);
-    }
-    getPluginDescriptorTemplate() {
-        return `
-            <?xml version="1.0" encoding="UTF-8"?>
-            <extensions>
-                <extension>
-                    <groupId>com.gradle</groupId>
-                    <artifactId>develocity-maven-extension</artifactId>
-                    <version>${this.REPLACE_ME_TOKEN}</version>
-                </extension>
-            </extensions>
-        `.replace(/  +/g, '');
-    }
-    createPublisherProjectStructure() {
-        const mvnDir = `${this.getPublisherProjectDir()}/.mvn`;
-        // Create Maven directory
-        if (!io.existsSync(mvnDir)) {
-            core.debug(`Creating ${mvnDir}`);
-            io.mkdirSync(mvnDir);
-        }
-        io.writeContentToFileSync(`${this.getPublisherProjectDir()}/pom.xml`, this.getPomContent());
-        io.writeContentToFileSync(`${mvnDir}/develocity.xml`, this.getDevelocityConfigurationContent());
-    }
-    getPomContent() {
-        return `
-        <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-            <modelVersion>4.0.0</modelVersion>
-            <groupId>com.gradle</groupId>
-            <artifactId>${this.BUILD_SCAN_ARTIFACT_NAME}</artifactId>
-            <version>1.0</version>
-            <name>Maven Build Scan Publisher</name>
-        </project>
-    `.replace(/  +/g, '');
-    }
-    getDevelocityConfigurationContent() {
-        return `
-        <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-        <develocity
-            xmlns="https://www.gradle.com/develocity-maven" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://www.gradle.com/develocity-maven https://www.gradle.com/schema/develocity-maven.xsd">
-            <server>
-                <url>${input.getDevelocityUrl()}</url>
-                <allowUntrusted>${input.isDevelocityAllowUntrusted()}</allowUntrusted>
-            </server>
-        </develocity>
-    `.replace(/  +/g, '');
     }
 }
 exports.npmBuildTool = new NpmBuildTool();
@@ -38894,66 +38842,6 @@ function getBooleanInput(paramName, paramDefault = false) {
 // Internal parameters
 function getGithubToken() {
     return getInput('github-token', { required: true });
-}
-
-
-/***/ }),
-
-/***/ 4976:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isDevelocityAllowUntrusted = isDevelocityAllowUntrusted;
-exports.getDevelocityUrl = getDevelocityUrl;
-exports.getDevelocityAccessKey = getDevelocityAccessKey;
-exports.getAuthorizedUsersList = getAuthorizedUsersList;
-const sharedInput = __importStar(__nccwpck_require__(7236));
-function isDevelocityAllowUntrusted() {
-    return sharedInput.getBooleanInput('develocity-allow-untrusted');
-}
-function getDevelocityUrl() {
-    return sharedInput.getInput('develocity-url');
-}
-function getDevelocityAccessKey() {
-    return sharedInput.getInput('develocity-access-key');
-}
-function getAuthorizedUsersList() {
-    return sharedInput.getInput('authorized-users-list');
 }
 
 

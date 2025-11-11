@@ -38511,7 +38511,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.BuildTool = exports.BuildToolType = void 0;
+exports.PostPublishingBuildTool = exports.BuildTool = exports.BuildToolType = void 0;
 exports.getWorkDir = getWorkDir;
 exports.parseScanDumpPath = parseScanDumpPath;
 const path_1 = __importDefault(__nccwpck_require__(6928));
@@ -38540,7 +38540,6 @@ class BuildTool {
     ENV_KEY_HOMEDRIVE = 'HOMEDRIVE';
     ENV_KEY_HOMEPATH = 'HOMEPATH';
     PUBLISHER_PROJECT_DIR = 'build-scan-publish';
-    SCAN_FILENAME = `scan.scan`;
     BUILD_SCAN_DATA_DIR = 'build-scan-data';
     BUILD_SCAN_METADATA_DIR = 'build-scan-metadata';
     REPLACE_ME_TOKEN = `REPLACE_ME`;
@@ -38552,11 +38551,6 @@ class BuildTool {
         return (process.env[this.ENV_KEY_HOME] ||
             `${process.env[this.ENV_KEY_HOMEDRIVE]}${process.env[this.ENV_KEY_HOMEPATH]}` ||
             '');
-    }
-    createPublisherProjectStructure() { }
-    createPluginDescriptorFileWithCurrentVersion(version) {
-        const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version);
-        io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent);
     }
     getType() {
         return this.type;
@@ -38578,6 +38572,15 @@ class BuildTool {
     }
     getPublisherProjectDir() {
         return path_1.default.resolve(this.getBuildScanWorkDir(), this.PUBLISHER_PROJECT_DIR);
+    }
+}
+exports.BuildTool = BuildTool;
+class PostPublishingBuildTool extends BuildTool {
+    SCAN_FILENAME = `scan.scan`;
+    createPublisherProjectStructure() { }
+    createPluginDescriptorFileWithCurrentVersion(version) {
+        const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version);
+        io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent);
     }
     async buildScanPublish() {
         const buildToolCmd = this.getCommand();
@@ -38639,7 +38642,7 @@ class BuildTool {
         }
     }
 }
-exports.BuildTool = BuildTool;
+exports.PostPublishingBuildTool = PostPublishingBuildTool;
 function parseScanDumpPath(scanDumpPath) {
     // capture extension version and buildId assuming scan name is ${HOME}/.m2/build-scan-data/<version>/previous/<buildId>/scan.scan
     const scanDumpPathMatch = scanDumpPath.match(/^.*\/build-scan-data\/(.*)\/previous\/(.*)\/.*$/);
@@ -38705,7 +38708,7 @@ const core = __importStar(__nccwpck_require__(7484));
 const commonBuildTool = __importStar(__nccwpck_require__(7032));
 const input = __importStar(__nccwpck_require__(4976));
 const io = __importStar(__nccwpck_require__(7752));
-class MavenBuildTool extends commonBuildTool.BuildTool {
+class MavenBuildTool extends commonBuildTool.PostPublishingBuildTool {
     BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data';
     DEVELOCITY_DIR = '.develocity/';
     COMMAND = 'mvn';
