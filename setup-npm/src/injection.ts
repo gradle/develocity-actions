@@ -82,6 +82,11 @@ async function createNpmWrapper(develocityAgentInstallLocation: string): Promise
     }
   }
 
+  const allowUntrustedServer = input.getDevelocityAllowUntrustedServer()
+  if (allowUntrustedServer) {
+    core.exportVariable('DEVELOCITY_ALLOW_UNTRUSTED_SERVER', allowUntrustedServer);
+  }
+
   // Create the npm wrapper script
   const wrapperScript = `#!/bin/bash
 # This wrapper sets NODE_OPTIONS and NODE_PATH to preload the Develocity agent
