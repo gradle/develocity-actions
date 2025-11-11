@@ -10,9 +10,9 @@ import * as io from '../utils/io'
 const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP'
 
 export enum BuildToolType {
-    GRADLE,
-    MAVEN,
-    NPM
+    GRADLE = 'Gradle',
+    MAVEN = 'Maven',
+    NPM = 'npm'
 }
 
 export function getWorkDir(): string {

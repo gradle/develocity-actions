@@ -38524,9 +38524,9 @@ const io = __importStar(__nccwpck_require__(7752));
 const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP';
 var BuildToolType;
 (function (BuildToolType) {
-    BuildToolType[BuildToolType["GRADLE"] = 0] = "GRADLE";
-    BuildToolType[BuildToolType["MAVEN"] = 1] = "MAVEN";
-    BuildToolType[BuildToolType["NPM"] = 2] = "NPM";
+    BuildToolType["GRADLE"] = "Gradle";
+    BuildToolType["MAVEN"] = "Maven";
+    BuildToolType["NPM"] = "npm";
 })(BuildToolType || (exports.BuildToolType = BuildToolType = {}));
 function getWorkDir() {
     const tmpDir = process.env[ENV_KEY_RUNNER_TMP];
