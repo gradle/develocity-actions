@@ -93,6 +93,10 @@ async function createNpmWrapper(develocityAgentInstallLocation: string): Promise
 export NODE_PATH="${expandedLocation}\${NODE_PATH:+:\$NODE_PATH}"
 # Preserves any existing NODE_OPTIONS by appending them
 export NODE_OPTIONS="-r @gradle-tech/develocity-agent/preload\${NODE_OPTIONS:+ \$NODE_OPTIONS}"
+
+# The instrumented project may not have configured our reporter, so
+# we enable auto-injection of the Jest reporter to collect test results.
+export DEVELOCITY_INTERNAL_ENABLE_JEST_REPORTER_INJECTION=true
 exec "${actualNpm}" "$@"
 `;
 
