@@ -159,3 +159,27 @@ jobs:
             echo "Publication summary does not contain initialize goals"
             exit 1
           fi
+
+  test-npm:
+    runs-on: ubuntu-latest
+    if: "github.event_name == 'pull_request'"
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Setup Develocity for npm
+        uses: ./setup-npm
+        with:
+          develocity-url: ${{ env.DV_URL }}
+          develocity-access-key: ${{ secrets.DV_SOLUTIONS_ACCESS_KEY }}
+          develocity-injection-enabled: true
+      - name: Run npm build
+        run: npm ci && npm run all
+
