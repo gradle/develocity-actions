@@ -34,8 +34,10 @@ async function installDevelocityAgent(version: string, develocityAgentInstallLoc
     ? '@gradle-tech/develocity-agent'
     : `@gradle-tech/develocity-agent@${version}`;
 
+  const pacoteVersion = input.getDevelocityPacoteVersion();
+
   try {
-    await exec.exec('npm', ['exec', '-y', '--', 'pacote', 'extract', packageName, agentDir]);
+    await exec.exec('npm', ['exec', '-y', '--', `pacote@${pacoteVersion}`, 'extract', packageName, agentDir]);
     core.info('Develocity npm agent installed successfully');
   } catch (error) {
     throw new Error(`Failed to install Develocity npm agent: ${error}`);

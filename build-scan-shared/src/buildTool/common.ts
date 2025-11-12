@@ -81,6 +81,9 @@ export abstract class BuildTool {
     }
 }
 
+/**
+ * A base class for build tools that support post-publishing of a Build Scan dump.
+ */
 export abstract class PostPublishingBuildTool extends BuildTool {
     private readonly SCAN_FILENAME = `scan.scan`
 
@@ -95,7 +98,7 @@ export abstract class PostPublishingBuildTool extends BuildTool {
     createPublisherProjectStructure(): void {}
 
     createPluginDescriptorFileWithCurrentVersion(version: string): void {
-        const resolvedContent: string = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version)
+        const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version)
 
         io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent)
     }

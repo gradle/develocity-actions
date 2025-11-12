@@ -14,7 +14,7 @@ describe('auth', () => {
     })
 
     afterEach(() => {
-        // restoreEnv.restore()
+        restoreEnv.restore()
         jest.clearAllMocks()
     })
 

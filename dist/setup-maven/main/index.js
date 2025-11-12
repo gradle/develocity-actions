@@ -38575,6 +38575,9 @@ class BuildTool {
     }
 }
 exports.BuildTool = BuildTool;
+/**
+ * A base class for build tools that support post-publishing of a Build Scan dump.
+ */
 class PostPublishingBuildTool extends BuildTool {
     SCAN_FILENAME = `scan.scan`;
     createPublisherProjectStructure() { }
@@ -39011,6 +39014,7 @@ exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
 exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
 exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
+exports.getDevelocityPacoteVersion = getDevelocityPacoteVersion;
 exports.getCcudExtensionVersion = getCcudExtensionVersion;
 exports.getDevelocityMavenRepositoryUrl = getDevelocityMavenRepositoryUrl;
 exports.getDevelocityMavenRepositoryUsername = getDevelocityMavenRepositoryUsername;
@@ -39047,6 +39051,9 @@ function getDevelocityNpmAgentVersion() {
 }
 function getDevelocityNpmAgentInstallLocation() {
     return sharedInput.getInput('develocity-npm-agent-install-location');
+}
+function getDevelocityPacoteVersion() {
+    return sharedInput.getInput('develocity-pacote-version');
 }
 function getCcudExtensionVersion() {
     return sharedInput.getInput('develocity-ccud-extension-version');

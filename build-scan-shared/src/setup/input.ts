@@ -26,6 +26,10 @@ export function getDevelocityNpmAgentInstallLocation(): string {
     return sharedInput.getInput('develocity-npm-agent-install-location')
 }
 
+export function getDevelocityPacoteVersion(): string {
+    return sharedInput.getInput('develocity-pacote-version')
+}
+
 export function getCcudExtensionVersion(): string {
     return sharedInput.getInput('develocity-ccud-extension-version')
 }

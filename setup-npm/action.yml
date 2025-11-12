@@ -14,7 +14,7 @@ inputs:
     default: ${{ github.token }}
     required: false
   develocity-injection-enabled:
-    description: 'Whether to enable or not Develocity injection'
+    description: 'Whether to enable or not Develocity npm agent injection'
     required: false
   develocity-url:
     description: 'Develocity server URL'
@@ -29,6 +29,10 @@ inputs:
     required: false
   develocity-allow-untrusted-server:
     description: 'Whether to allow communicating with untrusted server'
+    required: false
+  develocity-pacote-version:
+    description: 'Version of pacote to use to install the Develocity npm build agent'
+    default: '21.0.0'
     required: false
 
 runs:
