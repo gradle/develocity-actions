@@ -222,6 +222,7 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 | `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
 | `develocity-npm-agent-version`                             | *Optional*: Develocity npm agent version to be injected                                                                                           |                                |
 | `develocity-npm-agent-install-location`                    | *Optional*: Develocity npm agent installation location
+| `develocity-pacote-version`                                | *Optional*: Version of pacote to use to install the Develocity npm build agent
 | `develocity-allow-untrusted-server`                        | *Optional*: Whether to allow communicating with untrusted server                                                                                        |                                |
 
 ---
