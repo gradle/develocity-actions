@@ -218,11 +218,11 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 |------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``                             |
 | `develocity-token-expiry`                                  | *Optional*: Develocity short-lived access tokens expiry in hours                                                                                        | `2`                            |
-| `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity npm agent injection                                                                         |                                |
+| `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity npm agent injection                                                                                     |                                |
 | `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
-| `develocity-npm-agent-version`                             | *Optional*: Develocity npm agent version to be injected                                                                                           |                                |
-| `develocity-npm-agent-install-location`                    | *Optional*: Develocity npm agent installation location
-| `develocity-pacote-version`                                | *Optional*: Version of pacote to use to install the Develocity npm build agent
+| `develocity-npm-agent-version`                             | *Optional*: Develocity npm agent version to be injected                                                                                                 | `latest`                       |
+| `develocity-npm-agent-install-location`                    | *Optional*: Develocity npm agent installation location                                                                                                  | `~/.node_libraries`            |
+| `develocity-pacote-version`                                | *Optional*: Version of pacote to use to install the Develocity npm build agent                                                                          | `21.0.0`                       |
 | `develocity-allow-untrusted-server`                        | *Optional*: Whether to allow communicating with untrusted server                                                                                        |                                |
 
 ---
