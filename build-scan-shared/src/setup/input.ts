@@ -18,6 +18,10 @@ export function getDevelocityMavenExtensionVersion(): string {
     return sharedInput.getInput('develocity-maven-extension-version')
 }
 
+export function getDevelocityNpmAgentUrlOverride(): string {
+    return sharedInput.getInput('develocity-npm-agent-url-override')
+}
+
 export function getDevelocityNpmAgentVersion(): string {
     return sharedInput.getInput('develocity-npm-agent-version')
 }

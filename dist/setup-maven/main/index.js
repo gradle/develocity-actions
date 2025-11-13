@@ -39012,6 +39012,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
+exports.getDevelocityNpmAgentUrlOverride = getDevelocityNpmAgentUrlOverride;
 exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
 exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
 exports.getDevelocityPacoteVersion = getDevelocityPacoteVersion;
@@ -39045,6 +39046,9 @@ function getDevelocityInjectionEnabled() {
 }
 function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
+}
+function getDevelocityNpmAgentUrlOverride() {
+    return sharedInput.getInput('develocity-npm-agent-url-override');
 }
 function getDevelocityNpmAgentVersion() {
     return sharedInput.getInput('develocity-npm-agent-version');

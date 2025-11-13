@@ -38892,6 +38892,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
+exports.getDevelocityNpmAgentUrlOverride = getDevelocityNpmAgentUrlOverride;
 exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
 exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
 exports.getDevelocityPacoteVersion = getDevelocityPacoteVersion;
@@ -38925,6 +38926,9 @@ function getDevelocityInjectionEnabled() {
 }
 function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
+}
+function getDevelocityNpmAgentUrlOverride() {
+    return sharedInput.getInput('develocity-npm-agent-url-override');
 }
 function getDevelocityNpmAgentVersion() {
     return sharedInput.getInput('develocity-npm-agent-version');
@@ -39228,25 +39232,34 @@ const actionsIo = __importStar(__nccwpck_require__(4994));
 const fs_1 = __importDefault(__nccwpck_require__(9896));
 async function installDevelocity() {
     if (input.getDevelocityInjectionEnabled()) {
+        const agentUrlOverride = input.getDevelocityNpmAgentUrlOverride();
         const version = input.getDevelocityNpmAgentVersion();
         const agentInstallLocation = input.getDevelocityNpmAgentInstallLocation();
         const expandedInstallLocation = agentInstallLocation.replace(/^~/, os.homedir());
-        await installDevelocityAgent(version, expandedInstallLocation);
+        await installDevelocityAgent(agentUrlOverride, version, expandedInstallLocation);
         await createNpmWrapper(expandedInstallLocation);
     }
 }
 /**
  * Install the Develocity npm agent to the specified location
  */
-async function installDevelocityAgent(version, develocityAgentInstallLocation) {
+async function installDevelocityAgent(agentUrlOverride, version, develocityAgentInstallLocation) {
     const agentDir = path.join(develocityAgentInstallLocation, '@gradle-tech', 'develocity-agent');
-    core.info(`Installing Develocity npm agent version ${version} to ${agentDir}`);
+    core.info(`agent url override: '${agentUrlOverride}'`);
+    if (agentUrlOverride) {
+        core.info(`Installing Develocity npm agent from overridden url ${agentUrlOverride} to ${agentDir}`);
+    }
+    else {
+        core.info(`Installing Develocity npm agent version ${version} to ${agentDir}`);
+    }
     // Create the directory
     io.mkdirSync(agentDir);
     // Use pacote to extract the agent
-    const packageName = version === 'latest'
-        ? '@gradle-tech/develocity-agent'
-        : `@gradle-tech/develocity-agent@${version}`;
+    const packageName = agentUrlOverride
+        ? agentUrlOverride
+        : version === 'latest'
+            ? '@gradle-tech/develocity-agent'
+            : `@gradle-tech/develocity-agent@${version}`;
     const pacoteVersion = input.getDevelocityPacoteVersion();
     try {
         await exec.exec('npm', ['exec', '-y', '--', `pacote@${pacoteVersion}`, 'extract', packageName, agentDir]);

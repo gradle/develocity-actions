@@ -19,8 +19,12 @@ inputs:
   develocity-url:
     description: 'Develocity server URL'
     required: false
+  develocity-npm-agent-url-override:
+    description: 'When set, override the URL of the Develocity npm agent'
+    default: ''
+    required: false
   develocity-npm-agent-version:
-    description: 'Develocity npm agent version'
+    description: 'Develocity npm agent version (ignored when `develocity-npm-agent-url-override` is set)'
     default: 'latest'
     required: false
   develocity-npm-agent-install-location:
