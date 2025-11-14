@@ -39236,8 +39236,11 @@ async function installDevelocity() {
         const version = input.getDevelocityNpmAgentVersion();
         const agentInstallLocation = input.getDevelocityNpmAgentInstallLocation();
         const expandedInstallLocation = agentInstallLocation.replace(/^~/, os.homedir());
+        const wrappersDir = path.join(expandedInstallLocation, '.develocity-npm-wrapper');
+        io.mkdirSync(wrappersDir);
         await installDevelocityAgent(agentUrlOverride, version, expandedInstallLocation);
-        await createNpmWrapper(expandedInstallLocation);
+        await createWrapperScripts(wrappersDir, expandedInstallLocation);
+        configureEnvironment(wrappersDir);
     }
 }
 /**
@@ -39245,7 +39248,6 @@ async function installDevelocity() {
  */
 async function installDevelocityAgent(agentUrlOverride, version, develocityAgentInstallLocation) {
     const agentDir = path.join(develocityAgentInstallLocation, '@gradle-tech', 'develocity-agent');
-    core.info(`agent url override: '${agentUrlOverride}'`);
     if (agentUrlOverride) {
         core.info(`Installing Develocity npm agent from overridden url ${agentUrlOverride} to ${agentDir}`);
     }
@@ -39269,26 +39271,39 @@ async function installDevelocityAgent(agentUrlOverride, version, develocityAgent
         throw new Error(`Failed to install Develocity npm agent: ${error}`);
     }
 }
-async function createNpmWrapper(develocityAgentInstallLocation) {
-    // Create a wrapper directory for the npm script
-    const wrapperDir = path.join(os.homedir(), '.develocity-npm-wrapper');
-    io.mkdirSync(wrapperDir);
-    // Find the actual npm binary
-    let actualNpm;
-    try {
-        actualNpm = await actionsIo.which('npm', true);
-        core.info(`Found npm at: ${actualNpm}`);
-    }
-    catch (error) {
-        throw new Error('npm not found in PATH');
-    }
-    // Verify it's a valid npm binary
-    try {
-        await exec.exec(actualNpm, ['--version'], { silent: true });
-    }
-    catch (error) {
-        throw new Error(`Found npm at ${actualNpm} but it's not executable or not a valid npm binary`);
-    }
+async function createWrapperScripts(wrappersDir, develocityAgentInstallLocation) {
+    await createWrapper('npm', wrappersDir, develocityAgentInstallLocation);
+    await createWrapper('npx', wrappersDir, develocityAgentInstallLocation);
+}
+/**
+ * Create a wrapper script in `wrappersDir` that invokes `binaryName`.
+ *
+ * The wrapper script ensures NODE_PATH and NODE_OPTIONS are set appropriately so that the
+ * Develocity npm build agent is enabled.
+ */
+async function createWrapper(binaryName, wrappersDir, develocityAgentInstallLocation) {
+    const actualBinary = await findAndVerifyBinary(binaryName);
+    // Create the wrapper script
+    const wrapperScript = `#!/bin/bash
+# This wrapper sets NODE_OPTIONS and NODE_PATH to preload the Develocity agent
+export NODE_PATH="${develocityAgentInstallLocation}\${NODE_PATH:+:\$NODE_PATH}"
+
+# Preserves any existing NODE_OPTIONS by appending them
+export NODE_OPTIONS="-r @gradle-tech/develocity-agent/preload\${NODE_OPTIONS:+ \$NODE_OPTIONS}"
+
+# The instrumented project may not have configured our reporter, so
+# we enable auto-injection of the Jest reporter to collect test results.
+export DEVELOCITY_INTERNAL_ENABLE_JEST_REPORTER_INJECTION=true
+
+exec "${actualBinary}" "$@"
+`;
+    const wrapperPath = path.join(wrappersDir, binaryName);
+    fs_1.default.writeFileSync(wrapperPath, wrapperScript, { mode: 0o755 });
+    core.info(`Created ${binaryName} wrapper at: ${wrapperPath}`);
+}
+function configureEnvironment(wrappersDir) {
+    // Add wrapper directory to PATH
+    core.addPath(wrappersDir);
     // Set environment variables if server URL and access key are provided
     const develocityUrl = input.getDevelocityUrl();
     if (develocityUrl) {
@@ -39310,25 +39325,25 @@ async function createNpmWrapper(develocityAgentInstallLocation) {
     if (allowUntrustedServer) {
         core.exportVariable('DEVELOCITY_ALLOW_UNTRUSTED_SERVER', allowUntrustedServer);
     }
-    // Create the npm wrapper script
-    const wrapperScript = `#!/bin/bash
-# This wrapper sets NODE_OPTIONS and NODE_PATH to preload the Develocity agent
-export NODE_PATH="${develocityAgentInstallLocation}\${NODE_PATH:+:\$NODE_PATH}"
-
-# Preserves any existing NODE_OPTIONS by appending them
-export NODE_OPTIONS="-r @gradle-tech/develocity-agent/preload\${NODE_OPTIONS:+ \$NODE_OPTIONS}"
-
-# The instrumented project may not have configured our reporter, so
-# we enable auto-injection of the Jest reporter to collect test results.
-export DEVELOCITY_INTERNAL_ENABLE_JEST_REPORTER_INJECTION=true
-
-exec "${actualNpm}" "$@"
-`;
-    const wrapperPath = path.join(wrapperDir, 'npm');
-    fs_1.default.writeFileSync(wrapperPath, wrapperScript, { mode: 0o755 });
-    core.info(`Created npm wrapper at: ${wrapperPath}`);
-    // Add wrapper directory to PATH
-    core.addPath(wrapperDir);
+}
+async function findAndVerifyBinary(binaryName) {
+    // Find the actual npm binary
+    let actualBinary;
+    try {
+        actualBinary = await actionsIo.which(binaryName, true);
+        core.info(`Found ${binaryName} at: ${actualBinary}`);
+    }
+    catch (error) {
+        throw new Error(`${binaryName} not found in PATH`);
+    }
+    // Verify it's a valid npm binary
+    try {
+        await exec.exec(actualBinary, ['--version'], { silent: true });
+    }
+    catch (error) {
+        throw new Error(`Found ${binaryName} at ${actualBinary} but it's not executable or not a valid ${binaryName} binary`);
+    }
+    return actualBinary;
 }
 
 
