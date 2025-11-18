@@ -13,6 +13,7 @@ env:
   MAVEN_SETUP_DIST: "dist/setup-maven"
   MAVEN_PUBLISH_DIST: "dist/maven-publish-build-scan"
   MAVEN_CAPTURE_EXTENSION_JAR: "dist/maven-build-scan-capture-extension/maven-build-scan-capture-extension.jar"
+  NPM_SETUP_DIST: "dist/setup-npm"
 
 jobs:
 
@@ -31,6 +32,12 @@ jobs:
         with:
           java-version: 8
           distribution: "temurin"
+      - name: Setup Develocity for npm
+        uses: ./setup-npm
+        with:
+          develocity-url: ${{ env.DV_URL }}
+          develocity-access-key: ${{ secrets.DV_SOLUTIONS_ACCESS_KEY }}
+          develocity-injection-enabled: true
       - name: Install Dependencies
         run: npm ci
       - name: Build
@@ -63,6 +70,13 @@ jobs:
           if [ "$(diff current-jar-status.txt repo-jar-status.txt | wc -l)" -gt "0" ]; then
             echo "Detected uncommitted changes after build. See status below:"
             diff current-jar-status.txt repo-jar-status.txt
+            exit 1
+          fi
+      - name: Check setup-npm dist
+        run: |
+          if [ "$(git diff --ignore-space-at-eol --text ${{ env.NPM_SETUP_DIST }} | wc -l)" -gt "0" ]; then
+            echo "Detected uncommitted changes after build. See status below:"
+            git diff --ignore-space-at-eol --text ${{ env.NPM_SETUP_DIST }}
             exit 1
           fi
 

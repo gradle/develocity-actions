@@ -5,7 +5,7 @@ import * as githubUtils from '../utils/github'
 import * as input from './input'
 import * as summary from '../summary/dump'
 
-export async function publish(buildTool: commonBuildTool.BuildTool): Promise<void> {
+export async function publish(buildTool: commonBuildTool.PostPublishingBuildTool): Promise<void> {
     githubUtils.logOriginWorkflowLink()
 
     if (githubUtils.isPublicationAllowed(input.getAuthorizedUsersList().trim())) {

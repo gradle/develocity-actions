@@ -21,7 +21,7 @@ describe('main', () => {
         jest.spyOn(githubUtils, 'logOriginWorkflowLink').mockReturnValue()
         const deleteMock = jest.spyOn(githubUtils, 'deleteWorkflowArtifacts').mockResolvedValue()
         const buildScanPublishMock = jest
-            .spyOn(commonBuildTool.BuildTool.prototype, 'buildScanPublish')
+            .spyOn(commonBuildTool.PostPublishingBuildTool.prototype, 'buildScanPublish')
             .mockResolvedValue()
 
         // when
@@ -39,7 +39,7 @@ describe('main', () => {
         jest.spyOn(githubUtils, 'logOriginWorkflowLink').mockReturnValue()
         const deleteMock = jest.spyOn(githubUtils, 'deleteWorkflowArtifacts').mockResolvedValue()
         const buildScanPublishMock = jest
-            .spyOn(commonBuildTool.BuildTool.prototype, 'buildScanPublish')
+            .spyOn(commonBuildTool.PostPublishingBuildTool.prototype, 'buildScanPublish')
             .mockResolvedValue()
 
         // when

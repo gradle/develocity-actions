@@ -10,8 +10,9 @@ import * as io from '../utils/io'
 const ENV_KEY_RUNNER_TMP = 'RUNNER_TEMP'
 
 export enum BuildToolType {
-    GRADLE,
-    MAVEN
+    GRADLE = 'Gradle',
+    MAVEN = 'Maven',
+    NPM = 'npm'
 }
 
 export function getWorkDir(): string {
@@ -28,7 +29,6 @@ export abstract class BuildTool {
     private readonly ENV_KEY_HOMEDRIVE = 'HOMEDRIVE'
     private readonly ENV_KEY_HOMEPATH = 'HOMEPATH'
     private readonly PUBLISHER_PROJECT_DIR = 'build-scan-publish'
-    private readonly SCAN_FILENAME = `scan.scan`
 
     protected readonly BUILD_SCAN_DATA_DIR = 'build-scan-data'
     protected readonly BUILD_SCAN_METADATA_DIR = 'build-scan-metadata'
@@ -40,14 +40,6 @@ export abstract class BuildTool {
         this.type = type
     }
 
-    protected abstract getCommand(): string
-
-    protected abstract getPluginDescriptorFileName(): string
-
-    protected abstract getPluginDescriptorTemplate(): string
-
-    protected abstract getPublishTask(): string[]
-
     abstract getArtifactName(): string
 
     abstract getDevelocityDir(): string
@@ -58,14 +50,6 @@ export abstract class BuildTool {
             `${process.env[this.ENV_KEY_HOMEDRIVE]}${process.env[this.ENV_KEY_HOMEPATH]}` ||
             ''
         )
-    }
-
-    createPublisherProjectStructure(): void {}
-
-    createPluginDescriptorFileWithCurrentVersion(version: string): void {
-        const resolvedContent: string = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version)
-
-        io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent)
     }
 
     getType(): BuildToolType {
@@ -94,6 +78,29 @@ export abstract class BuildTool {
 
     protected getPublisherProjectDir(): string {
         return path.resolve(this.getBuildScanWorkDir(), this.PUBLISHER_PROJECT_DIR)
+    }
+}
+
+/**
+ * A base class for build tools that support post-publishing of a Build Scan dump.
+ */
+export abstract class PostPublishingBuildTool extends BuildTool {
+    private readonly SCAN_FILENAME = `scan.scan`
+
+    protected abstract getCommand(): string
+
+    protected abstract getPluginDescriptorFileName(): string
+
+    protected abstract getPluginDescriptorTemplate(): string
+
+    protected abstract getPublishTask(): string[]
+
+    createPublisherProjectStructure(): void {}
+
+    createPluginDescriptorFileWithCurrentVersion(version: string): void {
+        const resolvedContent = this.getPluginDescriptorTemplate().replace(this.REPLACE_ME_TOKEN, version)
+
+        io.writeContentToFileSync(this.getPluginDescriptorFileName(), resolvedContent)
     }
 
     async buildScanPublish(): Promise<void> {

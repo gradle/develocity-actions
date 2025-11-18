@@ -5,7 +5,7 @@ import * as commonBuildTool from './common'
 import * as input from '../publish/input'
 import * as io from '../utils/io'
 
-class MavenBuildTool extends commonBuildTool.BuildTool {
+class MavenBuildTool extends commonBuildTool.PostPublishingBuildTool {
     private readonly BUILD_SCAN_ARTIFACT_NAME = 'maven-build-scan-data'
     private readonly DEVELOCITY_DIR = '.develocity/'
     private readonly COMMAND = 'mvn'

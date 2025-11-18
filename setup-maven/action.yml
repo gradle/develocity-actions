@@ -42,7 +42,7 @@ inputs:
     default: ${{ github.token }}
     required: false
   develocity-injection-enabled:
-    description: 'Whether to enable or not Develocity injection'
+    description: 'Whether to enable or not Develocity Maven extension injection'
     required: false
   develocity-url:
     description: 'Develocity server URL'

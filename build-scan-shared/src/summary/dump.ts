@@ -64,6 +64,8 @@ function getWorkUnitName(buildToolType: BuildToolType): string {
             return 'tasks'
         case BuildToolType.MAVEN:
             return 'goals'
+        case BuildToolType.NPM:
+            return 'commands'
     }
 }
 

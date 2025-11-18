@@ -9,14 +9,16 @@ A collection of composite GitHub Actions related to [Develocity](https://gradle.
 ### Features
 
 The action enables three features:
-- [Build Summary](#build-summary): Display a summary of the Maven builds as a GitHub workflow summary or as a pull-request comment
-- [Develocity extensions injection](#develocity-extensions-injection): Inject Develocity/CCUD Maven extensions
-- [Capture Build Scan® data](#capture-build-scan-data): Capture published Build Scan® links and unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
+- [Build Summary (Maven only)](#build-summary-maven-only): Display a summary of the Maven builds as a GitHub workflow summary or as a pull-request comment
+- [Develocity extensions injection (Maven only)](#develocity-extensions-injection-maven-only): Inject Develocity/CCUD Maven extensions
+- [Capture Build Scan® data (Maven only)](#capture-build-scan-data-maven-only): Capture published Build Scan® links and unpublished Build Scan® data as a workflow artifact per job with prefix `build-scan-data-maven`, which can then be published in a dependent workflow.
 
 > [!NOTE]
 > This action can be combined with the `maven-publish-build-scan` action to publish Build Scan® in a fork context. See [the relevant section](#maven-publish-build-scan-action) for details.
 
 ### Usage
+
+#### Setting up Develocity for Maven
 
 Insert the `Setup Maven` step once in each job having steps invoking Maven. Make sure to put the step before the Maven invocation.
 
@@ -31,12 +33,27 @@ jobs:
 [...]
 ```
 
+#### Setting up Develocity for npm
+
+Insert the `Setup npm` step once in each job having steps invoking npm. Make sure to put the step before the npm invocation.
+
+```yaml
+name: PR Build
+jobs:
+  build:
+      - name: Setup npm
+        uses: gradle/develocity-actions/setup-npm@v1.5
+      - name: Build with npm
+        run: npm run build
+[...]
+```
+
 > [!NOTE]
-> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `setup-maven` step. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
+> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `setup-maven` and/or `setup-npm` steps. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
 ---
 
-#### Build Summary
+#### Build Summary (Maven only)
 
 ###### Requirements
 - The Maven project must be compiled with JDK 8 or above
@@ -109,7 +126,7 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
 
 ---
 
-#### Develocity extensions injection
+#### Develocity extensions injection (Maven only)
 
 If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
 ```yaml
@@ -132,7 +149,7 @@ jobs:
 
 ---
 
-#### Capture Build Scan® data
+#### Capture Build Scan® data (Maven only)
 
 ###### Requirements
 - The Maven project must be compiled with JDK 8 or above
@@ -169,6 +186,8 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 
 ### Action inputs
 
+#### Maven action inputs
+
 | Name                                                       | Description                                                                                                                                             | Default                        |
 |------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``                             |
@@ -192,6 +211,20 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 | `develocity-capture-file-fingerprints`                     | *Optional*: Whether to enable/disable capturing of file fingerprints. This setting is enabled by default                                                |                                |
 | `develocity-custom-develocity-maven-extension-coordinates` | *Optional*: Will not inject the Develocity Maven extension if an extension with provided coordinates is found (value is an artifactId of the extension) |                                |
 | `develocity-custom-ccud-extension-coordinates`             | *Optional*: Will not inject the CCUD extension if an extension with provided coordinates is found (value is an artifactId of the extension)             |                                |
+
+#### npm action inputs
+
+| Name                                                       | Description                                                                                                                                             | Default                        |
+|------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``                             |
+| `develocity-token-expiry`                                  | *Optional*: Develocity short-lived access tokens expiry in hours                                                                                        | `2`                            |
+| `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity npm agent injection                                                                                     |                                |
+| `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
+| `develocity-npm-agent-version`                             | *Optional*: Develocity npm agent version to be injected (ignored when `develocity-npm-agent-url-override` is set)                                       | `latest`                       |
+| `develocity-npm-agent-install-location`                    | *Optional*: Develocity npm agent installation location                                                                                                  | `~/.node_libraries`            |
+| `develocity-pacote-version`                                | *Optional*: Version of pacote to use to install the Develocity npm build agent                                                                          | `21.0.0`                       |
+| `develocity-allow-untrusted-server`                        | *Optional*: Whether to allow communicating with untrusted server                                                                                        |                                |
+| `develocity-npm-agent-url-override`                        | *Optional*: Override the URL to use to download the Develocity NPM agent                                                                                |                                |
 
 ---
 
