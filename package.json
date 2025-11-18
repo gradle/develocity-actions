@@ -18,10 +18,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "format:check": "prettier --check */src/**/*.ts",
-    "format:write": "prettier --write */src/**/*.ts",
-    "format:test": "prettier --write **/__tests__/*.ts **/__tests__/**/*.ts",
-    "lint": "eslint */src/**/*.ts",
+    "format:check": "prettier --check '*/src/**/*.ts'",
+    "format:write": "prettier --write '*/src/**/*.ts'",
+    "format:test": "prettier --write '**/__tests__/*.ts' '**/__tests__/**/*.ts'",
+    "lint": "eslint '*/src/**/*.ts'",
     "package-maven-capture-extension": "mvn clean package -f maven-build-scan-capture-extension/pom.xml",
     "package-maven-setup-main": "ncc build setup-maven/src/main.ts --out dist/setup-maven/main",
     "package-maven-setup-post": "ncc build setup-maven/src/post.ts --out dist/setup-maven/post",
