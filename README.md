@@ -35,7 +35,7 @@ jobs:
 
 #### Setting up Develocity for npm
 
-Inset the `Setup npm` step once in each job having steps invoking npm. Make sure to put the step before the npm invocation.
+Insert the `Setup npm` step once in each job having steps invoking npm. Make sure to put the step before the npm invocation.
 
 ```yaml
 name: PR Build
