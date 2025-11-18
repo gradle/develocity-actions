@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {InputOptions} from "@actions/core";
+import {InputOptions} from '@actions/core'
 
 export function getInput(key: string, options?: InputOptions): string {
     return core.getInput(key, options)

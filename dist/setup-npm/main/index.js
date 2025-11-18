@@ -39286,10 +39286,10 @@ async function createWrapper(binaryName, wrappersDir, develocityAgentInstallLoca
     // Create the wrapper script
     const wrapperScript = `#!/bin/bash
 # This wrapper sets NODE_OPTIONS and NODE_PATH to preload the Develocity agent
-export NODE_PATH="${develocityAgentInstallLocation}\${NODE_PATH:+:\$NODE_PATH}"
+export NODE_PATH="${develocityAgentInstallLocation}\${NODE_PATH:+:$NODE_PATH}"
 
 # Preserves any existing NODE_OPTIONS by appending them
-export NODE_OPTIONS="-r @gradle-tech/develocity-agent/preload\${NODE_OPTIONS:+ \$NODE_OPTIONS}"
+export NODE_OPTIONS="-r @gradle-tech/develocity-agent/preload\${NODE_OPTIONS:+ $NODE_OPTIONS}"
 
 # The instrumented project may not have configured our reporter, so
 # we enable auto-injection of the Jest reporter to collect test results.
@@ -39409,7 +39409,7 @@ async function run() {
         errorHandler.handle(error);
     }
 }
-run();
+void run();
 
 
 /***/ }),

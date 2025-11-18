@@ -39512,7 +39512,7 @@ function configureEnvironment(develocityMavenExtensionMavenOpts) {
     core.info(`Exporting MAVEN_OPTS: ${mavenOptsNew}`);
     core.exportVariable(ENV_KEY_MAVEN_OPTS, mavenOptsNew);
 }
-run();
+void run();
 
 
 /***/ }),
