@@ -39012,10 +39012,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
-exports.getDevelocityNpmAgentUrlOverride = getDevelocityNpmAgentUrlOverride;
-exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
-exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
-exports.getDevelocityPacoteVersion = getDevelocityPacoteVersion;
 exports.getCcudExtensionVersion = getCcudExtensionVersion;
 exports.getDevelocityMavenRepositoryUrl = getDevelocityMavenRepositoryUrl;
 exports.getDevelocityMavenRepositoryUsername = getDevelocityMavenRepositoryUsername;
@@ -39046,18 +39042,6 @@ function getDevelocityInjectionEnabled() {
 }
 function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
-}
-function getDevelocityNpmAgentUrlOverride() {
-    return sharedInput.getInput('develocity-npm-agent-url-override');
-}
-function getDevelocityNpmAgentVersion() {
-    return sharedInput.getInput('develocity-npm-agent-version');
-}
-function getDevelocityNpmAgentInstallLocation() {
-    return sharedInput.getInput('develocity-npm-agent-install-location');
-}
-function getDevelocityPacoteVersion() {
-    return sharedInput.getInput('develocity-pacote-version');
 }
 function getCcudExtensionVersion() {
     return sharedInput.getInput('develocity-ccud-extension-version');

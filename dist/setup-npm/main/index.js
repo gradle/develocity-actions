@@ -38892,10 +38892,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getDevelocityUrl = getDevelocityUrl;
 exports.getDevelocityInjectionEnabled = getDevelocityInjectionEnabled;
 exports.getDevelocityMavenExtensionVersion = getDevelocityMavenExtensionVersion;
-exports.getDevelocityNpmAgentUrlOverride = getDevelocityNpmAgentUrlOverride;
-exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
-exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
-exports.getDevelocityPacoteVersion = getDevelocityPacoteVersion;
 exports.getCcudExtensionVersion = getCcudExtensionVersion;
 exports.getDevelocityMavenRepositoryUrl = getDevelocityMavenRepositoryUrl;
 exports.getDevelocityMavenRepositoryUsername = getDevelocityMavenRepositoryUsername;
@@ -38926,18 +38922,6 @@ function getDevelocityInjectionEnabled() {
 }
 function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
-}
-function getDevelocityNpmAgentUrlOverride() {
-    return sharedInput.getInput('develocity-npm-agent-url-override');
-}
-function getDevelocityNpmAgentVersion() {
-    return sharedInput.getInput('develocity-npm-agent-version');
-}
-function getDevelocityNpmAgentInstallLocation() {
-    return sharedInput.getInput('develocity-npm-agent-install-location');
-}
-function getDevelocityPacoteVersion() {
-    return sharedInput.getInput('develocity-pacote-version');
 }
 function getCcudExtensionVersion() {
     return sharedInput.getInput('develocity-ccud-extension-version');
@@ -39225,6 +39209,7 @@ exports.installDevelocity = installDevelocity;
 const core = __importStar(__nccwpck_require__(7484));
 const exec = __importStar(__nccwpck_require__(5236));
 const input = __importStar(__nccwpck_require__(7050));
+const npmInput = __importStar(__nccwpck_require__(7061));
 const io = __importStar(__nccwpck_require__(7752));
 const os = __importStar(__nccwpck_require__(857));
 const path = __importStar(__nccwpck_require__(6928));
@@ -39232,9 +39217,9 @@ const actionsIo = __importStar(__nccwpck_require__(4994));
 const fs_1 = __importDefault(__nccwpck_require__(9896));
 async function installDevelocity() {
     if (input.getDevelocityInjectionEnabled()) {
-        const agentUrlOverride = input.getDevelocityNpmAgentUrlOverride();
-        const version = input.getDevelocityNpmAgentVersion();
-        const agentInstallLocation = input.getDevelocityNpmAgentInstallLocation();
+        const agentUrlOverride = npmInput.getDevelocityNpmAgentUrlOverride();
+        const version = npmInput.getDevelocityNpmAgentVersion();
+        const agentInstallLocation = npmInput.getDevelocityNpmAgentInstallLocation();
         const expandedInstallLocation = agentInstallLocation.replace(/^~/, os.homedir());
         const wrappersDir = path.join(expandedInstallLocation, '.develocity-npm-wrapper');
         io.mkdirSync(wrappersDir);
@@ -39262,7 +39247,7 @@ async function installDevelocityAgent(agentUrlOverride, version, develocityAgent
         : version === 'latest'
             ? '@gradle-tech/develocity-agent'
             : `@gradle-tech/develocity-agent@${version}`;
-    const pacoteVersion = input.getDevelocityPacoteVersion();
+    const pacoteVersion = npmInput.getDevelocityPacoteVersion();
     try {
         await exec.exec('npm', ['exec', '-y', '--', `pacote@${pacoteVersion}`, 'extract', packageName, agentDir]);
         core.info('Develocity npm agent installed successfully');
@@ -39344,6 +39329,66 @@ async function findAndVerifyBinary(binaryName) {
         throw new Error(`Found ${binaryName} at ${actualBinary} but it's not executable or not a valid ${binaryName} binary`);
     }
     return actualBinary;
+}
+
+
+/***/ }),
+
+/***/ 7061:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getDevelocityNpmAgentUrlOverride = getDevelocityNpmAgentUrlOverride;
+exports.getDevelocityNpmAgentVersion = getDevelocityNpmAgentVersion;
+exports.getDevelocityNpmAgentInstallLocation = getDevelocityNpmAgentInstallLocation;
+exports.getDevelocityPacoteVersion = getDevelocityPacoteVersion;
+const sharedInput = __importStar(__nccwpck_require__(7236));
+function getDevelocityNpmAgentUrlOverride() {
+    return sharedInput.getInput('develocity-npm-agent-url-override');
+}
+function getDevelocityNpmAgentVersion() {
+    return sharedInput.getInput('develocity-npm-agent-version');
+}
+function getDevelocityNpmAgentInstallLocation() {
+    return sharedInput.getInput('develocity-npm-agent-install-location');
+}
+function getDevelocityPacoteVersion() {
+    return sharedInput.getInput('develocity-pacote-version');
 }
 
 

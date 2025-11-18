@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 
 import * as input from '../../build-scan-shared/src/setup/input'
+import * as npmInput from './input'
 import * as io from '../../build-scan-shared/src/utils/io'
 import * as os from 'os'
 import * as path from 'path'
@@ -10,9 +11,9 @@ import fs from 'fs'
 
 export async function installDevelocity(): Promise<void> {
     if (input.getDevelocityInjectionEnabled()) {
-        const agentUrlOverride = input.getDevelocityNpmAgentUrlOverride()
-        const version = input.getDevelocityNpmAgentVersion()
-        const agentInstallLocation = input.getDevelocityNpmAgentInstallLocation()
+        const agentUrlOverride = npmInput.getDevelocityNpmAgentUrlOverride()
+        const version = npmInput.getDevelocityNpmAgentVersion()
+        const agentInstallLocation = npmInput.getDevelocityNpmAgentInstallLocation()
         const expandedInstallLocation = agentInstallLocation.replace(/^~/, os.homedir())
         const wrappersDir = path.join(expandedInstallLocation, '.develocity-npm-wrapper')
 
@@ -51,7 +52,7 @@ async function installDevelocityAgent(
           ? '@gradle-tech/develocity-agent'
           : `@gradle-tech/develocity-agent@${version}`
 
-    const pacoteVersion = input.getDevelocityPacoteVersion()
+    const pacoteVersion = npmInput.getDevelocityPacoteVersion()
 
     try {
         await exec.exec('npm', ['exec', '-y', '--', `pacote@${pacoteVersion}`, 'extract', packageName, agentDir])
