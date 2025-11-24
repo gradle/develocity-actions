@@ -49,7 +49,7 @@ jobs:
 ```
 
 > [!NOTE]
-> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `setup-maven` and/or `setup-npm` steps. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/api-manual/#short_lived_access_tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
+> When authenticated access is required to publish a Build Scan®, it is recommended to provide as input `develocity-access-key` to the `setup-maven` and/or `setup-npm` steps. This triggers a request for a [short-lived access token](https://docs.gradle.com/develocity/current/reference/api-manual/#short-lived-access-tokens) instead of relying on the `DEVELOCITY_ACCESS_KEY` environment variable.
 
 ---
 
