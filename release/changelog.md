@@ -1,11 +1,2 @@
 # ⚠️Breaking Change
-- 
-
-# 🚀 Improvements
-- 
-
-# 🐛 Bug fixes
--
-
-# 📦 Dependency updates
--
+- Upgrade to node 24
