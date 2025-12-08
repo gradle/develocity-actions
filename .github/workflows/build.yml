@@ -7,6 +7,9 @@ on:
       - main
       - 'releases/*'
 
+permissions:
+  contents: read
+
 env:
   DV_URL: "https://ge.solutions-team.gradle.com"
   DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
