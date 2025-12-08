@@ -27,7 +27,7 @@ name: PR Build
 jobs:
   build:
       - name: Setup Maven
-        uses: gradle/develocity-actions/setup-maven@v1.5
+        uses: gradle/develocity-actions/setup-maven@v2.0
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
@@ -42,7 +42,7 @@ name: PR Build
 jobs:
   build:
       - name: Setup npm
-        uses: gradle/develocity-actions/setup-npm@v1.5
+        uses: gradle/develocity-actions/setup-npm@v2.0
       - name: Build with npm
         run: npm run build
 [...]
@@ -134,7 +134,7 @@ name: PR Build
 jobs:
   build:
       - name: Setup Maven
-        uses: gradle/develocity-actions/setup-maven@v1.5
+        uses: gradle/develocity-actions/setup-maven@v2.0
         with:
           develocity-url: 'https://scans.gradle.com'
           develocity-injection-enabled: 'true'
@@ -252,7 +252,7 @@ name: PR Build
 jobs:
   build:
       - name: Setup Maven
-        uses: gradle/develocity-actions/setup-maven@v1.5
+        uses: gradle/develocity-actions/setup-maven@v2.0
       - name: Build with Maven
         run: ./mvnw clean package
 [...]
@@ -277,9 +277,9 @@ jobs:
       pull-requests: write
     steps:
       - name: Setup Build Scan link capture
-        uses: gradle/develocity-actions/setup-maven@v1.5
+        uses: gradle/develocity-actions/setup-maven@v2.0
       - name: Publish Build Scans
-        uses: gradle/develocity-actions/maven-publish-build-scan@v1.5
+        uses: gradle/develocity-actions/maven-publish-build-scan@v2.0
         with:
           develocity-url: 'https://<MY_DEVELOCITY_URL>'
           develocity-access-key: ${{ secrets.<DEVELOCITY_ACCESS_KEY> }}
