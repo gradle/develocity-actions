@@ -22,6 +22,9 @@ updates:
       - dependency-name: "org.mockito:mockito-core"
         # Required for JDK8 compatibility
         versions: [ ">= 5" ]
+      - dependency-name: "org.junit.jupiter:*"
+        # Required for JDK8 compatibility
+        versions: [ ">= 6" ]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
