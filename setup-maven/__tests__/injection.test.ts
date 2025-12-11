@@ -62,6 +62,7 @@ describe('Injection', () => {
         // then
         expect(result).toContain('-Dgradle.enterprise.url=http://example.com')
         expect(result).toContain('-Ddevelocity.url=http://example.com')
+        expect(result).not.toContain('-Dscan.value.CIAutoInjection=GitHub')
     })
 
     it('injects Develocity Maven extension', async () => {
@@ -103,6 +104,7 @@ describe('Injection', () => {
         expect(result).toContain(':develocity-maven-extension-42.0.jar')
         expect(result).toContain('-Dgradle.enterprise.url=http://example.com')
         expect(result).toContain('-Ddevelocity.url=http://example.com')
+        expect(result).toContain('-Dscan.value.CIAutoInjection=GitHub')
     })
 
     it('injects CCUD Maven extension', async () => {
