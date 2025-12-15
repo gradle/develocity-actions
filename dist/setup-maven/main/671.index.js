@@ -110,7 +110,7 @@ function validate(xmlData, options) {
     // check for byte order mark (BOM)
     xmlData = xmlData.substr(1);
   }
-
+  
   for (let i = 0; i < xmlData.length; i++) {
 
     if (xmlData[i] === '<' && xmlData[i+1] === '?') {
@@ -122,7 +122,7 @@ function validate(xmlData, options) {
       //read until you reach to '>' avoiding any '>' in attribute value
       let tagStartPos = i;
       i++;
-
+      
       if (xmlData[i] === '!') {
         i = readCommentAndCDATA(xmlData, i);
         continue;
@@ -553,7 +553,7 @@ const OptionsBuilder_defaultOptions = {
     // skipEmptyListItem: false
     captureMetaData: false,
 };
-
+   
 const buildOptions = function(options) {
     return Object.assign({}, OptionsBuilder_defaultOptions, options);
 };
@@ -603,360 +603,76 @@ class XmlNode{
 ;// CONCATENATED MODULE: ./node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js
 
 
-class DocTypeReader{
-    constructor(processEntities){
-        this.suppressValidationErr = !processEntities;
-    }
+//TODO: handle comments
+function readDocType(xmlData, i){
+    
+    const entities = {};
+    if( xmlData[i + 3] === 'O' &&
+         xmlData[i + 4] === 'C' &&
+         xmlData[i + 5] === 'T' &&
+         xmlData[i + 6] === 'Y' &&
+         xmlData[i + 7] === 'P' &&
+         xmlData[i + 8] === 'E')
+    {    
+        i = i+9;
+        let angleBracketsCount = 1;
+        let hasBody = false, comment = false;
+        let exp = "";
+        for(;i<xmlData.length;i++){
+            if (xmlData[i] === '<' && !comment) { //Determine the tag type
+                if( hasBody && hasSeq(xmlData, "!ENTITY",i)){
+                    i += 7; 
+                    let entityName, val;
+                    [entityName, val,i] = readEntityExp(xmlData,i+1);
+                    if(val.indexOf("&") === -1) //Parameter entities are not supported
+                        entities[ entityName ] = {
+                            regx : RegExp( `&${entityName};`,"g"),
+                            val: val
+                        };
+                }
+                else if( hasBody && hasSeq(xmlData, "!ELEMENT",i))  {
+                    i += 8;//Not supported
+                    const {index} = readElementExp(xmlData,i+1);
+                    i = index;
+                }else if( hasBody && hasSeq(xmlData, "!ATTLIST",i)){
+                    i += 8;//Not supported
+                    // const {index} = readAttlistExp(xmlData,i+1);
+                    // i = index;
+                }else if( hasBody && hasSeq(xmlData, "!NOTATION",i)) {
+                    i += 9;//Not supported
+                    const {index} = readNotationExp(xmlData,i+1);
+                    i = index;
+                }else if( hasSeq(xmlData, "!--",i) ) comment = true;
+                else throw new Error("Invalid DOCTYPE");
 
-    readDocType(xmlData, i){
-
-        const entities = {};
-        if( xmlData[i + 3] === 'O' &&
-            xmlData[i + 4] === 'C' &&
-            xmlData[i + 5] === 'T' &&
-            xmlData[i + 6] === 'Y' &&
-            xmlData[i + 7] === 'P' &&
-            xmlData[i + 8] === 'E')
-        {
-            i = i+9;
-            let angleBracketsCount = 1;
-            let hasBody = false, comment = false;
-            let exp = "";
-            for(;i<xmlData.length;i++){
-                if (xmlData[i] === '<' && !comment) { //Determine the tag type
-                    if( hasBody && hasSeq(xmlData, "!ENTITY",i)){
-                        i += 7;
-                        let entityName, val;
-                        [entityName, val,i] = this.readEntityExp(xmlData,i+1,this.suppressValidationErr);
-                        if(val.indexOf("&") === -1) //Parameter entities are not supported
-                            entities[ entityName ] = {
-                                regx : RegExp( `&${entityName};`,"g"),
-                                val: val
-                            };
-                    }
-                    else if( hasBody && hasSeq(xmlData, "!ELEMENT",i))  {
-                        i += 8;//Not supported
-                        const {index} = this.readElementExp(xmlData,i+1);
-                        i = index;
-                    }else if( hasBody && hasSeq(xmlData, "!ATTLIST",i)){
-                        i += 8;//Not supported
-                        // const {index} = this.readAttlistExp(xmlData,i+1);
-                        // i = index;
-                    }else if( hasBody && hasSeq(xmlData, "!NOTATION",i)) {
-                        i += 9;//Not supported
-                        const {index} = this.readNotationExp(xmlData,i+1,this.suppressValidationErr);
-                        i = index;
-                    }else if( hasSeq(xmlData, "!--",i) ) comment = true;
-                    else throw new Error(`Invalid DOCTYPE`);
-
-                    angleBracketsCount++;
-                    exp = "";
-                } else if (xmlData[i] === '>') { //Read tag content
-                    if(comment){
-                        if( xmlData[i - 1] === "-" && xmlData[i - 2] === "-"){
-                            comment = false;
-                            angleBracketsCount--;
-                        }
-                    }else{
+                angleBracketsCount++;
+                exp = "";
+            } else if (xmlData[i] === '>') { //Read tag content
+                if(comment){
+                    if( xmlData[i - 1] === "-" && xmlData[i - 2] === "-"){
+                        comment = false;
                         angleBracketsCount--;
                     }
-                    if (angleBracketsCount === 0) {
-                    break;
-                    }
-                }else if( xmlData[i] === '['){
-                    hasBody = true;
                 }else{
-                    exp += xmlData[i];
+                    angleBracketsCount--;
                 }
-            }
-            if(angleBracketsCount !== 0){
-                throw new Error(`Unclosed DOCTYPE`);
-            }
-        }else{
-            throw new Error(`Invalid Tag instead of DOCTYPE`);
-        }
-        return {entities, i};
-    }
-    readEntityExp(xmlData, i) {
-        //External entities are not supported
-        //    <!ENTITY ext SYSTEM "http://normal-website.com" >
-
-        //Parameter entities are not supported
-        //    <!ENTITY entityname "&anotherElement;">
-
-        //Internal entities are supported
-        //    <!ENTITY entityname "replacement text">
-
-        // Skip leading whitespace after <!ENTITY
-        i = skipWhitespace(xmlData, i);
-
-        // Read entity name
-        let entityName = "";
-        while (i < xmlData.length && !/\s/.test(xmlData[i]) && xmlData[i] !== '"' && xmlData[i] !== "'") {
-            entityName += xmlData[i];
-            i++;
-        }
-        validateEntityName(entityName);
-
-        // Skip whitespace after entity name
-        i = skipWhitespace(xmlData, i);
-
-        // Check for unsupported constructs (external entities or parameter entities)
-        if(!this.suppressValidationErr){
-            if (xmlData.substring(i, i + 6).toUpperCase() === "SYSTEM") {
-                throw new Error("External entities are not supported");
-            }else if (xmlData[i] === "%") {
-                throw new Error("Parameter entities are not supported");
-            }
-        }
-
-        // Read entity value (internal entity)
-        let entityValue = "";
-        [i, entityValue] = this.readIdentifierVal(xmlData, i, "entity");
-        i--;
-        return [entityName, entityValue, i ];
-    }
-
-    readNotationExp(xmlData, i) {
-        // Skip leading whitespace after <!NOTATION
-        i = skipWhitespace(xmlData, i);
-
-        // Read notation name
-        let notationName = "";
-        while (i < xmlData.length && !/\s/.test(xmlData[i])) {
-            notationName += xmlData[i];
-            i++;
-        }
-        !this.suppressValidationErr && validateEntityName(notationName);
-
-        // Skip whitespace after notation name
-        i = skipWhitespace(xmlData, i);
-
-        // Check identifier type (SYSTEM or PUBLIC)
-        const identifierType = xmlData.substring(i, i + 6).toUpperCase();
-        if (!this.suppressValidationErr && identifierType !== "SYSTEM" && identifierType !== "PUBLIC") {
-            throw new Error(`Expected SYSTEM or PUBLIC, found "${identifierType}"`);
-        }
-        i += identifierType.length;
-
-        // Skip whitespace after identifier type
-        i = skipWhitespace(xmlData, i);
-
-        // Read public identifier (if PUBLIC)
-        let publicIdentifier = null;
-        let systemIdentifier = null;
-
-        if (identifierType === "PUBLIC") {
-            [i, publicIdentifier ] = this.readIdentifierVal(xmlData, i, "publicIdentifier");
-
-            // Skip whitespace after public identifier
-            i = skipWhitespace(xmlData, i);
-
-            // Optionally read system identifier
-            if (xmlData[i] === '"' || xmlData[i] === "'") {
-                [i, systemIdentifier ] = this.readIdentifierVal(xmlData, i,"systemIdentifier");
-            }
-        } else if (identifierType === "SYSTEM") {
-            // Read system identifier (mandatory for SYSTEM)
-            [i, systemIdentifier ] = this.readIdentifierVal(xmlData, i, "systemIdentifier");
-
-            if (!this.suppressValidationErr && !systemIdentifier) {
-                throw new Error("Missing mandatory system identifier for SYSTEM notation");
-            }
-        }
-
-        return {notationName, publicIdentifier, systemIdentifier, index: --i};
-    }
-
-    readIdentifierVal(xmlData, i, type) {
-        let identifierVal = "";
-        const startChar = xmlData[i];
-        if (startChar !== '"' && startChar !== "'") {
-            throw new Error(`Expected quoted string, found "${startChar}"`);
-        }
-        i++;
-
-        while (i < xmlData.length && xmlData[i] !== startChar) {
-            identifierVal += xmlData[i];
-            i++;
-        }
-
-        if (xmlData[i] !== startChar) {
-            throw new Error(`Unterminated ${type} value`);
-        }
-        i++;
-        return [i, identifierVal];
-    }
-
-    readElementExp(xmlData, i) {
-        // <!ELEMENT br EMPTY>
-        // <!ELEMENT div ANY>
-        // <!ELEMENT title (#PCDATA)>
-        // <!ELEMENT book (title, author+)>
-        // <!ELEMENT name (content-model)>
-
-        // Skip leading whitespace after <!ELEMENT
-        i = skipWhitespace(xmlData, i);
-
-        // Read element name
-        let elementName = "";
-        while (i < xmlData.length && !/\s/.test(xmlData[i])) {
-            elementName += xmlData[i];
-            i++;
-        }
-
-        // Validate element name
-        if (!this.suppressValidationErr && !isName(elementName)) {
-            throw new Error(`Invalid element name: "${elementName}"`);
-        }
-
-        // Skip whitespace after element name
-        i = skipWhitespace(xmlData, i);
-        let contentModel = "";
-        // Expect '(' to start content model
-        if(xmlData[i] === "E" && hasSeq(xmlData, "MPTY",i)) i+=4;
-        else if(xmlData[i] === "A" && hasSeq(xmlData, "NY",i)) i+=2;
-        else if (xmlData[i] === "(") {
-            i++; // Move past '('
-
-            // Read content model
-            while (i < xmlData.length && xmlData[i] !== ")") {
-                contentModel += xmlData[i];
-                i++;
-            }
-            if (xmlData[i] !== ")") {
-                throw new Error("Unterminated content model");
-            }
-
-        }else if(!this.suppressValidationErr){
-            throw new Error(`Invalid Element Expression, found "${xmlData[i]}"`);
-        }
-
-        return {
-            elementName,
-            contentModel: contentModel.trim(),
-            index: i
-        };
-    }
-
-    readAttlistExp(xmlData, i) {
-        // Skip leading whitespace after <!ATTLIST
-        i = skipWhitespace(xmlData, i);
-
-        // Read element name
-        let elementName = "";
-        while (i < xmlData.length && !/\s/.test(xmlData[i])) {
-            elementName += xmlData[i];
-            i++;
-        }
-
-        // Validate element name
-        validateEntityName(elementName)
-
-        // Skip whitespace after element name
-        i = skipWhitespace(xmlData, i);
-
-        // Read attribute name
-        let attributeName = "";
-        while (i < xmlData.length && !/\s/.test(xmlData[i])) {
-            attributeName += xmlData[i];
-            i++;
-        }
-
-        // Validate attribute name
-        if (!validateEntityName(attributeName)) {
-            throw new Error(`Invalid attribute name: "${attributeName}"`);
-        }
-
-        // Skip whitespace after attribute name
-        i = skipWhitespace(xmlData, i);
-
-        // Read attribute type
-        let attributeType = "";
-        if (xmlData.substring(i, i + 8).toUpperCase() === "NOTATION") {
-            attributeType = "NOTATION";
-            i += 8; // Move past "NOTATION"
-
-            // Skip whitespace after "NOTATION"
-            i = skipWhitespace(xmlData, i);
-
-            // Expect '(' to start the list of notations
-            if (xmlData[i] !== "(") {
-                throw new Error(`Expected '(', found "${xmlData[i]}"`);
-            }
-            i++; // Move past '('
-
-            // Read the list of allowed notations
-            let allowedNotations = [];
-            while (i < xmlData.length && xmlData[i] !== ")") {
-                let notation = "";
-                while (i < xmlData.length && xmlData[i] !== "|" && xmlData[i] !== ")") {
-                    notation += xmlData[i];
-                    i++;
+                if (angleBracketsCount === 0) {
+                  break;
                 }
-
-                // Validate notation name
-                notation = notation.trim();
-                if (!validateEntityName(notation)) {
-                    throw new Error(`Invalid notation name: "${notation}"`);
-                }
-
-                allowedNotations.push(notation);
-
-                // Skip '|' separator or exit loop
-                if (xmlData[i] === "|") {
-                    i++; // Move past '|'
-                    i = skipWhitespace(xmlData, i); // Skip optional whitespace after '|'
-                }
-            }
-
-            if (xmlData[i] !== ")") {
-                throw new Error("Unterminated list of notations");
-            }
-            i++; // Move past ')'
-
-            // Store the allowed notations as part of the attribute type
-            attributeType += " (" + allowedNotations.join("|") + ")";
-        } else {
-            // Handle simple types (e.g., CDATA, ID, IDREF, etc.)
-            while (i < xmlData.length && !/\s/.test(xmlData[i])) {
-                attributeType += xmlData[i];
-                i++;
-            }
-
-            // Validate simple attribute type
-            const validTypes = ["CDATA", "ID", "IDREF", "IDREFS", "ENTITY", "ENTITIES", "NMTOKEN", "NMTOKENS"];
-            if (!this.suppressValidationErr && !validTypes.includes(attributeType.toUpperCase())) {
-                throw new Error(`Invalid attribute type: "${attributeType}"`);
+            }else if( xmlData[i] === '['){
+                hasBody = true;
+            }else{
+                exp += xmlData[i];
             }
         }
-
-        // Skip whitespace after attribute type
-        i = skipWhitespace(xmlData, i);
-
-        // Read default value
-        let defaultValue = "";
-        if (xmlData.substring(i, i + 8).toUpperCase() === "#REQUIRED") {
-            defaultValue = "#REQUIRED";
-            i += 8;
-        } else if (xmlData.substring(i, i + 7).toUpperCase() === "#IMPLIED") {
-            defaultValue = "#IMPLIED";
-            i += 7;
-        } else {
-            [i, defaultValue] = this.readIdentifierVal(xmlData, i, "ATTLIST");
+        if(angleBracketsCount !== 0){
+            throw new Error(`Unclosed DOCTYPE`);
         }
-
-        return {
-            elementName,
-            attributeName,
-            attributeType,
-            defaultValue,
-            index: i
-        }
+    }else{
+        throw new Error(`Invalid Tag instead of DOCTYPE`);
     }
+    return {entities, i};
 }
-
-
 
 const skipWhitespace = (data, index) => {
     while (index < data.length && /\s/.test(data[index])) {
@@ -965,7 +681,281 @@ const skipWhitespace = (data, index) => {
     return index;
 };
 
+function readEntityExp(xmlData, i) {    
+    //External entities are not supported
+    //    <!ENTITY ext SYSTEM "http://normal-website.com" >
 
+    //Parameter entities are not supported
+    //    <!ENTITY entityname "&anotherElement;">
+
+    //Internal entities are supported
+    //    <!ENTITY entityname "replacement text">
+
+    // Skip leading whitespace after <!ENTITY
+    i = skipWhitespace(xmlData, i);
+
+    // Read entity name
+    let entityName = "";
+    while (i < xmlData.length && !/\s/.test(xmlData[i]) && xmlData[i] !== '"' && xmlData[i] !== "'") {
+        entityName += xmlData[i];
+        i++;
+    }
+    validateEntityName(entityName);
+
+    // Skip whitespace after entity name
+    i = skipWhitespace(xmlData, i);
+
+    // Check for unsupported constructs (external entities or parameter entities)
+    if (xmlData.substring(i, i + 6).toUpperCase() === "SYSTEM") {
+        throw new Error("External entities are not supported");
+    }else if (xmlData[i] === "%") {
+        throw new Error("Parameter entities are not supported");
+    }
+
+    // Read entity value (internal entity)
+    let entityValue = "";
+    [i, entityValue] = readIdentifierVal(xmlData, i, "entity");
+    i--;
+    return [entityName, entityValue, i ];
+}
+
+function readNotationExp(xmlData, i) {
+    // Skip leading whitespace after <!NOTATION
+    i = skipWhitespace(xmlData, i);
+
+    // Read notation name
+    let notationName = "";
+    while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+        notationName += xmlData[i];
+        i++;
+    }
+    validateEntityName(notationName);
+
+    // Skip whitespace after notation name
+    i = skipWhitespace(xmlData, i);
+
+    // Check identifier type (SYSTEM or PUBLIC)
+    const identifierType = xmlData.substring(i, i + 6).toUpperCase();
+    if (identifierType !== "SYSTEM" && identifierType !== "PUBLIC") {
+        throw new Error(`Expected SYSTEM or PUBLIC, found "${identifierType}"`);
+    }
+    i += identifierType.length;
+
+    // Skip whitespace after identifier type
+    i = skipWhitespace(xmlData, i);
+
+    // Read public identifier (if PUBLIC)
+    let publicIdentifier = null;
+    let systemIdentifier = null;
+
+    if (identifierType === "PUBLIC") {
+        [i, publicIdentifier ] = readIdentifierVal(xmlData, i, "publicIdentifier");
+
+        // Skip whitespace after public identifier
+        i = skipWhitespace(xmlData, i);
+
+        // Optionally read system identifier
+        if (xmlData[i] === '"' || xmlData[i] === "'") {
+            [i, systemIdentifier ] = readIdentifierVal(xmlData, i,"systemIdentifier");
+        }
+    } else if (identifierType === "SYSTEM") {
+        // Read system identifier (mandatory for SYSTEM)
+        [i, systemIdentifier ] = readIdentifierVal(xmlData, i, "systemIdentifier");
+
+        if (!systemIdentifier) {
+            throw new Error("Missing mandatory system identifier for SYSTEM notation");
+        }
+    }
+    
+    return {notationName, publicIdentifier, systemIdentifier, index: --i};
+}
+
+function readIdentifierVal(xmlData, i, type) {
+    let identifierVal = "";
+    const startChar = xmlData[i];
+    if (startChar !== '"' && startChar !== "'") {
+        throw new Error(`Expected quoted string, found "${startChar}"`);
+    }
+    i++;
+
+    while (i < xmlData.length && xmlData[i] !== startChar) {
+        identifierVal += xmlData[i];
+        i++;
+    }
+
+    if (xmlData[i] !== startChar) {
+        throw new Error(`Unterminated ${type} value`);
+    }
+    i++;
+    return [i, identifierVal];
+}
+
+function readElementExp(xmlData, i) {
+    // <!ELEMENT br EMPTY>
+    // <!ELEMENT div ANY>
+    // <!ELEMENT title (#PCDATA)>
+    // <!ELEMENT book (title, author+)>
+    // <!ELEMENT name (content-model)>
+    
+    // Skip leading whitespace after <!ELEMENT
+    i = skipWhitespace(xmlData, i);
+
+    // Read element name
+    let elementName = "";
+    while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+        elementName += xmlData[i];
+        i++;
+    }
+
+    // Validate element name
+    if (!validateEntityName(elementName)) {
+        throw new Error(`Invalid element name: "${elementName}"`);
+    }
+
+    // Skip whitespace after element name
+    i = skipWhitespace(xmlData, i);
+    let contentModel = "";
+    // Expect '(' to start content model
+    if(xmlData[i] === "E" && hasSeq(xmlData, "MPTY",i)) i+=6;
+    else if(xmlData[i] === "A" && hasSeq(xmlData, "NY",i)) i+=4;
+    else if (xmlData[i] === "(") {
+        i++; // Move past '('
+
+        // Read content model
+        while (i < xmlData.length && xmlData[i] !== ")") {
+            contentModel += xmlData[i];
+            i++;
+        }
+        if (xmlData[i] !== ")") {
+            throw new Error("Unterminated content model");
+        }
+
+    }else{
+        throw new Error(`Invalid Element Expression, found "${xmlData[i]}"`);
+    }
+    
+    return {
+        elementName,
+        contentModel: contentModel.trim(),
+        index: i
+    };
+}
+
+function readAttlistExp(xmlData, i) {
+    // Skip leading whitespace after <!ATTLIST
+    i = skipWhitespace(xmlData, i);
+
+    // Read element name
+    let elementName = "";
+    while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+        elementName += xmlData[i];
+        i++;
+    }
+
+    // Validate element name
+    validateEntityName(elementName)
+
+    // Skip whitespace after element name
+    i = skipWhitespace(xmlData, i);
+
+    // Read attribute name
+    let attributeName = "";
+    while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+        attributeName += xmlData[i];
+        i++;
+    }
+
+    // Validate attribute name
+    if (!validateEntityName(attributeName)) {
+        throw new Error(`Invalid attribute name: "${attributeName}"`);
+    }
+
+    // Skip whitespace after attribute name
+    i = skipWhitespace(xmlData, i);
+
+    // Read attribute type
+    let attributeType = "";
+    if (xmlData.substring(i, i + 8).toUpperCase() === "NOTATION") {
+        attributeType = "NOTATION";
+        i += 8; // Move past "NOTATION"
+
+        // Skip whitespace after "NOTATION"
+        i = skipWhitespace(xmlData, i);
+
+        // Expect '(' to start the list of notations
+        if (xmlData[i] !== "(") {
+            throw new Error(`Expected '(', found "${xmlData[i]}"`);
+        }
+        i++; // Move past '('
+
+        // Read the list of allowed notations
+        let allowedNotations = [];
+        while (i < xmlData.length && xmlData[i] !== ")") {
+            let notation = "";
+            while (i < xmlData.length && xmlData[i] !== "|" && xmlData[i] !== ")") {
+                notation += xmlData[i];
+                i++;
+            }
+
+            // Validate notation name
+            notation = notation.trim();
+            if (!validateEntityName(notation)) {
+                throw new Error(`Invalid notation name: "${notation}"`);
+            }
+
+            allowedNotations.push(notation);
+
+            // Skip '|' separator or exit loop
+            if (xmlData[i] === "|") {
+                i++; // Move past '|'
+                i = skipWhitespace(xmlData, i); // Skip optional whitespace after '|'
+            }
+        }
+
+        if (xmlData[i] !== ")") {
+            throw new Error("Unterminated list of notations");
+        }
+        i++; // Move past ')'
+
+        // Store the allowed notations as part of the attribute type
+        attributeType += " (" + allowedNotations.join("|") + ")";
+    } else {
+        // Handle simple types (e.g., CDATA, ID, IDREF, etc.)
+        while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+            attributeType += xmlData[i];
+            i++;
+        }
+
+        // Validate simple attribute type
+        const validTypes = ["CDATA", "ID", "IDREF", "IDREFS", "ENTITY", "ENTITIES", "NMTOKEN", "NMTOKENS"];
+        if (!validTypes.includes(attributeType.toUpperCase())) {
+            throw new Error(`Invalid attribute type: "${attributeType}"`);
+        }
+    }
+
+    // Skip whitespace after attribute type
+    i = skipWhitespace(xmlData, i);
+
+    // Read default value
+    let defaultValue = "";
+    if (xmlData.substring(i, i + 8).toUpperCase() === "#REQUIRED") {
+        defaultValue = "#REQUIRED";
+        i += 8;
+    } else if (xmlData.substring(i, i + 7).toUpperCase() === "#IMPLIED") {
+        defaultValue = "#IMPLIED";
+        i += 7;
+    } else {
+        [i, defaultValue] = readIdentifierVal(xmlData, i, "ATTLIST");
+    }
+
+    return {
+        elementName,
+        attributeName,
+        attributeType,
+        defaultValue,
+        index: i
+    }
+}
 
 function hasSeq(data, seq,i){
     for(let j=0;j<seq.length;j++){
@@ -976,7 +966,7 @@ function hasSeq(data, seq,i){
 
 function validateEntityName(name){
     if (isName(name))
-	    return name;
+	return name;
     else
         throw new Error(`Invalid entity name ${name}`);
 }
@@ -987,7 +977,7 @@ const numRegex = /^([\-\+])?(0*)([0-9]*(\.[0-9]*)?)$/;
 // const octRegex = /^0x[a-z0-9]+/;
 // const binRegex = /0x[a-z0-9]+/;
 
-
+ 
 const consider = {
     hex :  true,
     // oct: false,
@@ -1000,9 +990,9 @@ const consider = {
 function toNumber(str, options = {}){
     options = Object.assign({}, consider, options );
     if(!str || typeof str !== "string" ) return str;
-
+    
     let trimmedStr  = str.trim();
-
+    
     if(options.skipLike !== undefined && options.skipLike.test(trimmedStr)) return str;
     else if(str==="0") return 0;
     else if (options.hex && hexRegex.test(trimmedStr)) {
@@ -1022,12 +1012,12 @@ function toNumber(str, options = {}){
             const leadingZeros = match[2];
             let numTrimmedByZeros = trimZeros(match[3]); //complete num without leading zeros
             const decimalAdjacentToLeadingZeros = sign ? // 0., -00., 000.
-                str[leadingZeros.length+1] === "."
+                str[leadingZeros.length+1] === "." 
                 : str[leadingZeros.length] === ".";
 
             //trim ending zeros for floating number
             if(!options.leadingZeros //leading zeros are not allowed
-                && (leadingZeros.length > 1
+                && (leadingZeros.length > 1 
                     || (leadingZeros.length === 1 && !decimalAdjacentToLeadingZeros))){
                 // 00, 00.3, +03.24, 03, 03.24
                 return str;
@@ -1046,7 +1036,7 @@ function toNumber(str, options = {}){
                     else if( parsedStr === `${sign}${numTrimmedByZeros}`) return num;
                     else return str;
                 }
-
+                
                 let n = leadingZeros? numTrimmedByZeros : trimmedStr;
                 if(leadingZeros){
                     // -009 => -9
@@ -1065,17 +1055,17 @@ function toNumber(str, options = {}){
 const eNotationRegx = /^([-+])?(0*)(\d*(\.\d*)?[eE][-\+]?\d+)$/;
 function resolveEnotation(str,trimmedStr,options){
     if(!options.eNotation) return str;
-    const notation = trimmedStr.match(eNotationRegx);
+    const notation = trimmedStr.match(eNotationRegx); 
     if(notation){
         let sign = notation[1] || "";
         const eChar = notation[3].indexOf("e") === -1 ? "E" : "e";
         const leadingZeros = notation[2];
         const eAdjacentToLeadingZeros = sign ? // 0E.
-            str[leadingZeros.length+1] === eChar
+            str[leadingZeros.length+1] === eChar 
             : str[leadingZeros.length] === eChar;
 
         if(leadingZeros.length > 1 && eAdjacentToLeadingZeros) return str;
-        else if(leadingZeros.length === 1
+        else if(leadingZeros.length === 1 
             && (notation[3].startsWith(`.${eChar}`) || notation[3][0] === eChar)){
                 return Number(trimmedStr);
         }else if(options.leadingZeros && !eAdjacentToLeadingZeros){ //accept with leading zeros
@@ -1089,9 +1079,9 @@ function resolveEnotation(str,trimmedStr,options){
 }
 
 /**
- *
+ * 
  * @param {string} numStr without leading zeros
- * @returns
+ * @returns 
  */
 function trimZeros(numStr){
     if(numStr && numStr.indexOf(".") !== -1){//float
@@ -1188,20 +1178,6 @@ class OrderedObjParser{
     this.saveTextToParentTag = saveTextToParentTag;
     this.addChild = addChild;
     this.ignoreAttributesFn = getIgnoreAttributesFn(this.options.ignoreAttributes)
-
-    if(this.options.stopNodes && this.options.stopNodes.length > 0){
-      this.stopNodesExact = new Set();
-      this.stopNodesWildcard = new Set();
-      for(let i = 0; i < this.options.stopNodes.length; i++){
-        const stopNodeExp = this.options.stopNodes[i];
-        if(typeof stopNodeExp !== 'string') continue;
-        if(stopNodeExp.startsWith("*.")){
-          this.stopNodesWildcard.add(stopNodeExp.substring(2));
-        }else{
-          this.stopNodesExact.add(stopNodeExp);
-        }
-      }
-    }
   }
 
 }
@@ -1233,7 +1209,7 @@ function parseTextData(val, tagName, jPath, dontTrim, hasAttributes, isLeafNode,
     }
     if(val.length > 0){
       if(!escapeEntities) val = this.replaceEntitiesValue(val);
-
+      
       const newval = this.options.tagValueProcessor(tagName, val, jPath, hasAttributes, isLeafNode);
       if(newval === null || newval === undefined){
         //don't parse
@@ -1336,7 +1312,6 @@ const parseXml = function(xmlData) {
   let currentNode = xmlObj;
   let textData = "";
   let jPath = "";
-  const docTypeReader = new DocTypeReader(this.options.processEntities);
   for(let i=0; i< xmlData.length; i++){//for each char in XML data
     const ch = xmlData[i];
     if(ch === '<'){
@@ -1387,10 +1362,10 @@ const parseXml = function(xmlData) {
         if( (this.options.ignoreDeclaration && tagData.tagName === "?xml") || this.options.ignorePiTags){
 
         }else{
-
+  
           const childNode = new XmlNode(tagData.tagName);
           childNode.add(this.options.textNodeName, "");
-
+          
           if(tagData.tagName !== tagData.tagExp && tagData.attrExpPresent){
             childNode[":@"] = this.buildAttributesMap(tagData.tagExp, jPath, tagData.tagName);
           }
@@ -1410,7 +1385,7 @@ const parseXml = function(xmlData) {
         }
         i = endIndex;
       } else if( xmlData.substr(i + 1, 2) === '!D') {
-        const result = docTypeReader.readDocType(xmlData, i);
+        const result = readDocType(xmlData, i);
         this.docTypeEntities = result.entities;
         i = result.i;
       }else if(xmlData.substr(i + 1, 2) === '![') {
@@ -1428,7 +1403,7 @@ const parseXml = function(xmlData) {
         }else{
           currentNode.add(this.options.textNodeName, val);
         }
-
+        
         i = closeIndex + 2;
       }else {//Opening tag
         let result = readTagExp(xmlData,i, this.options.removeNSPrefix);
@@ -1441,7 +1416,7 @@ const parseXml = function(xmlData) {
         if (this.options.transformTagName) {
           tagName = this.options.transformTagName(tagName);
         }
-
+        
         //save text as child node
         if (currentNode && textData) {
           if(currentNode.tagname !== '!xml'){
@@ -1460,7 +1435,7 @@ const parseXml = function(xmlData) {
           jPath += jPath ? "." + tagName : tagName;
         }
         const startIndex = i;
-        if (this.isItStopNode(this.stopNodesExact, this.stopNodesWildcard, jPath, tagName)) {
+        if (this.isItStopNode(this.options.stopNodes, jPath, tagName)) {
           let tagContent = "";
           //self-closing tag
           if(tagExp.length > 0 && tagExp.lastIndexOf("/") === tagExp.length - 1){
@@ -1475,7 +1450,7 @@ const parseXml = function(xmlData) {
           }
           //unpaired tag
           else if(this.options.unpairedTags.indexOf(tagName) !== -1){
-
+            
             i = result.closeIndex;
           }
           //normal tag
@@ -1495,10 +1470,10 @@ const parseXml = function(xmlData) {
           if(tagContent) {
             tagContent = this.parseTextData(tagContent, tagName, jPath, true, attrExpPresent, true, true);
           }
-
+          
           jPath = jPath.substr(0, jPath.lastIndexOf("."));
           childNode.add(this.options.textNodeName, tagContent);
-
+          
           this.addChild(currentNode, childNode, jPath, startIndex);
         }else{
   //selfClosing tag
@@ -1510,7 +1485,7 @@ const parseXml = function(xmlData) {
             }else{
               tagExp = tagExp.substr(0, tagExp.length - 1);
             }
-
+            
             if(this.options.transformTagName) {
               tagName = this.options.transformTagName(tagName);
             }
@@ -1526,7 +1501,7 @@ const parseXml = function(xmlData) {
           else{
             const childNode = new XmlNode( tagName);
             this.tagsNodeStack.push(currentNode);
-
+            
             if(tagName !== tagExp && attrExpPresent){
               childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName);
             }
@@ -1581,7 +1556,7 @@ const replaceEntitiesValue = function(val){
 function saveTextToParentTag(textData, currentNode, jPath, isLeafNode) {
   if (textData) { //store previously collected data as textNode
     if(isLeafNode === undefined) isLeafNode = currentNode.child.length === 0
-
+    
     textData = this.parseTextData(textData,
       currentNode.tagname,
       jPath,
@@ -1598,22 +1573,25 @@ function saveTextToParentTag(textData, currentNode, jPath, isLeafNode) {
 
 //TODO: use jPath to simplify the logic
 /**
- * @param {Set} stopNodesExact
- * @param {Set} stopNodesWildcard
+ * 
+ * @param {string[]} stopNodes 
  * @param {string} jPath
- * @param {string} currentTagName
+ * @param {string} currentTagName 
  */
-function isItStopNode(stopNodesExact, stopNodesWildcard, jPath, currentTagName){
-  if(stopNodesWildcard && stopNodesWildcard.has(currentTagName)) return true;
-  if(stopNodesExact && stopNodesExact.has(jPath)) return true;
+function isItStopNode(stopNodes, jPath, currentTagName){
+  const allNodesExp = "*." + currentTagName;
+  for (const stopNodePath in stopNodes) {
+    const stopNodeExp = stopNodes[stopNodePath];
+    if( allNodesExp === stopNodeExp || jPath === stopNodeExp  ) return true;
+  }
   return false;
 }
 
 /**
  * Returns the tag Expression and where it is ending handling single-double quotes situation
- * @param {string} xmlData
+ * @param {string} xmlData 
  * @param {number} i starting index
- * @returns
+ * @returns 
  */
 function tagExpWithClosingIndex(xmlData, i, closingChar = ">"){
   let attrBoundary;
@@ -1686,9 +1664,9 @@ function readTagExp(xmlData,i, removeNSPrefix, closingChar = ">"){
 }
 /**
  * find paired tag for a stop node
- * @param {string} xmlData
- * @param {string} tagName
- * @param {number} i
+ * @param {string} xmlData 
+ * @param {string} tagName 
+ * @param {number} i 
  */
 function readStopNodeData(xmlData, tagName, i){
   const startIndex = i;
@@ -1696,7 +1674,7 @@ function readStopNodeData(xmlData, tagName, i){
   let openTagCount = 1;
 
   for (; i < xmlData.length; i++) {
-    if( xmlData[i] === "<"){
+    if( xmlData[i] === "<"){ 
       if (xmlData[i+1] === "/") {//close tag
           const closeIndex = findClosingIndex(xmlData, ">", i, `${tagName} is not closed`);
           let closeTagName = xmlData.substring(i+2,closeIndex).trim();
@@ -1710,13 +1688,13 @@ function readStopNodeData(xmlData, tagName, i){
             }
           }
           i=closeIndex;
-        } else if(xmlData[i+1] === '?') {
+        } else if(xmlData[i+1] === '?') { 
           const closeIndex = findClosingIndex(xmlData, "?>", i+1, "StopNode is not closed.")
           i=closeIndex;
-        } else if(xmlData.substr(i + 1, 3) === '!--') {
+        } else if(xmlData.substr(i + 1, 3) === '!--') { 
           const closeIndex = findClosingIndex(xmlData, "-->", i+3, "StopNode is not closed.")
           i=closeIndex;
-        } else if(xmlData.substr(i + 1, 2) === '![') {
+        } else if(xmlData.substr(i + 1, 2) === '![') { 
           const closeIndex = findClosingIndex(xmlData, "]]>", i, "StopNode is not closed.") - 2;
           i=closeIndex;
         } else {
@@ -1758,20 +1736,20 @@ function parseValue(val, shouldParse, options) {
 const node2json_METADATA_SYMBOL = XmlNode.getMetaDataSymbol();
 
 /**
- *
- * @param {array} node
- * @param {any} options
- * @returns
+ * 
+ * @param {array} node 
+ * @param {any} options 
+ * @returns 
  */
 function prettify(node, options){
   return compress( node, options);
 }
 
 /**
- *
- * @param {array} arr
- * @param {object} options
- * @param {string} jPath
+ * 
+ * @param {array} arr 
+ * @param {object} options 
+ * @param {string} jPath 
  * @returns object
  */
 function compress(arr, options, jPath){
@@ -1790,7 +1768,7 @@ function compress(arr, options, jPath){
     }else if(property === undefined){
       continue;
     }else if(tagObj[property]){
-
+      
       let val = compress(tagObj[property], options, newJpath);
       const isLeaf = isLeafTag(val, options);
       if (tagObj[node2json_METADATA_SYMBOL] !== undefined) {
@@ -1821,7 +1799,7 @@ function compress(arr, options, jPath){
         }
       }
     }
-
+    
   }
   // if(text && text.length > 0) compressedObj[options.textNodeName] = text;
   if(typeof text === "string"){
@@ -1856,7 +1834,7 @@ function assignAttributes(obj, attrMap, jpath, options){
 function isLeafTag(obj, options){
   const { textNodeName } = options;
   const propCount = Object.keys(obj).length;
-
+  
   if (propCount === 0) {
     return true;
   }
@@ -1879,27 +1857,27 @@ function isLeafTag(obj, options){
 
 
 class XMLParser{
-
+    
     constructor(options){
         this.externalEntities = {};
         this.options = buildOptions(options);
-
+        
     }
     /**
-     * Parse XML dats to JS object
-     * @param {string|Uint8Array} xmlData
-     * @param {boolean|Object} validationOption
+     * Parse XML dats to JS object 
+     * @param {string|Buffer} xmlData 
+     * @param {boolean|Object} validationOption 
      */
     parse(xmlData,validationOption){
-        if(typeof xmlData !== "string" && xmlData.toString){
+        if(typeof xmlData === "string"){
+        }else if( xmlData.toString){
             xmlData = xmlData.toString();
-        }else if(typeof xmlData !== "string"){
+        }else{
             throw new Error("XML data is accepted in String or Bytes[] form.")
         }
-
         if( validationOption){
             if(validationOption === true) validationOption = {}; //validate with default options
-
+            
             const result = validate(xmlData, validationOption);
             if (result !== true) {
               throw Error( `${result.err.msg}:${result.err.line}:${result.err.col}` )
@@ -1914,8 +1892,8 @@ class XMLParser{
 
     /**
      * Add Entity which is not by default supported by this library
-     * @param {string} key
-     * @param {string} value
+     * @param {string} key 
+     * @param {string} value 
      */
     addEntity(key, value){
         if(value.indexOf("&") !== -1){
@@ -1932,10 +1910,10 @@ class XMLParser{
     /**
      * Returns a Symbol that can be used to access the metadata
      * property on a node.
-     *
+     * 
      * If Symbol is not available in the environment, an ordinary property is used
      * and the name of the property is here returned.
-     *
+     * 
      * The XMLMetaData property is only present when `captureMetaData`
      * is true in the options.
      */
