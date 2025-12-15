@@ -39618,6 +39618,7 @@ function configureEnvironment(wrappersDir) {
     if (allowUntrustedServer) {
         core.exportVariable('DEVELOCITY_ALLOW_UNTRUSTED_SERVER', allowUntrustedServer);
     }
+    core.exportVariable('DEVELOCITY_VALUE_CIAutoInjection', 'GitHub');
 }
 async function findAndVerifyBinary(binaryName) {
     // Find the actual npm binary
