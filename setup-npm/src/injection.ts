@@ -130,6 +130,7 @@ function configureEnvironment(wrappersDir: string): void {
     if (allowUntrustedServer) {
         core.exportVariable('DEVELOCITY_ALLOW_UNTRUSTED_SERVER', allowUntrustedServer)
     }
+    core.exportVariable('DEVELOCITY_VALUE_CIAutoInjection', 'GitHub')
 }
 
 async function findAndVerifyBinary(binaryName: string): Promise<string> {

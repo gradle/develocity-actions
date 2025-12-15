@@ -35,7 +35,7 @@ export async function constructDevelocityMavenOpts(downloadFolder: string): Prom
                     downloadFolder,
                     credentials
                 )
-                develocityMavenExtensionMavenOpts = `${io.getDelimiter()}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`
+                develocityMavenExtensionMavenOpts = `${io.getDelimiter()}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()} -Dscan.value.CIAutoInjection=GitHub`
                 if (input.getDevelocityAllowUntrustedServer()) {
                     develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`
                 }

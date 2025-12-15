@@ -39659,7 +39659,7 @@ async function constructDevelocityMavenOpts(downloadFolder) {
             const credentials = username && password ? { username, password } : undefined;
             if (input.getDevelocityMavenExtensionVersion()) {
                 const develocityMavenExtensionJar = await io.downloadFile(`${repository}com/gradle/develocity-maven-extension/${input.getDevelocityMavenExtensionVersion()}/develocity-maven-extension-${input.getDevelocityMavenExtensionVersion()}.jar`, downloadFolder, credentials);
-                develocityMavenExtensionMavenOpts = `${io.getDelimiter()}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()}`;
+                develocityMavenExtensionMavenOpts = `${io.getDelimiter()}${develocityMavenExtensionJar} -Dgradle.enterprise.url=${input.getDevelocityUrl()} -Ddevelocity.url=${input.getDevelocityUrl()} -Dscan.value.CIAutoInjection=GitHub`;
                 if (input.getDevelocityAllowUntrustedServer()) {
                     develocityMavenExtensionMavenOpts = `${develocityMavenExtensionMavenOpts} -Ddevelocity.allowUntrustedServer=${input.getDevelocityAllowUntrustedServer()}`;
                 }
