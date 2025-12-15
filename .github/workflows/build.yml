@@ -7,6 +7,9 @@ on:
       - main
       - 'releases/*'
 
+permissions:
+  contents: read
+
 env:
   DV_URL: "https://ge.solutions-team.gradle.com"
   DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
@@ -21,11 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
       - name: Set up JDK 8
         uses: actions/setup-java@v5
@@ -88,7 +91,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Find PR Comment with publication summary
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: fc
         with:
           issue-number: ${{ github.event.number }}
@@ -102,9 +105,9 @@ jobs:
             gh api --method DELETE "repos/${GITHUB_REPOSITORY}/issues/comments/${{ steps.fc.outputs.comment-id }}"
           fi
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Checkout Maven sample project
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: 'gradle/develocity-build-config-samples'
           path: 'sample'
@@ -132,7 +135,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Setup Build Scan link capture
         uses: ./setup-maven
       - name: Publish Build Scans
@@ -147,7 +150,7 @@ jobs:
     needs: test-publish
     steps:
       - name: Find PR Comment with publication summary
-        uses: peter-evans/find-comment@v3
+        uses: peter-evans/find-comment@v4
         id: fc
         with:
           issue-number: ${{ github.event.number }}
