@@ -2,9 +2,8 @@ import path from 'path'
 
 import * as core from '@actions/core'
 import * as glob from '@actions/glob'
-import PropertiesReader from 'properties-reader'
+import propertiesReader from 'properties-reader'
 
-import * as props from './properties'
 import {BuildToolType} from '../buildTool/common'
 
 export interface Job {
@@ -56,16 +55,16 @@ export async function loadJobMetadata(buildToolType: BuildToolType, buildScanMet
 
 function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; prNumber: number} {
     const buildId = path.parse(metadataFile).name
-    const metadataReader = props.create(metadataFile)
-    const prNumber = Number((metadataReader as PropertiesReader.Reader).get('PR_NUMBER'))
-    const projectId = (metadataReader as PropertiesReader.Reader).get('PROJECT_ID') as string
-    const workflowName = (metadataReader as PropertiesReader.Reader).get('WORKFLOW_NAME') as string
-    const jobName = (metadataReader as PropertiesReader.Reader).get('JOB_NAME') as string
-    const buildToolVersion = (metadataReader as PropertiesReader.Reader).get('BUILD_TOOL_VERSION') as string
-    const requestedTasks = (metadataReader as PropertiesReader.Reader).get('REQUESTED_TASKS') as string
-    const buildFailure = (metadataReader as PropertiesReader.Reader).get('BUILD_FAILURE')?.valueOf() as boolean
-    const buildTimestamp = (metadataReader as PropertiesReader.Reader).get('TIMESTAMP') as string
-    const buildScanLink = (metadataReader as PropertiesReader.Reader).get('BUILD_SCAN_LINK') as string
+    const metadataReader = propertiesReader({sourceFile: metadataFile})
+    const prNumber = Number(metadataReader.get('PR_NUMBER'))
+    const projectId = metadataReader.get('PROJECT_ID') as string
+    const workflowName = metadataReader.get('WORKFLOW_NAME') as string
+    const jobName = metadataReader.get('JOB_NAME') as string
+    const buildToolVersion = metadataReader.get('BUILD_TOOL_VERSION') as string
+    const requestedTasks = metadataReader.get('REQUESTED_TASKS') as string
+    const buildFailure = metadataReader.get('BUILD_FAILURE')?.valueOf() as boolean
+    const buildTimestamp = metadataReader.get('TIMESTAMP') as string
+    const buildScanLink = metadataReader.get('BUILD_SCAN_LINK') as string
     if (!workflowName || !jobName || !requestedTasks) {
         core.info(
             `Unexpected Build Scan metadata content [${buildId},${prNumber},${workflowName},${jobName},${requestedTasks}]`

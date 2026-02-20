@@ -1,82 +1,62 @@
-import * as artifact from '@actions/artifact'
-import * as glob from '@actions/glob'
-import * as github from '@actions/github'
+import {jest} from '@jest/globals'
 
 process.env['RUNNER_TEMP'] = '/tmp'
 
-import * as post from '../src/post'
-import * as summary from '../../build-scan-shared/src/summary/dump'
+const mockGlob = jest.fn<() => Promise<string[]>>()
+const mockCreate = jest.fn<(patterns: string, options?: object) => Promise<{glob: () => Promise<string[]>}>>()
 
-const runMock = jest.spyOn(post, 'run')
+jest.unstable_mockModule('@actions/glob', () => ({
+    create: mockCreate
+}))
 
-jest.mock('@actions/artifact')
+function setupGlob(matchedFiles: string[]): void {
+    mockGlob.mockResolvedValue(matchedFiles)
+    mockCreate.mockResolvedValue({glob: mockGlob})
+}
+
+const mockUploadArtifact = jest.fn()
+
+jest.unstable_mockModule('@actions/artifact', () => ({
+    DefaultArtifactClient: jest.fn().mockImplementation(() => ({
+        uploadArtifact: mockUploadArtifact
+    }))
+}))
+
+const mockDumpSummary = jest.fn()
+
+jest.unstable_mockModule('../../build-scan-shared/src/summary/dump', () => ({
+    dump: mockDumpSummary
+}))
+
+const {run} = await import('../src/post')
+await import('@actions/artifact')
 
 describe('Post Setup Maven', () => {
-    beforeEach(() => {
-        Object.defineProperty(github, 'context', {
-            value: {
-                repo: {
-                    owner: 'foo',
-                    repo: 'bar'
-                },
-                issue: {
-                    number: 42
-                }
-            }
-        })
-    })
-
     afterEach(() => {
         jest.clearAllMocks()
     })
 
     it('Post-execution with build scan succeeds', async () => {
         // Given
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return ['/tmp/maven-build-scan-data/build-scan-data/foo.scan']
-                }
-            })
-        )
-        jest.spyOn(artifact, 'DefaultArtifactClient').mockImplementation()
-        const uploadArtifactMock = jest
-            .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
-            .mockImplementation()
-        const summaryMock = jest.spyOn(summary, 'dump').mockResolvedValue()
+        setupGlob(['/tmp/maven-build-scan-data/build-scan-data/foo.scan'])
 
         // when
-        await post.run()
+        await run()
 
         // then
-        expect(runMock).toHaveReturned()
-        expect(uploadArtifactMock).toHaveBeenCalled()
-        expect(summaryMock).toHaveBeenCalled()
+        expect(mockUploadArtifact).toHaveBeenCalled()
+        expect(mockDumpSummary).toHaveBeenCalled()
     })
 
     it('Post-execution without build scan does not upload artifact', async () => {
         // Given
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return []
-                }
-            })
-        )
-        jest.spyOn(artifact, 'DefaultArtifactClient').mockImplementation()
-        const uploadArtifactMock = jest
-            .spyOn(artifact.DefaultArtifactClient.prototype, 'uploadArtifact')
-            .mockImplementation()
-        const summaryMock = jest.spyOn(summary, 'dump').mockResolvedValue()
+        setupGlob([])
 
         // when
-        await post.run()
+        await run()
 
         // then
-        expect(runMock).toHaveReturned()
-        expect(uploadArtifactMock).not.toHaveBeenCalled()
-        expect(summaryMock).toHaveBeenCalled()
+        expect(mockUploadArtifact).not.toHaveBeenCalled()
+        expect(mockDumpSummary).toHaveBeenCalled()
     })
 })

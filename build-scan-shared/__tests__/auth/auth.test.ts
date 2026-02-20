@@ -1,20 +1,16 @@
+import {jest} from '@jest/globals'
 import nock from 'nock'
 
 import * as auth from '../../src/auth/auth'
 
 describe('auth', () => {
-    let restoreEnv: jest.ReplaceProperty<NodeJS.ProcessEnv>
-
     beforeEach(() => {
         // Remove access keys from environment not to interfere with test results.
-        const newEnv = {...process.env}
-        delete newEnv[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY]
-        delete newEnv[auth.ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY]
-        restoreEnv = jest.replaceProperty(process, 'env', newEnv)
+        process.env[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY] = ''
+        process.env[auth.ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY] = ''
     })
 
     afterEach(() => {
-        restoreEnv.restore()
         jest.clearAllMocks()
     })
 

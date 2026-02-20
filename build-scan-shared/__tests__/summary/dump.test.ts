@@ -1,15 +1,24 @@
-import {Job} from '../../src/metadata/load'
+import {jest} from '@jest/globals'
 
 process.env['RUNNER_TEMP'] = '/tmp'
 
-import * as githubUtils from '../../src/utils/github'
-import * as input from '../../src/setup/input'
-import * as io from '../../src/utils/io'
-import * as load from '../../src/metadata/load'
-import * as output from '../../src/summary/dump'
 import {BuildToolType} from '../../src/buildTool/common'
 
-const outputMock = jest.spyOn(output, 'dump')
+const mockWriteContentToFileSync = jest.fn()
+
+jest.unstable_mockModule('../../src/utils/io', () => ({
+    existsSync: jest.fn().mockReturnValue(true),
+    writeContentToFileSync: mockWriteContentToFileSync
+}))
+
+const mockIsAddPrComment = jest.fn()
+const mockIsAddJobSummary = jest.fn()
+
+jest.unstable_mockModule('../../src/setup/input', () => ({
+    isAddPrComment: mockIsAddPrComment,
+    isAddJobSummary: mockIsAddJobSummary,
+    isAddProjectIdInJobSummary: jest.fn().mockReturnValue(false)
+}))
 
 function job(buildTool: BuildToolType) {
     return {
@@ -31,6 +40,22 @@ function job(buildTool: BuildToolType) {
     }
 }
 
+const mockLoadJobMetadata = jest.fn()
+
+jest.unstable_mockModule('../../src/metadata/load', () => ({
+    loadJobMetadata: mockLoadJobMetadata
+}))
+
+const mockGitHubCommentPr = jest.fn()
+const mockGitHubAddSummary = jest.fn()
+
+jest.unstable_mockModule('../../src/utils/github', () => ({
+    commentPullRequest: mockGitHubCommentPr,
+    addSummary: mockGitHubAddSummary
+}))
+
+const {dump} = await import('../../src/summary/dump')
+
 describe('dump', () => {
     afterEach(() => {
         jest.clearAllMocks()
@@ -40,24 +65,19 @@ describe('dump', () => {
         'Dump triggers pull request comment and summary with %s',
         async buildTool => {
             // Given
-            jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(job(buildTool))
-            jest.spyOn(input, 'isAddPrComment').mockReturnValue(true)
-            jest.spyOn(input, 'isAddJobSummary').mockReturnValue(true)
-            const githubCommentMock = jest
-                .spyOn(githubUtils, 'commentPullRequest')
-                .mockReturnValue(Promise.resolve(undefined))
-            const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
-            const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
-            jest.spyOn(io, 'existsSync').mockReturnValue(true)
+            mockLoadJobMetadata.mockReturnValue(job(buildTool))
+            mockIsAddPrComment.mockReturnValue(true)
+            mockIsAddJobSummary.mockReturnValue(true)
+            mockGitHubCommentPr.mockReturnValue(Promise.resolve(undefined))
+            mockGitHubAddSummary.mockReturnValue(Promise.resolve(undefined))
 
             // when
-            await output.dump(buildTool, '', '')
+            await dump(buildTool, '', '')
 
             // then
-            expect(outputMock).toHaveReturned()
-            expect(ioWriteMock).toHaveBeenCalled()
-            expect(githubCommentMock).toHaveBeenCalled()
-            expect(githubSummaryMock).toHaveBeenCalled()
+            expect(mockWriteContentToFileSync).toHaveBeenCalled()
+            expect(mockGitHubCommentPr).toHaveBeenCalled()
+            expect(mockGitHubAddSummary).toHaveBeenCalled()
         }
     )
 
@@ -65,24 +85,19 @@ describe('dump', () => {
         'Dump with add-pr-comment=false dumps output to file with %s',
         async buildTool => {
             // Given
-            jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(job(buildTool))
-            jest.spyOn(input, 'isAddPrComment').mockReturnValue(false)
-            jest.spyOn(input, 'isAddJobSummary').mockReturnValue(true)
-            const githubCommentMock = jest
-                .spyOn(githubUtils, 'commentPullRequest')
-                .mockReturnValue(Promise.resolve(undefined))
-            const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
-            const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
-            jest.spyOn(io, 'existsSync').mockReturnValue(true)
+            mockLoadJobMetadata.mockReturnValue(job(buildTool))
+            mockIsAddPrComment.mockReturnValue(false)
+            mockIsAddJobSummary.mockReturnValue(true)
+            mockGitHubCommentPr.mockReturnValue(Promise.resolve(undefined))
+            mockGitHubAddSummary.mockReturnValue(Promise.resolve(undefined))
 
             // when
-            await output.dump(buildTool, '', '')
+            await dump(buildTool, '', '')
 
             // then
-            expect(outputMock).toHaveReturned()
-            expect(ioWriteMock).toHaveBeenCalled()
-            expect(githubCommentMock).not.toHaveBeenCalled()
-            expect(githubSummaryMock).toHaveBeenCalled()
+            expect(mockWriteContentToFileSync).toHaveBeenCalled()
+            expect(mockGitHubCommentPr).not.toHaveBeenCalled()
+            expect(mockGitHubAddSummary).toHaveBeenCalled()
         }
     )
 
@@ -90,24 +105,19 @@ describe('dump', () => {
         'Dump with add-job-summary=false does not add summary with %s',
         async buildTool => {
             // Given
-            jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(job(buildTool))
-            jest.spyOn(input, 'isAddPrComment').mockReturnValue(false)
-            jest.spyOn(input, 'isAddJobSummary').mockReturnValue(false)
-            const githubCommentMock = jest
-                .spyOn(githubUtils, 'commentPullRequest')
-                .mockReturnValue(Promise.resolve(undefined))
-            const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
-            const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
-            jest.spyOn(io, 'existsSync').mockReturnValue(true)
+            mockLoadJobMetadata.mockReturnValue(job(buildTool))
+            mockIsAddPrComment.mockReturnValue(false)
+            mockIsAddJobSummary.mockReturnValue(false)
+            mockGitHubCommentPr.mockReturnValue(Promise.resolve(undefined))
+            mockGitHubAddSummary.mockReturnValue(Promise.resolve(undefined))
 
             // when
-            await output.dump(buildTool, '', '')
+            await dump(buildTool, '', '')
 
             // then
-            expect(outputMock).toHaveReturned()
-            expect(ioWriteMock).toHaveBeenCalled()
-            expect(githubCommentMock).not.toHaveBeenCalled()
-            expect(githubSummaryMock).not.toHaveBeenCalled()
+            expect(mockWriteContentToFileSync).toHaveBeenCalled()
+            expect(mockGitHubCommentPr).not.toHaveBeenCalled()
+            expect(mockGitHubAddSummary).not.toHaveBeenCalled()
         }
     )
 
@@ -115,23 +125,19 @@ describe('dump', () => {
         'Dump without build scan does nothing with %s',
         async buildTool => {
             // Given
-            jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(<Job>{})
-            jest.spyOn(input, 'isAddPrComment').mockReturnValue(false)
-            jest.spyOn(input, 'isAddJobSummary').mockReturnValue(false)
-            const githubCommentMock = jest
-                .spyOn(githubUtils, 'commentPullRequest')
-                .mockReturnValue(Promise.resolve(undefined))
-            const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
-            const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
+            mockLoadJobMetadata.mockReturnValue({})
+            mockIsAddPrComment.mockReturnValue(false)
+            mockIsAddJobSummary.mockReturnValue(false)
+            mockGitHubCommentPr.mockReturnValue(Promise.resolve(undefined))
+            mockGitHubAddSummary.mockReturnValue(Promise.resolve(undefined))
 
             // when
-            await output.dump(buildTool, '', '')
+            await dump(buildTool, '', '')
 
             // then
-            expect(outputMock).toHaveReturned()
-            expect(ioWriteMock).not.toHaveBeenCalled()
-            expect(githubCommentMock).not.toHaveBeenCalled()
-            expect(githubSummaryMock).not.toHaveBeenCalled()
+            expect(mockWriteContentToFileSync).not.toHaveBeenCalled()
+            expect(mockGitHubCommentPr).not.toHaveBeenCalled()
+            expect(mockGitHubAddSummary).not.toHaveBeenCalled()
         }
     )
 
@@ -139,23 +145,19 @@ describe('dump', () => {
         'Dump with add-pr-comment=true and without build scan does nothing with %s',
         async buildTool => {
             // Given
-            jest.spyOn(load, 'loadJobMetadata').mockResolvedValue(<Job>{})
-            jest.spyOn(input, 'isAddPrComment').mockReturnValue(true)
-            jest.spyOn(input, 'isAddJobSummary').mockReturnValue(false)
-            const githubCommentMock = jest
-                .spyOn(githubUtils, 'commentPullRequest')
-                .mockReturnValue(Promise.resolve(undefined))
-            const githubSummaryMock = jest.spyOn(githubUtils, 'addSummary').mockReturnValue(Promise.resolve(undefined))
-            const ioWriteMock = jest.spyOn(io, 'writeContentToFileSync').mockReturnValue()
+            mockLoadJobMetadata.mockReturnValue({})
+            mockIsAddPrComment.mockReturnValue(true)
+            mockIsAddJobSummary.mockReturnValue(false)
+            mockGitHubCommentPr.mockReturnValue(Promise.resolve(undefined))
+            mockGitHubAddSummary.mockReturnValue(Promise.resolve(undefined))
 
             // when
-            await output.dump(buildTool, '', '')
+            await dump(buildTool, '', '')
 
             // then
-            expect(outputMock).toHaveReturned()
-            expect(ioWriteMock).not.toHaveBeenCalled()
-            expect(githubCommentMock).not.toHaveBeenCalled()
-            expect(githubSummaryMock).not.toHaveBeenCalled()
+            expect(mockWriteContentToFileSync).not.toHaveBeenCalled()
+            expect(mockGitHubCommentPr).not.toHaveBeenCalled()
+            expect(mockGitHubAddSummary).not.toHaveBeenCalled()
         }
     )
 })

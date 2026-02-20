@@ -11,6 +11,8 @@
     "@typescript-eslint/no-floating-promises": "error",
     "eslint-comments/no-use": "off",
     "import/no-namespace": "off",
+    "import/no-unresolved": "off",
+    "import/named": "off",
     "i18n-text/no-en": "off",
     "no-unused-vars": "off",
     "no-shadow": "off",
