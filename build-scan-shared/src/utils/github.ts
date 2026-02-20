@@ -1,6 +1,6 @@
 import * as github from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
-import {OctokitResponse} from '@octokit/types' // eslint-disable-line import/named
+import {OctokitResponse} from '@octokit/types'
 import * as core from '@actions/core'
 import {Artifact, DefaultArtifactClient} from '@actions/artifact'
 

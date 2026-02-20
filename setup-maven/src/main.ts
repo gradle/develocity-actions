@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import path from 'path'
+import {fileURLToPath} from 'url'
 
 import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
@@ -36,6 +37,9 @@ export async function run(): Promise<void> {
 }
 
 function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = path.dirname(__filename)
+
     const captureExtensionSourcePath = path.resolve(
         __dirname,
         '..',

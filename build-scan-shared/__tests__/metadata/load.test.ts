@@ -1,83 +1,60 @@
-import * as glob from '@actions/glob'
-import * as PropertiesReader from 'properties-reader'
+import {jest} from '@jest/globals'
 
-import * as load from '../../src/metadata/load'
-import * as props from '../../src/metadata/properties'
-import {BuildToolType} from '../../src/buildTool/common'
+const mockGlob = jest.fn<() => Promise<string[]>>()
+const mockCreate = jest.fn<(patterns: string, options?: object) => Promise<{glob: () => Promise<string[]>}>>()
 
-const loadMock = jest.spyOn(load, 'loadJobMetadata')
+jest.unstable_mockModule('@actions/glob', () => ({
+    create: mockCreate
+}))
+
+function setupGlob(matchedFiles: string[]): void {
+    mockGlob.mockResolvedValue(matchedFiles)
+    mockCreate.mockResolvedValue({glob: mockGlob})
+}
 
 const mockedPrNumber = 4242
 
+const mockReader = {
+    get(): string {
+        return mockedPrNumber.toString()
+    }
+}
+
+jest.unstable_mockModule('properties-reader', () => ({
+    default: jest.fn(() => mockReader)
+}))
+
+const {loadJobMetadata} = await import('../../src/metadata/load')
+const {BuildToolType} = await import('../../src/buildTool/common')
+
 describe('load', () => {
-    let octokit: any
-
-    beforeEach(() => {
-        // @ts-ignore
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return ['prNumberFilePath']
-                }
-            })
-        )
-    })
-
     afterEach(() => {
-        jest.clearAllMocks()
+        jest.resetAllMocks()
     })
 
     it('Load build scan metadata succeeds', async () => {
         // given
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return [
-                        '/home/foo/.m2/build-scan-data/1.42/previous/abcdef/scan.scan',
-                        '/home/foo/.m2/build-scan-data/1.42/previous/ghijkl/scan.scan'
-                    ]
-                }
-            })
-        )
-        const reader: Partial<PropertiesReader.Reader> = {
-            get(key: string) {
-                switch (key) {
-                    case 'PR_NUMBER':
-                        return mockedPrNumber
-                    default:
-                        return `value for ${key}`
-                }
-            }
-        }
-        jest.spyOn(props, 'create').mockImplementation(_ => reader)
+        setupGlob([
+            '/home/foo/.m2/build-scan-data/1.42/previous/abcdef/scan.scan',
+            '/home/foo/.m2/build-scan-data/1.42/previous/ghijkl/scan.scan'
+        ])
 
         // when
-        const buildScanData = await load.loadJobMetadata(BuildToolType.MAVEN, 'buildScanMetadataDir')
+        const buildScanData = await loadJobMetadata(BuildToolType.MAVEN, 'buildScanMetadataDir')
 
         // then
-        expect(loadMock).toHaveReturned()
         expect(buildScanData?.builds).toHaveLength(2)
         expect(buildScanData?.prNumber).toBe(mockedPrNumber)
     })
 
     it('Load build scan metadata does nothing without metadata file', async () => {
         // given
-        jest.spyOn(glob, 'create').mockReturnValue(
-            Promise.resolve({
-                // @ts-ignore
-                glob() {
-                    return []
-                }
-            })
-        )
+        setupGlob([])
 
         // when
-        const buildScanData = await load.loadJobMetadata(BuildToolType.MAVEN, 'buildScanMetadataDir')
+        const buildScanData = await loadJobMetadata(BuildToolType.MAVEN, 'buildScanMetadataDir')
 
         // then
-        expect(loadMock).toHaveReturned()
         expect(buildScanData?.builds).toBeUndefined()
         expect(buildScanData?.prNumber).toBeUndefined()
     })

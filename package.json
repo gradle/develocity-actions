@@ -3,6 +3,7 @@
   "description": "Collection of Github actions",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gradle/develocity-actions.git"
@@ -15,7 +16,7 @@
     ".": "./dist/index.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "scripts": {
     "format:check": "prettier --check '*/src/**/*.ts'",
@@ -30,39 +31,10 @@
     "check": "npm-run-all --parallel format:write format:test lint",
     "package": "npm-run-all --parallel package-maven-* package-npm-*",
     "build": "npm run check && npm run package",
-    "test": "jest",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "all": "npm run build && npm run test"
   },
   "license": "MIT",
-  "jest": {
-    "preset": "ts-jest",
-    "verbose": true,
-    "clearMocks": true,
-    "testEnvironment": "node",
-    "moduleFileExtensions": [
-      "js",
-      "ts"
-    ],
-    "testMatch": [
-      "**/*.test.ts"
-    ],
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "/dist/"
-    ],
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
-    "coverageReporters": [
-      "json-summary",
-      "text",
-      "lcov"
-    ],
-    "collectCoverage": true,
-    "collectCoverageFrom": [
-      "./src/**"
-    ]
-  },
   "dependencies": {
     "@actions/artifact": "^6.1.0",
     "@actions/core": "^3.0.0",
@@ -74,6 +46,7 @@
     "typed-rest-client": "^2.2.0"
   },
   "devDependencies": {
+    "@jest/globals": "30.2.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.3",
     "@types/properties-reader": "^2.1.1",
@@ -93,6 +66,7 @@
     "prettier": "^3.8.1",
     "prettier-eslint": "^16.3.0",
     "ts-jest": "^29.4.6",
+    "ts-jest-resolver": "^2.0.1",
     "typescript": "^5.9.3"
   }
 }
