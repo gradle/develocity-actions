@@ -1,3 +1,8 @@
+import {createRequire} from 'node:module'
+
+const require = createRequire(import.meta.url)
+const develocityReporter = require.resolve('@gradle-tech/develocity-agent/jest-reporter')
+
 export default {
     clearMocks: true,
     moduleFileExtensions: ['js', 'ts', 'json'],
@@ -7,7 +12,7 @@ export default {
     transform: {
         '^.+\\.ts$': ['ts-jest', {useESM: true}]
     },
-    reporters: ['default'],
+    reporters: ['default', develocityReporter],
     resolver: 'ts-jest-resolver',
     verbose: true,
     coverageReporters: ['json-summary', 'text', 'lcov'],

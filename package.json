@@ -31,7 +31,7 @@
     "check": "npm-run-all --parallel format:write format:test lint",
     "package": "npm-run-all --parallel package-maven-* package-npm-*",
     "build": "npm run check && npm run package",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest",
     "all": "npm run build && npm run test"
   },
   "license": "MIT",
@@ -46,6 +46,7 @@
     "typed-rest-client": "^2.2.0"
   },
   "devDependencies": {
+    "@gradle-tech/develocity-agent": "^3.0.1",
     "@jest/globals": "30.2.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.3",

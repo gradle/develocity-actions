@@ -2,6 +2,7 @@ import path from 'path'
 
 import * as core from '@actions/core'
 import * as glob from '@actions/glob'
+// eslint-disable-next-line import/no-named-as-default
 import propertiesReader from 'properties-reader'
 
 import {BuildToolType} from '../buildTool/common'
