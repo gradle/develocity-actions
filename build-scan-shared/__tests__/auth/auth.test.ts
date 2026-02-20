@@ -6,9 +6,8 @@ import * as auth from '../../src/auth/auth'
 describe('auth', () => {
     beforeEach(() => {
         // Remove access keys from environment not to interfere with test results.
-        const newEnv = {...process.env}
-        delete newEnv[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY]
-        delete newEnv[auth.ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY]
+        process.env[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY] = ''
+        process.env[auth.ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY] = ''
     })
 
     afterEach(() => {
