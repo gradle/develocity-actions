@@ -58,7 +58,7 @@ describe('main', () => {
 
         // then
         expect(buildScanPublishMock).not.toHaveBeenCalled()
-        expect(buildScanPublishMock).not.toHaveBeenCalled()
         expect(mockDeleteWorkflowArtifacts).not.toHaveBeenCalled()
+        expect(mockDump).not.toHaveBeenCalled()
     })
 })
