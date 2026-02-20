@@ -1,27 +1,11 @@
-import * as github from '@actions/github'
+import {jest} from '@jest/globals'
 
 process.env['GITHUB_REPOSITORY'] = 'foo/bar'
 process.env['RUNNER_TEMP'] = '/tmp'
 
 import * as main from '../src/main'
 
-const runMock = jest.spyOn(main, 'run')
-
 describe('Main Setup Maven', () => {
-    beforeEach(() => {
-        Object.defineProperty(github, 'context', {
-            value: {
-                repo: {
-                    owner: 'foo',
-                    repo: 'bar'
-                },
-                issue: {
-                    number: 42
-                }
-            }
-        })
-    })
-
     afterEach(() => {
         jest.clearAllMocks()
     })
@@ -34,7 +18,6 @@ describe('Main Setup Maven', () => {
         await main.run()
 
         // then
-        expect(runMock).toHaveReturned()
         expect(process.env['MAVEN_OPTS']).toMatch(/^-Dmaven.ext.class.path=.*$/)
     })
 
@@ -46,7 +29,6 @@ describe('Main Setup Maven', () => {
         await main.run()
 
         // then
-        expect(runMock).toHaveReturned()
         expect(process.env['MAVEN_OPTS']).toMatch(/^foo bar -Dmaven.ext.class.path=.*$/)
     })
 
@@ -58,7 +40,6 @@ describe('Main Setup Maven', () => {
         await main.run()
 
         // then
-        expect(runMock).toHaveReturned()
         expect(process.env['MAVEN_OPTS']).toMatch(/^foo -Dmaven.ext.class.path=.*:a:b:c bar$/)
     })
 })
