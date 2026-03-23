@@ -11,6 +11,7 @@ class BuildState {
     private final AtomicReference<String> artifactId = new AtomicReference<>();
     private final AtomicReference<String> mavenGoals = new AtomicReference<>();
     private final AtomicBoolean isBuildFailure = new AtomicBoolean(false);
+    private final AtomicReference<String> buildDuration = new AtomicReference<>();
     private final AtomicReference<String> buildScanLink = new AtomicReference<>();
 
     String getBuildId() {
@@ -61,6 +62,14 @@ class BuildState {
         isBuildFailure.set(true);
     }
 
+    String getBuildDuration() {
+        return buildDuration.get();
+    }
+
+    void setBuildDuration(String buildDuration) {
+        this.buildDuration.set(buildDuration);
+    }
+
     String getBuildScanLink() {
         return buildScanLink.get();
     }
@@ -77,6 +86,7 @@ class BuildState {
                 ", mavenVersion=" + mavenVersion +
                 ", artifactId=" + artifactId +
                 ", mavenGoals=" + mavenGoals +
+                ", buildDuration=" + buildDuration +
                 ", isBuildFailure=" + isBuildFailure +
                 ", buildScanLink=" + buildScanLink +
                 '}';

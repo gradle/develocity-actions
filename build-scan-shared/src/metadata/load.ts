@@ -22,6 +22,7 @@ export interface BuildMetadata {
     buildId: string
     buildFailure: boolean
     buildTimestamp: string
+    buildDuration?: string
     buildScanLink?: string
 }
 
@@ -65,6 +66,7 @@ function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; p
     const requestedTasks = metadataReader.get('REQUESTED_TASKS') as string
     const buildFailure = metadataReader.get('BUILD_FAILURE')?.valueOf() as boolean
     const buildTimestamp = metadataReader.get('TIMESTAMP') as string
+    const buildDuration = metadataReader.get('BUILD_DURATION') as string
     const buildScanLink = metadataReader.get('BUILD_SCAN_LINK') as string
     if (!workflowName || !jobName || !requestedTasks) {
         core.info(
@@ -82,6 +84,7 @@ function toBuildMetadata(metadataFile: string): {buildMetadata: BuildMetadata; p
             buildId,
             buildFailure,
             buildTimestamp,
+            buildDuration,
             buildScanLink
         },
         prNumber

@@ -61,6 +61,8 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
 
         // Capture build result
         develocityApi.getBuildScan().buildFinished(buildResult -> {
+            long durationMillis = System.currentTimeMillis() - Long.parseLong(buildState.getBuildTimestamp());
+            buildState.setBuildDuration(String.valueOf(durationMillis));
             if(!buildResult.getFailures().isEmpty()) {
                 LOGGER.debug("Marking build failure");
                 buildState.setBuildFailure();
@@ -158,7 +160,7 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
     }
 
     private String collectBuildScanMetadata() {
-        return String.format("PR_NUMBER=%s\nPROJECT_ID=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nBUILD_TOOL_VERSION=%s\nREQUESTED_TASKS=%s\nBUILD_FAILURE=%s\nTIMESTAMP=%s\n%s",
+        return String.format("PR_NUMBER=%s\nPROJECT_ID=%s\nWORKFLOW_NAME=%s\nJOB_NAME=%s\nBUILD_TOOL_VERSION=%s\nREQUESTED_TASKS=%s\nBUILD_FAILURE=%s\nTIMESTAMP=%s\nBUILD_DURATION=%s\n%s",
                 configuration.getPrNumber(),
                 buildState.getArtifactId(),
                 configuration.getWorkflowName(),
@@ -167,6 +169,7 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
                 buildState.getMavenGoals(),
                 buildState.isBuildFailure(),
                 buildState.getBuildTimestamp(),
+                buildState.getBuildDuration(),
                 getBuildScanLinkEntry()
         );
     }

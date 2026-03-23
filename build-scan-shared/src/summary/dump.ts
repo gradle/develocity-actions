@@ -51,6 +51,7 @@ function getHtmlSummary(job: Job): string {
         <th>Job</th>
         <th>Requested ${getWorkUnitName(job.buildToolType)}</th>
         <th>Build Tool Version</th>
+        <th>Build Duration</th>
         <th>Build Outcome</th>
         <th>Build Scan®</th>
     </tr>${job.builds.map(build => renderBuildResultRow(build)).join('')}
@@ -80,9 +81,23 @@ function renderBuildResultRow(build: BuildMetadata): string {
         <td>${build.jobName}</td>
         <td>${build.requestedTasks}</td>
         <td align='center'>${build.buildToolVersion}</td>
+        <td align='center'>${renderDuration(build)}</td>
         <td align='center'>${renderOutcome(build)}</td>
         <td>${renderBuildScan(build)}</td>
     </tr>`
+}
+
+function renderDuration(build: BuildMetadata): string {
+    if (!build.buildDuration) {
+        return 'N/A'
+    }
+    const totalSeconds = Math.floor(Number(build.buildDuration) / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`
+    }
+    return `${seconds}s`
 }
 
 function renderOutcome(build: BuildMetadata): string {
