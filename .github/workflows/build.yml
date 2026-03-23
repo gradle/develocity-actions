@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           java-version: 8
-          distribution: "temurin"
+          distribution: "zulu"
       - name: Setup Develocity for npm
         uses: ./setup-npm
         with:

@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import {XMLParser} from 'fast-xml-parser'
 
 import * as input from '../../build-scan-shared/src/setup/input'
 import * as io from '../../build-scan-shared/src/utils/io'
@@ -82,7 +83,6 @@ async function ccudExtensionApplied(filePath: string): Promise<boolean> {
 }
 
 async function parseExtensions(xmlContent: string): Promise<Extensions> {
-    const {XMLParser} = await import('fast-xml-parser')
     const parser = new XMLParser()
     return parser.parse(xmlContent) as Extensions
 }
