@@ -150,6 +150,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <reproducibleBuild>true</reproducibleBuild>
                     <filters>
                         <filter>
                             <artifact>*:*</artifact>
