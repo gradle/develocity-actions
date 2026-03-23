@@ -11468,24 +11468,6 @@ class SecureProxyConnectionError extends UndiciError {
   [kSecureProxyConnectionError] = true
 }
 
-const kMessageSizeExceededError = Symbol.for('undici.error.UND_ERR_WS_MESSAGE_SIZE_EXCEEDED')
-class MessageSizeExceededError extends UndiciError {
-  constructor (message) {
-    super(message)
-    this.name = 'MessageSizeExceededError'
-    this.message = message || 'Max decompressed message size exceeded'
-    this.code = 'UND_ERR_WS_MESSAGE_SIZE_EXCEEDED'
-  }
-
-  static [Symbol.hasInstance] (instance) {
-    return instance && instance[kMessageSizeExceededError] === true
-  }
-
-  get [kMessageSizeExceededError] () {
-    return true
-  }
-}
-
 module.exports = {
   AbortError,
   HTTPParserError,
@@ -11509,8 +11491,7 @@ module.exports = {
   ResponseExceededMaxSizeError,
   RequestRetryError,
   ResponseError,
-  SecureProxyConnectionError,
-  MessageSizeExceededError
+  SecureProxyConnectionError
 }
 
 
@@ -11585,10 +11566,6 @@ class Request {
 
     if (upgrade && typeof upgrade !== 'string') {
       throw new InvalidArgumentError('upgrade must be a string')
-    }
-
-    if (upgrade && !isValidHeaderValue(upgrade)) {
-      throw new InvalidArgumentError('invalid upgrade header')
     }
 
     if (headersTimeout != null && (!Number.isFinite(headersTimeout) || headersTimeout < 0)) {
@@ -11885,19 +11862,13 @@ function processHeader (request, key, val) {
     val = `${val}`
   }
 
-  if (headerName === 'host') {
-    if (request.host !== null) {
-      throw new InvalidArgumentError('duplicate host header')
-    }
+  if (request.host === null && headerName === 'host') {
     if (typeof val !== 'string') {
       throw new InvalidArgumentError('invalid host header')
     }
     // Consumed by Client
     request.host = val
-  } else if (headerName === 'content-length') {
-    if (request.contentLength !== null) {
-      throw new InvalidArgumentError('duplicate content-length header')
-    }
+  } else if (request.contentLength === null && headerName === 'content-length') {
     request.contentLength = parseInt(val, 10)
     if (!Number.isFinite(request.contentLength)) {
       throw new InvalidArgumentError('invalid content-length header')
@@ -34614,14 +34585,10 @@ module.exports = {
 
 const { createInflateRaw, Z_DEFAULT_WINDOWBITS } = __nccwpck_require__(8522)
 const { isValidClientWindowBits } = __nccwpck_require__(8625)
-const { MessageSizeExceededError } = __nccwpck_require__(8707)
 
 const tail = Buffer.from([0x00, 0x00, 0xff, 0xff])
 const kBuffer = Symbol('kBuffer')
 const kLength = Symbol('kLength')
-
-// Default maximum decompressed message size: 4 MB
-const kDefaultMaxDecompressedSize = 4 * 1024 * 1024
 
 class PerMessageDeflate {
   /** @type {import('node:zlib').InflateRaw} */
@@ -34629,15 +34596,6 @@ class PerMessageDeflate {
 
   #options = {}
 
-  /** @type {boolean} */
-  #aborted = false
-
-  /** @type {Function|null} */
-  #currentCallback = null
-
-  /**
-   * @param {Map<string, string>} extensions
-   */
   constructor (extensions) {
     this.#options.serverNoContextTakeover = extensions.has('server_no_context_takeover')
     this.#options.serverMaxWindowBits = extensions.get('server_max_window_bits')
@@ -34648,11 +34606,6 @@ class PerMessageDeflate {
     // 1.  Append 4 octets of 0x00 0x00 0xff 0xff to the tail end of the
     //     payload of the message.
     // 2.  Decompress the resulting data using DEFLATE.
-
-    if (this.#aborted) {
-      callback(new MessageSizeExceededError())
-      return
-    }
 
     if (!this.#inflate) {
       let windowBits = Z_DEFAULT_WINDOWBITS
@@ -34666,37 +34619,13 @@ class PerMessageDeflate {
         windowBits = Number.parseInt(this.#options.serverMaxWindowBits)
       }
 
-      try {
-        this.#inflate = createInflateRaw({ windowBits })
-      } catch (err) {
-        callback(err)
-        return
-      }
+      this.#inflate = createInflateRaw({ windowBits })
       this.#inflate[kBuffer] = []
       this.#inflate[kLength] = 0
 
       this.#inflate.on('data', (data) => {
-        if (this.#aborted) {
-          return
-        }
-
-        this.#inflate[kLength] += data.length
-
-        if (this.#inflate[kLength] > kDefaultMaxDecompressedSize) {
-          this.#aborted = true
-          this.#inflate.removeAllListeners()
-          this.#inflate.destroy()
-          this.#inflate = null
-
-          if (this.#currentCallback) {
-            const cb = this.#currentCallback
-            this.#currentCallback = null
-            cb(new MessageSizeExceededError())
-          }
-          return
-        }
-
         this.#inflate[kBuffer].push(data)
+        this.#inflate[kLength] += data.length
       })
 
       this.#inflate.on('error', (err) => {
@@ -34705,22 +34634,16 @@ class PerMessageDeflate {
       })
     }
 
-    this.#currentCallback = callback
     this.#inflate.write(chunk)
     if (fin) {
       this.#inflate.write(tail)
     }
 
     this.#inflate.flush(() => {
-      if (this.#aborted || !this.#inflate) {
-        return
-      }
-
       const full = Buffer.concat(this.#inflate[kBuffer], this.#inflate[kLength])
 
       this.#inflate[kBuffer].length = 0
       this.#inflate[kLength] = 0
-      this.#currentCallback = null
 
       callback(null, full)
     })
@@ -34774,10 +34697,6 @@ class ByteParser extends Writable {
   /** @type {Map<string, PerMessageDeflate>} */
   #extensions
 
-  /**
-   * @param {import('./websocket').WebSocket} ws
-   * @param {Map<string, string>|null} extensions
-   */
   constructor (ws, extensions) {
     super()
 
@@ -34920,7 +34839,6 @@ class ByteParser extends Writable {
 
         const buffer = this.consume(8)
         const upper = buffer.readUInt32BE(0)
-        const lower = buffer.readUInt32BE(4)
 
         // 2^31 is the maximum bytes an arraybuffer can contain
         // on 32-bit systems. Although, on 64-bit systems, this is
@@ -34928,12 +34846,14 @@ class ByteParser extends Writable {
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Invalid_array_length
         // https://source.chromium.org/chromium/chromium/src/+/main:v8/src/common/globals.h;drc=1946212ac0100668f14eb9e2843bdd846e510a1e;bpv=1;bpt=1;l=1275
         // https://source.chromium.org/chromium/chromium/src/+/main:v8/src/objects/js-array-buffer.h;l=34;drc=1946212ac0100668f14eb9e2843bdd846e510a1e
-        if (upper !== 0 || lower > 2 ** 31 - 1) {
+        if (upper > 2 ** 31 - 1) {
           failWebsocketConnection(this.ws, 'Received payload length > 2^31 bytes.')
           return
         }
 
-        this.#info.payloadLength = lower
+        const lower = buffer.readUInt32BE(4)
+
+        this.#info.payloadLength = (upper << 8) + lower
         this.#state = parserStates.READ_DATA
       } else if (this.#state === parserStates.READ_DATA) {
         if (this.#byteOffset < this.#info.payloadLength) {
@@ -34963,7 +34883,7 @@ class ByteParser extends Writable {
           } else {
             this.#extensions.get('permessage-deflate').decompress(body, this.#info.fin, (error, data) => {
               if (error) {
-                failWebsocketConnection(this.ws, error.message)
+                closeWebSocketConnection(this.ws, 1007, error.message, error.message.length)
                 return
               }
 
@@ -35567,12 +35487,6 @@ function parseExtensions (extensions) {
  * @param {string} value
  */
 function isValidClientWindowBits (value) {
-  // Must have at least one character
-  if (value.length === 0) {
-    return false
-  }
-
-  // Check all characters are ASCII digits
   for (let i = 0; i < value.length; i++) {
     const byte = value.charCodeAt(i)
 
@@ -35581,9 +35495,7 @@ function isValidClientWindowBits (value) {
     }
   }
 
-  // Check numeric range: zlib requires windowBits in range 8-15
-  const num = Number.parseInt(value, 10)
-  return num >= 8 && num <= 15
+  return true
 }
 
 // https://nodejs.org/api/intl.html#detecting-internationalization-support
@@ -36061,7 +35973,7 @@ class WebSocket extends EventTarget {
    * @see https://websockets.spec.whatwg.org/#feedback-from-the-protocol
    */
   #onConnectionEstablished (response, parsedExtensions) {
-    // processResponse is called when the "response's header list has been received and initialized."
+    // processResponse is called when the "response’s header list has been received and initialized."
     // once this happens, the connection is open
     this[kResponse] = response
 
@@ -40004,12 +39916,12 @@ function normalizeProcessEntities(value) {
   // Object config - merge with defaults
   if (typeof value === 'object' && value !== null) {
     return {
-      enabled: value.enabled !== false,
-      maxEntitySize: Math.max(1, value.maxEntitySize ?? 10000),
-      maxExpansionDepth: Math.max(1, value.maxExpansionDepth ?? 10),
-      maxTotalExpansions: Math.max(1, value.maxTotalExpansions ?? 1000),
-      maxExpandedLength: Math.max(1, value.maxExpandedLength ?? 100000),
-      maxEntityCount: Math.max(1, value.maxEntityCount ?? 100),
+      enabled: value.enabled !== false, // default true if not specified
+      maxEntitySize: value.maxEntitySize ?? 10000,
+      maxExpansionDepth: value.maxExpansionDepth ?? 10,
+      maxTotalExpansions: value.maxTotalExpansions ?? 1000,
+      maxExpandedLength: value.maxExpandedLength ?? 100000,
+      maxEntityCount: value.maxEntityCount ?? 100,
       allowedTags: value.allowedTags ?? null,
       tagFilter: value.tagFilter ?? null
     };
@@ -40131,14 +40043,13 @@ class DocTypeReader {
                         [entityName, val, i] = this.readEntityExp(xmlData, i + 1, this.suppressValidationErr);
                         if (val.indexOf("&") === -1) { //Parameter entities are not supported
                             if (this.options.enabled !== false &&
-                                this.options.maxEntityCount != null &&
+                                this.options.maxEntityCount &&
                                 entityCount >= this.options.maxEntityCount) {
                                 throw new Error(
                                     `Entity count (${entityCount + 1}) exceeds maximum allowed (${this.options.maxEntityCount})`
                                 );
                             }
-                            //const escaped = entityName.replace(/[.\-+*:]/g, '\\.');
-                            const escaped = entityName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            const escaped = entityName.replace(/[.\-+*:]/g, '\\.');
                             entities[entityName] = {
                                 regx: RegExp(`&${escaped};`, "g"),
                                 val: val
@@ -40203,12 +40114,11 @@ class DocTypeReader {
         i = skipWhitespace(xmlData, i);
 
         // Read entity name
-        const startIndex = i;
+        let entityName = "";
         while (i < xmlData.length && !/\s/.test(xmlData[i]) && xmlData[i] !== '"' && xmlData[i] !== "'") {
+            entityName += xmlData[i];
             i++;
         }
-        let entityName = xmlData.substring(startIndex, i);
-
         validateEntityName(entityName);
 
         // Skip whitespace after entity name
@@ -40229,7 +40139,7 @@ class DocTypeReader {
 
         // Validate entity size
         if (this.options.enabled !== false &&
-            this.options.maxEntitySize != null &&
+            this.options.maxEntitySize &&
             entityValue.length > this.options.maxEntitySize) {
             throw new Error(
                 `Entity "${entityName}" size (${entityValue.length}) exceeds maximum allowed size (${this.options.maxEntitySize})`
@@ -40245,13 +40155,11 @@ class DocTypeReader {
         i = skipWhitespace(xmlData, i);
 
         // Read notation name
-
-        const startIndex = i;
+        let notationName = "";
         while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+            notationName += xmlData[i];
             i++;
         }
-        let notationName = xmlData.substring(startIndex, i);
-
         !this.suppressValidationErr && validateEntityName(notationName);
 
         // Skip whitespace after notation name
@@ -40301,11 +40209,10 @@ class DocTypeReader {
         }
         i++;
 
-        const startIndex = i;
         while (i < xmlData.length && xmlData[i] !== startChar) {
+            identifierVal += xmlData[i];
             i++;
         }
-        identifierVal = xmlData.substring(startIndex, i);
 
         if (xmlData[i] !== startChar) {
             throw new Error(`Unterminated ${type} value`);
@@ -40325,11 +40232,11 @@ class DocTypeReader {
         i = skipWhitespace(xmlData, i);
 
         // Read element name
-        const startIndex = i;
+        let elementName = "";
         while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+            elementName += xmlData[i];
             i++;
         }
-        let elementName = xmlData.substring(startIndex, i);
 
         // Validate element name
         if (!this.suppressValidationErr && !isName(elementName)) {
@@ -40346,12 +40253,10 @@ class DocTypeReader {
             i++; // Move past '('
 
             // Read content model
-            const startIndex = i;
             while (i < xmlData.length && xmlData[i] !== ")") {
+                contentModel += xmlData[i];
                 i++;
             }
-            contentModel = xmlData.substring(startIndex, i);
-
             if (xmlData[i] !== ")") {
                 throw new Error("Unterminated content model");
             }
@@ -40372,11 +40277,11 @@ class DocTypeReader {
         i = skipWhitespace(xmlData, i);
 
         // Read element name
-        let startIndex = i;
+        let elementName = "";
         while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+            elementName += xmlData[i];
             i++;
         }
-        let elementName = xmlData.substring(startIndex, i);
 
         // Validate element name
         validateEntityName(elementName)
@@ -40385,11 +40290,11 @@ class DocTypeReader {
         i = skipWhitespace(xmlData, i);
 
         // Read attribute name
-        startIndex = i;
+        let attributeName = "";
         while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+            attributeName += xmlData[i];
             i++;
         }
-        let attributeName = xmlData.substring(startIndex, i);
 
         // Validate attribute name
         if (!validateEntityName(attributeName)) {
@@ -40417,13 +40322,11 @@ class DocTypeReader {
             // Read the list of allowed notations
             let allowedNotations = [];
             while (i < xmlData.length && xmlData[i] !== ")") {
-
-
-                const startIndex = i;
+                let notation = "";
                 while (i < xmlData.length && xmlData[i] !== "|" && xmlData[i] !== ")") {
+                    notation += xmlData[i];
                     i++;
                 }
-                let notation = xmlData.substring(startIndex, i);
 
                 // Validate notation name
                 notation = notation.trim();
@@ -40449,11 +40352,10 @@ class DocTypeReader {
             attributeType += " (" + allowedNotations.join("|") + ")";
         } else {
             // Handle simple types (e.g., CDATA, ID, IDREF, etc.)
-            const startIndex = i;
             while (i < xmlData.length && !/\s/.test(xmlData[i])) {
+                attributeType += xmlData[i];
                 i++;
             }
-            attributeType += xmlData.substring(startIndex, i);
 
             // Validate simple attribute type
             const validTypes = ["CDATA", "ID", "IDREF", "IDREFS", "ENTITY", "ENTITIES", "NMTOKEN", "NMTOKENS"];
@@ -40517,112 +40419,103 @@ const numRegex = /^([\-\+])?(0*)([0-9]*(\.[0-9]*)?)$/;
 // const octRegex = /^0x[a-z0-9]+/;
 // const binRegex = /0x[a-z0-9]+/;
 
-
+ 
 const consider = {
-    hex: true,
+    hex :  true,
     // oct: false,
     leadingZeros: true,
     decimalPoint: "\.",
     eNotation: true,
-    //skipLike: /regex/,
-    infinity: "original", // "null", "infinity" (Infinity type), "string" ("Infinity" (the string literal))
+    //skipLike: /regex/
 };
 
-function toNumber(str, options = {}) {
-    options = Object.assign({}, consider, options);
-    if (!str || typeof str !== "string") return str;
-
-    let trimmedStr = str.trim();
-
-    if (trimmedStr.length === 0) return str;
-    else if (options.skipLike !== undefined && options.skipLike.test(trimmedStr)) return str;
-    else if (trimmedStr === "0") return 0;
+function toNumber(str, options = {}){
+    options = Object.assign({}, consider, options );
+    if(!str || typeof str !== "string" ) return str;
+    
+    let trimmedStr  = str.trim();
+    
+    if(options.skipLike !== undefined && options.skipLike.test(trimmedStr)) return str;
+    else if(str==="0") return 0;
     else if (options.hex && hexRegex.test(trimmedStr)) {
         return parse_int(trimmedStr, 16);
-        // }else if (options.oct && octRegex.test(str)) {
-        //     return Number.parseInt(val, 8);
-    } else if (!isFinite(trimmedStr)) { //Infinity
-        return handleInfinity(str, Number(trimmedStr), options);
-    } else if (trimmedStr.includes('e') || trimmedStr.includes('E')) { //eNotation
-        return resolveEnotation(str, trimmedStr, options);
-        // }else if (options.parseBin && binRegex.test(str)) {
-        //     return Number.parseInt(val, 2);
-    } else {
+    // }else if (options.oct && octRegex.test(str)) {
+    //     return Number.parseInt(val, 8);
+    }else if (trimmedStr.includes('e') || trimmedStr.includes('E')) { //eNotation
+        return resolveEnotation(str,trimmedStr,options);
+    // }else if (options.parseBin && binRegex.test(str)) {
+    //     return Number.parseInt(val, 2);
+    }else{
         //separate negative sign, leading zeros, and rest number
         const match = numRegex.exec(trimmedStr);
         // +00.123 => [ , '+', '00', '.123', ..
-        if (match) {
+        if(match){
             const sign = match[1] || "";
             const leadingZeros = match[2];
             let numTrimmedByZeros = trimZeros(match[3]); //complete num without leading zeros
             const decimalAdjacentToLeadingZeros = sign ? // 0., -00., 000.
-                str[leadingZeros.length + 1] === "."
+                str[leadingZeros.length+1] === "." 
                 : str[leadingZeros.length] === ".";
 
             //trim ending zeros for floating number
-            if (!options.leadingZeros //leading zeros are not allowed
-                && (leadingZeros.length > 1
-                    || (leadingZeros.length === 1 && !decimalAdjacentToLeadingZeros))) {
+            if(!options.leadingZeros //leading zeros are not allowed
+                && (leadingZeros.length > 1 
+                    || (leadingZeros.length === 1 && !decimalAdjacentToLeadingZeros))){
                 // 00, 00.3, +03.24, 03, 03.24
                 return str;
             }
-            else {//no leading zeros or leading zeros are allowed
+            else{//no leading zeros or leading zeros are allowed
                 const num = Number(trimmedStr);
                 const parsedStr = String(num);
 
-                if (num === 0) return num;
-                if (parsedStr.search(/[eE]/) !== -1) { //given number is long and parsed to eNotation
-                    if (options.eNotation) return num;
+                if( num === 0) return num;
+                if(parsedStr.search(/[eE]/) !== -1){ //given number is long and parsed to eNotation
+                    if(options.eNotation) return num;
                     else return str;
-                } else if (trimmedStr.indexOf(".") !== -1) { //floating number
-                    if (parsedStr === "0") return num; //0.0
-                    else if (parsedStr === numTrimmedByZeros) return num; //0.456. 0.79000
-                    else if (parsedStr === `${sign}${numTrimmedByZeros}`) return num;
+                }else if(trimmedStr.indexOf(".") !== -1){ //floating number
+                    if(parsedStr === "0") return num; //0.0
+                    else if(parsedStr === numTrimmedByZeros) return num; //0.456. 0.79000
+                    else if( parsedStr === `${sign}${numTrimmedByZeros}`) return num;
                     else return str;
                 }
-
-                let n = leadingZeros ? numTrimmedByZeros : trimmedStr;
-                if (leadingZeros) {
+                
+                let n = leadingZeros? numTrimmedByZeros : trimmedStr;
+                if(leadingZeros){
                     // -009 => -9
-                    return (n === parsedStr) || (sign + n === parsedStr) ? num : str
-                } else {
+                    return (n === parsedStr) || (sign+n === parsedStr) ? num : str
+                }else  {
                     // +9
-                    return (n === parsedStr) || (n === sign + parsedStr) ? num : str
+                    return (n === parsedStr) || (n === sign+parsedStr) ? num : str
                 }
             }
-        } else { //non-numeric string
+        }else{ //non-numeric string
             return str;
         }
     }
 }
 
 const eNotationRegx = /^([-+])?(0*)(\d*(\.\d*)?[eE][-\+]?\d+)$/;
-function resolveEnotation(str, trimmedStr, options) {
-    if (!options.eNotation) return str;
-    const notation = trimmedStr.match(eNotationRegx);
-    if (notation) {
+function resolveEnotation(str,trimmedStr,options){
+    if(!options.eNotation) return str;
+    const notation = trimmedStr.match(eNotationRegx); 
+    if(notation){
         let sign = notation[1] || "";
         const eChar = notation[3].indexOf("e") === -1 ? "E" : "e";
         const leadingZeros = notation[2];
         const eAdjacentToLeadingZeros = sign ? // 0E.
-            str[leadingZeros.length + 1] === eChar
+            str[leadingZeros.length+1] === eChar 
             : str[leadingZeros.length] === eChar;
 
-        if (leadingZeros.length > 1 && eAdjacentToLeadingZeros) return str;
-        else if (leadingZeros.length === 1
-            && (notation[3].startsWith(`.${eChar}`) || notation[3][0] === eChar)) {
-            return Number(trimmedStr);
-        } else if (leadingZeros.length > 0) {
-            // Has leading zeros — only accept if leadingZeros option allows it
-            if (options.leadingZeros && !eAdjacentToLeadingZeros) {
-                trimmedStr = (notation[1] || "") + notation[3];
+        if(leadingZeros.length > 1 && eAdjacentToLeadingZeros) return str;
+        else if(leadingZeros.length === 1 
+            && (notation[3].startsWith(`.${eChar}`) || notation[3][0] === eChar)){
                 return Number(trimmedStr);
-            } else return str;
-        } else {
-            // No leading zeros — always valid e-notation, parse it
+        }else if(options.leadingZeros && !eAdjacentToLeadingZeros){ //accept with leading zeros
+            //remove leading 0s
+            trimmedStr = (notation[1] || "") + notation[3];
             return Number(trimmedStr);
-        }
-    } else {
+        }else return str;
+    }else{
         return str;
     }
 }
@@ -40632,46 +40525,23 @@ function resolveEnotation(str, trimmedStr, options) {
  * @param {string} numStr without leading zeros
  * @returns 
  */
-function trimZeros(numStr) {
-    if (numStr && numStr.indexOf(".") !== -1) {//float
+function trimZeros(numStr){
+    if(numStr && numStr.indexOf(".") !== -1){//float
         numStr = numStr.replace(/0+$/, ""); //remove ending zeros
-        if (numStr === ".") numStr = "0";
-        else if (numStr[0] === ".") numStr = "0" + numStr;
-        else if (numStr[numStr.length - 1] === ".") numStr = numStr.substring(0, numStr.length - 1);
+        if(numStr === ".")  numStr = "0";
+        else if(numStr[0] === ".")  numStr = "0"+numStr;
+        else if(numStr[numStr.length-1] === ".")  numStr = numStr.substring(0,numStr.length-1);
         return numStr;
     }
     return numStr;
 }
 
-function parse_int(numStr, base) {
+function parse_int(numStr, base){
     //polyfill
-    if (parseInt) return parseInt(numStr, base);
-    else if (Number.parseInt) return Number.parseInt(numStr, base);
-    else if (window && window.parseInt) return window.parseInt(numStr, base);
+    if(parseInt) return parseInt(numStr, base);
+    else if(Number.parseInt) return Number.parseInt(numStr, base);
+    else if(window && window.parseInt) return window.parseInt(numStr, base);
     else throw new Error("parseInt, Number.parseInt, window.parseInt are not supported")
-}
-
-/**
- * Handle infinite values based on user option
- * @param {string} str - original input string
- * @param {number} num - parsed number (Infinity or -Infinity)
- * @param {object} options - user options
- * @returns {string|number|null} based on infinity option
- */
-function handleInfinity(str, num, options) {
-    const isPositive = num === Infinity;
-
-    switch (options.infinity.toLowerCase()) {
-        case "null":
-            return null;
-        case "infinity":
-            return num; // Return Infinity or -Infinity
-        case "string":
-            return isPositive ? "Infinity" : "-Infinity";
-        case "original":
-        default:
-            return str; // Return original string like "1e1000"
-    }
 }
 ;// CONCATENATED MODULE: ./node_modules/fast-xml-parser/src/ignoreAttributes.js
 function getIgnoreAttributesFn(ignoreAttributes) {
@@ -40709,14 +40579,6 @@ function getIgnoreAttributesFn(ignoreAttributes) {
  * const expr = new Expression("root.users.user");
  * matcher.matches(expr); // true
  */
-
-/**
- * Names of methods that mutate Matcher state.
- * Any attempt to call these on a read-only view throws a TypeError.
- * @type {Set<string>}
- */
-const MUTATING_METHODS = new Set(['push', 'pop', 'reset', 'updateCurrent', 'restore']);
-
 class Matcher {
   /**
    * Create a new Matcher
@@ -41114,82 +40976,6 @@ class Matcher {
     this.path = snapshot.path.map(node => ({ ...node }));
     this.siblingStacks = snapshot.siblingStacks.map(map => new Map(map));
   }
-
-  /**
-   * Return a read-only view of this matcher.
-   *
-   * The returned object exposes all query/inspection methods but throws a
-   * TypeError if any state-mutating method is called (`push`, `pop`, `reset`,
-   * `updateCurrent`, `restore`).  Property reads (e.g. `.path`, `.separator`)
-   * are allowed but the returned arrays/objects are frozen so callers cannot
-   * mutate internal state through them either.
-   *
-   * @returns {ReadOnlyMatcher} A proxy that forwards read operations and blocks writes.
-   *
-   * @example
-   * const matcher = new Matcher();
-   * matcher.push("root", {});
-   *
-   * const ro = matcher.readOnly();
-   * ro.matches(expr);      // ✓ works
-   * ro.getCurrentTag();    // ✓ works
-   * ro.push("child", {}); // ✗ throws TypeError
-   * ro.reset();            // ✗ throws TypeError
-   */
-  readOnly() {
-    const self = this;
-
-    return new Proxy(self, {
-      get(target, prop, receiver) {
-        // Block mutating methods
-        if (MUTATING_METHODS.has(prop)) {
-          return () => {
-            throw new TypeError(
-              `Cannot call '${prop}' on a read-only Matcher. ` +
-              `Obtain a writable instance to mutate state.`
-            );
-          };
-        }
-
-        const value = Reflect.get(target, prop, receiver);
-
-        // Freeze array/object properties so callers can't mutate internal
-        // state through direct property access (e.g. matcher.path.push(...))
-        if (prop === 'path' || prop === 'siblingStacks') {
-          return Object.freeze(
-            Array.isArray(value)
-              ? value.map(item =>
-                item instanceof Map
-                  ? Object.freeze(new Map(item))   // freeze a copy of each Map
-                  : Object.freeze({ ...item })      // freeze a copy of each node
-              )
-              : value
-          );
-        }
-
-        // Bind methods so `this` inside them still refers to the real Matcher
-        if (typeof value === 'function') {
-          return value.bind(target);
-        }
-
-        return value;
-      },
-
-      // Prevent any property assignment on the read-only view
-      set(_target, prop) {
-        throw new TypeError(
-          `Cannot set property '${String(prop)}' on a read-only Matcher.`
-        );
-      },
-
-      // Prevent property deletion
-      deleteProperty(_target, prop) {
-        throw new TypeError(
-          `Cannot delete property '${String(prop)}' from a read-only Matcher.`
-        );
-      }
-    });
-  }
 }
 ;// CONCATENATED MODULE: ./node_modules/path-expression-matcher/src/Expression.js
 /**
@@ -41540,10 +41326,6 @@ class OrderedObjParser {
     // Initialize path matcher for path-expression-matcher
     this.matcher = new Matcher();
 
-    // Live read-only proxy of matcher — PEM creates and caches this internally.
-    // All user callbacks receive this instead of the mutable matcher.
-    this.readonlyMatcher = this.matcher.readOnly();
-
     // Flag to track if current node is a stop node (optimization)
     this.isCurrentNodeStopNode = false;
 
@@ -41656,7 +41438,7 @@ function buildAttributesMap(attrStr, jPath, tagName) {
         if (this.options.trimValues) {
           parsedVal = parsedVal.trim();
         }
-        parsedVal = this.replaceEntitiesValue(parsedVal, tagName, this.readonlyMatcher);
+        parsedVal = this.replaceEntitiesValue(parsedVal, tagName, jPath);
         rawAttrsForMatcher[attrName] = parsedVal;
       }
     }
@@ -41671,7 +41453,7 @@ function buildAttributesMap(attrStr, jPath, tagName) {
       const attrName = this.resolveNameSpace(matches[i][1]);
 
       // Convert jPath to string if needed for ignoreAttributesFn
-      const jPathStr = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
+      const jPathStr = this.options.jPath ? jPath.toString() : jPath;
       if (this.ignoreAttributesFn(attrName, jPathStr)) {
         continue
       }
@@ -41690,10 +41472,10 @@ function buildAttributesMap(attrStr, jPath, tagName) {
           if (this.options.trimValues) {
             oldVal = oldVal.trim();
           }
-          oldVal = this.replaceEntitiesValue(oldVal, tagName, this.readonlyMatcher);
+          oldVal = this.replaceEntitiesValue(oldVal, tagName, jPath);
 
-          // Pass jPath string or readonlyMatcher based on options.jPath setting
-          const jPathOrMatcher = this.options.jPath ? jPath.toString() : this.readonlyMatcher;
+          // Pass jPath string or matcher based on options.jPath setting
+          const jPathOrMatcher = this.options.jPath ? jPath.toString() : jPath;
           const newVal = this.options.attributeValueProcessor(attrName, oldVal, jPathOrMatcher);
           if (newVal === null || newVal === undefined) {
             //don't parse
@@ -41760,7 +41542,7 @@ const parseXml = function (xmlData) {
         tagName = transformTagName(this.options.transformTagName, tagName, "", this.options).tagName;
 
         if (currentNode) {
-          textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
+          textData = this.saveTextToParentTag(textData, currentNode, this.matcher);
         }
 
         //check if last tag of nested tag was unpaired tag
@@ -41785,7 +41567,7 @@ const parseXml = function (xmlData) {
         let tagData = readTagExp(xmlData, i, false, "?>");
         if (!tagData) throw new Error("Pi Tag is not closed.");
 
-        textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
+        textData = this.saveTextToParentTag(textData, currentNode, this.matcher);
         if ((this.options.ignoreDeclaration && tagData.tagName === "?xml") || this.options.ignorePiTags) {
           //do nothing
         } else {
@@ -41796,7 +41578,7 @@ const parseXml = function (xmlData) {
           if (tagData.tagName !== tagData.tagExp && tagData.attrExpPresent) {
             childNode[":@"] = this.buildAttributesMap(tagData.tagExp, this.matcher, tagData.tagName);
           }
-          this.addChild(currentNode, childNode, this.readonlyMatcher, i);
+          this.addChild(currentNode, childNode, this.matcher, i);
         }
 
 
@@ -41806,7 +41588,7 @@ const parseXml = function (xmlData) {
         if (this.options.commentPropName) {
           const comment = xmlData.substring(i + 4, endIndex - 2);
 
-          textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
+          textData = this.saveTextToParentTag(textData, currentNode, this.matcher);
 
           currentNode.add(this.options.commentPropName, [{ [this.options.textNodeName]: comment }]);
         }
@@ -41819,9 +41601,9 @@ const parseXml = function (xmlData) {
         const closeIndex = findClosingIndex(xmlData, "]]>", i, "CDATA is not closed.") - 2;
         const tagExp = xmlData.substring(i + 9, closeIndex);
 
-        textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher);
+        textData = this.saveTextToParentTag(textData, currentNode, this.matcher);
 
-        let val = this.parseTextData(tagExp, currentNode.tagname, this.readonlyMatcher, true, false, true, true);
+        let val = this.parseTextData(tagExp, currentNode.tagname, this.matcher, true, false, true, true);
         if (val == undefined) val = "";
 
         //cdata should be set even if it is 0 length string
@@ -41853,8 +41635,6 @@ const parseXml = function (xmlData) {
         if (this.options.strictReservedNames &&
           (tagName === this.options.commentPropName
             || tagName === this.options.cdataPropName
-            || tagName === this.options.textNodeName
-            || tagName === this.options.attributesGroupName
           )) {
           throw new Error(`Invalid tag name: ${tagName}`);
         }
@@ -41863,7 +41643,7 @@ const parseXml = function (xmlData) {
         if (currentNode && textData) {
           if (currentNode.tagname !== '!xml') {
             //when nested tag is found
-            textData = this.saveTextToParentTag(textData, currentNode, this.readonlyMatcher, false);
+            textData = this.saveTextToParentTag(textData, currentNode, this.matcher, false);
           }
         }
 
@@ -41953,7 +41733,7 @@ const parseXml = function (xmlData) {
           this.matcher.pop(); // Pop the stop node tag
           this.isCurrentNodeStopNode = false; // Reset flag
 
-          this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+          this.addChild(currentNode, childNode, this.matcher, startIndex);
         } else {
           //selfClosing tag
           if (isSelfClosing) {
@@ -41963,7 +41743,7 @@ const parseXml = function (xmlData) {
             if (prefixedAttrs) {
               childNode[":@"] = prefixedAttrs;
             }
-            this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+            this.addChild(currentNode, childNode, this.matcher, startIndex);
             this.matcher.pop(); // Pop self-closing tag
             this.isCurrentNodeStopNode = false; // Reset flag
           }
@@ -41972,7 +41752,7 @@ const parseXml = function (xmlData) {
             if (prefixedAttrs) {
               childNode[":@"] = prefixedAttrs;
             }
-            this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+            this.addChild(currentNode, childNode, this.matcher, startIndex);
             this.matcher.pop(); // Pop unpaired tag
             this.isCurrentNodeStopNode = false; // Reset flag
             i = result.closeIndex;
@@ -41990,7 +41770,7 @@ const parseXml = function (xmlData) {
             if (prefixedAttrs) {
               childNode[":@"] = prefixedAttrs;
             }
-            this.addChild(currentNode, childNode, this.readonlyMatcher, startIndex);
+            this.addChild(currentNode, childNode, this.matcher, startIndex);
             currentNode = childNode;
           }
           textData = "";
@@ -42054,7 +41834,7 @@ function replaceEntitiesValue(val, tagName, jPath) {
   }
 
   // Replace DOCTYPE entities
-  for (const entityName of Object.keys(this.docTypeEntities)) {
+  for (let entityName in this.docTypeEntities) {
     const entity = this.docTypeEntities[entityName];
     const matches = val.match(entity.regx);
 
@@ -42086,38 +41866,19 @@ function replaceEntitiesValue(val, tagName, jPath) {
       }
     }
   }
+  if (val.indexOf('&') === -1) return val;  // Early exit
+
   // Replace standard entities
-  for (const entityName of Object.keys(this.lastEntities)) {
+  for (let entityName in this.lastEntities) {
     const entity = this.lastEntities[entityName];
-    const matches = val.match(entity.regex);
-    if (matches) {
-      this.entityExpansionCount += matches.length;
-      if (entityConfig.maxTotalExpansions &&
-        this.entityExpansionCount > entityConfig.maxTotalExpansions) {
-        throw new Error(
-          `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
-        );
-      }
-    }
     val = val.replace(entity.regex, entity.val);
   }
-  if (val.indexOf('&') === -1) return val;
+  if (val.indexOf('&') === -1) return val;  // Early exit
 
   // Replace HTML entities if enabled
   if (this.options.htmlEntities) {
-    for (const entityName of Object.keys(this.htmlEntities)) {
+    for (let entityName in this.htmlEntities) {
       const entity = this.htmlEntities[entityName];
-      const matches = val.match(entity.regex);
-      if (matches) {
-        //console.log(matches);
-        this.entityExpansionCount += matches.length;
-        if (entityConfig.maxTotalExpansions &&
-          this.entityExpansionCount > entityConfig.maxTotalExpansions) {
-          throw new Error(
-            `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
-          );
-        }
-      }
       val = val.replace(entity.regex, entity.val);
     }
   }
@@ -42374,17 +42135,18 @@ function stripAttributePrefix(attrs, prefix) {
  * @param {Matcher} matcher - Path matcher instance
  * @returns 
  */
-function prettify(node, options, matcher, readonlyMatcher) {
-  return compress(node, options, matcher, readonlyMatcher);
+function prettify(node, options, matcher) {
+  return compress(node, options, matcher);
 }
 
 /**
+ * 
  * @param {array} arr 
  * @param {object} options 
  * @param {Matcher} matcher - Path matcher instance
  * @returns object
  */
-function compress(arr, options, matcher, readonlyMatcher) {
+function compress(arr, options, matcher) {
   let text;
   const compressedObj = {}; //This is intended to be a plain object
   for (let i = 0; i < arr.length; i++) {
@@ -42407,11 +42169,11 @@ function compress(arr, options, matcher, readonlyMatcher) {
       continue;
     } else if (tagObj[property]) {
 
-      let val = compress(tagObj[property], options, matcher, readonlyMatcher);
+      let val = compress(tagObj[property], options, matcher);
       const isLeaf = isLeafTag(val, options);
 
       if (tagObj[":@"]) {
-        assignAttributes(val, tagObj[":@"], readonlyMatcher, options);
+        assignAttributes(val, tagObj[":@"], matcher, options);
       } else if (Object.keys(val).length === 1 && val[options.textNodeName] !== undefined && !options.alwaysCreateTextNode) {
         val = val[options.textNodeName];
       } else if (Object.keys(val).length === 0) {
@@ -42433,8 +42195,8 @@ function compress(arr, options, matcher, readonlyMatcher) {
         //TODO: if a node is not an array, then check if it should be an array
         //also determine if it is a leaf node
 
-        // Pass jPath string or readonlyMatcher based on options.jPath setting
-        const jPathOrMatcher = options.jPath ? readonlyMatcher.toString() : readonlyMatcher;
+        // Pass jPath string or matcher based on options.jPath setting
+        const jPathOrMatcher = options.jPath ? matcher.toString() : matcher;
         if (options.isArray(property, jPathOrMatcher, isLeaf)) {
           compressedObj[property] = [val];
         } else {
@@ -42466,7 +42228,7 @@ function propName(obj) {
   }
 }
 
-function assignAttributes(obj, attrMap, readonlyMatcher, options) {
+function assignAttributes(obj, attrMap, matcher, options) {
   if (attrMap) {
     const keys = Object.keys(attrMap);
     const len = keys.length; //don't make it inline
@@ -42481,8 +42243,8 @@ function assignAttributes(obj, attrMap, readonlyMatcher, options) {
       // For attributes, we need to create a temporary path
       // Pass jPath string or matcher based on options.jPath setting
       const jPathOrMatcher = options.jPath
-        ? readonlyMatcher.toString() + "." + rawAttrName
-        : readonlyMatcher;
+        ? matcher.toString() + "." + rawAttrName
+        : matcher;
 
       if (options.isArray(atrrName, jPathOrMatcher, true, true)) {
         obj[atrrName] = [attrMap[atrrName]];
@@ -42975,7 +42737,7 @@ class XMLParser {
         orderedObjParser.addExternalEntities(this.externalEntities);
         const orderedResult = orderedObjParser.parseXml(xmlData);
         if (this.options.preserveOrder || orderedResult === undefined) return orderedResult;
-        else return prettify(orderedResult, this.options, orderedObjParser.matcher, orderedObjParser.readonlyMatcher);
+        else return prettify(orderedResult, this.options, orderedObjParser.matcher);
     }
 
     /**
@@ -43009,6 +42771,7 @@ class XMLParser {
         return XmlNode.getMetaDataSymbol();
     }
 }
+
 ;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/context.js
 
 
