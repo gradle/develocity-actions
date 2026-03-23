@@ -60,8 +60,9 @@ public final class MavenBuildScanCaptureListener implements DevelocityListener {
         buildState.setMavenGoals(String.join(" ", session.getRequest().getGoals()));
 
         // Capture build result
+        final long buildStartTime = session.getStartTime().getTime();
         develocityApi.getBuildScan().buildFinished(buildResult -> {
-            long durationMillis = System.currentTimeMillis() - Long.parseLong(buildState.getBuildTimestamp());
+            long durationMillis = System.currentTimeMillis() - buildStartTime;
             buildState.setBuildDuration(String.valueOf(durationMillis));
             if(!buildResult.getFailures().isEmpty()) {
                 LOGGER.debug("Marking build failure");
