@@ -93,6 +93,7 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
       "buildId": "1701252758489-c27ff62b-3ab5-45f4-b7e4-2b362cf5220e",
       "buildFailure": false,
       "buildTimestamp": "1701252760650",
+      "buildDuration": "154320",
       "buildScanLink": "https://<DEVELOCITY_URL>/s/itg2ytkifb6wa"
     },
     {
@@ -104,6 +105,7 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
       "buildId": "1701252760831-89e3583d-3c3c-4a64-a958-e61aa791f4f4",
       "buildFailure": true,
       "buildTimestamp": "1701252760800",
+      "buildDuration": "42150",
       "buildScanLink": "https://<DEVELOCITY_URL>/s/dxqnlj5hgybq4"
     }
   ]
