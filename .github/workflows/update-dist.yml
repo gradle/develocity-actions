@@ -43,7 +43,7 @@ jobs:
         run: npm run all
 
       - name: Commit & push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_author: bot-githubaction <bot-githubaction@gradle.com>
           commit_user_name: bot-githubaction
