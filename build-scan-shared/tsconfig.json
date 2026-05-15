@@ -4,7 +4,6 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "baseUrl": "./",
     "sourceMap": true,
     "outDir": "./dist",
     "noImplicitAny": true,

@@ -3,9 +3,9 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
+    "rootDir": "..",
     "rootDirs": ["./src", "../build-scan-shared/src"],
     "moduleResolution": "bundler",
-    "baseUrl": "./",
     "sourceMap": true,
     "outDir": "./dist",
     "noImplicitAny": true,
