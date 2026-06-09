@@ -2678,9 +2678,12 @@ var parseObject = function (chain, val, options, valuesParsed) {
     return leaf;
 };
 
-var splitKeyIntoSegments = function splitKeyIntoSegments(givenKey, options) {
-    var key = options.allowDots ? givenKey.replace(/\.([^.[]+)/g, '[$1]') : givenKey;
+// Split a key like "a[b][c[]]" into ['a', '[b]', '[c[]]'] while preserving
+// qs parse semantics for depth/prototype guards.
+var splitKeyIntoSegments = function splitKeyIntoSegments(originalKey, options) {
+    var key = options.allowDots ? originalKey.replace(/\.([^.[]+)/g, '[$1]') : originalKey;
 
+    // depth <= 0 keeps the whole key as one segment
     if (options.depth <= 0) {
         if (!options.plainObjects && has.call(Object.prototype, key)) {
             if (!options.allowPrototypes) {
@@ -2691,14 +2694,11 @@ var splitKeyIntoSegments = function splitKeyIntoSegments(givenKey, options) {
         return [key];
     }
 
-    var brackets = /(\[[^[\]]*])/;
-    var child = /(\[[^[\]]*])/g;
+    var segments = [];
 
-    var segment = brackets.exec(key);
-    var parent = segment ? key.slice(0, segment.index) : key;
-
-    var keys = [];
-
+    // parent before the first '[' (may be empty if key starts with '[')
+    var first = key.indexOf('[');
+    var parent = first >= 0 ? key.slice(0, first) : key;
     if (parent) {
         if (!options.plainObjects && has.call(Object.prototype, parent)) {
             if (!options.allowPrototypes) {
@@ -2706,32 +2706,62 @@ var splitKeyIntoSegments = function splitKeyIntoSegments(givenKey, options) {
             }
         }
 
-        keys[keys.length] = parent;
+        segments[segments.length] = parent;
     }
 
-    var i = 0;
-    while ((segment = child.exec(key)) !== null && i < options.depth) {
-        i += 1;
+    var n = key.length;
+    var open = first;
+    var collected = 0;
 
-        var segmentContent = segment[1].slice(1, -1);
-        if (!options.plainObjects && has.call(Object.prototype, segmentContent)) {
-            if (!options.allowPrototypes) {
-                return;
+    while (open >= 0 && collected < options.depth) {
+        var level = 1;
+        var i = open + 1;
+        var close = -1;
+
+        // balance nested '[' and ']' inside this bracket group using a nesting level counter
+        while (i < n && close < 0) {
+            var cu = key.charCodeAt(i);
+            if (cu === 0x5B) { // '['
+                level += 1;
+            } else if (cu === 0x5D) { // ']'
+                level -= 1;
+                if (level === 0) {
+                    close = i; // found matching close; loop will exit by condition
+                }
             }
+            i += 1;
         }
 
-        keys[keys.length] = segment[1];
+        if (close < 0) {
+            // Unterminated group: wrap the raw remainder in one bracket pair so it stays
+            // a single literal segment (e.g. "[[]b" -> "[[]b]"); we do not infer missing ']'.
+            segments[segments.length] = '[' + key.slice(open) + ']';
+            return segments;
+        }
+
+        var seg = key.slice(open, close + 1);
+        // prototype guard for the content of this group
+        var content = seg.slice(1, -1);
+        if (!options.plainObjects && has.call(Object.prototype, content) && !options.allowPrototypes) {
+            return;
+        }
+
+        segments[segments.length] = seg;
+        collected += 1;
+
+        // find the next '[' after this balanced group
+        open = key.indexOf('[', close + 1);
     }
 
-    if (segment) {
+    if (open >= 0) {
         if (options.strictDepth === true) {
             throw new RangeError('Input depth exceeded depth option of ' + options.depth + ' and strictDepth is true');
         }
 
-        keys[keys.length] = '[' + key.slice(segment.index) + ']';
+        segments[segments.length] = '[' + key.slice(open) + ']';
     }
 
-    return keys;
+    return segments;
 };
 
 var parseKeys = function parseQueryStringKeys(givenKey, val, options, valuesParsed) {
@@ -2962,7 +2992,7 @@ var stringify = function stringify(
 
     if (obj === null) {
         if (strictNullHandling) {
-            return encoder && !encodeValuesOnly ? encoder(prefix, defaults.encoder, charset, 'key', format) : prefix;
+            return formatter(encoder && !encodeValuesOnly ? encoder(prefix, defaults.encoder, charset, 'key', format) : prefix);
         }
 
         obj = '';
@@ -2986,7 +3016,9 @@ var stringify = function stringify(
     if (generateArrayPrefix === 'comma' && isArray(obj)) {
         // we need to join elements in
         if (encodeValuesOnly && encoder) {
-            obj = utils.maybeMap(obj, encoder);
+            obj = utils.maybeMap(obj, function (v) {
+                return v == null ? v : encoder(v);
+            });
         }
         objKeys = [{ value: obj.length > 0 ? obj.join(',') || null : void undefined }];
     } else if (isArray(filter)) {
@@ -3156,6 +3188,11 @@ module.exports = function (object, opts) {
     var sideChannel = getSideChannel();
     for (var i = 0; i < objKeys.length; ++i) {
         var key = objKeys[i];
+
+        if (typeof key === 'undefined' || key === null) {
+            continue;
+        }
+
         var value = obj[key];
 
         if (options.skipNulls && value === null) {
@@ -3189,10 +3226,10 @@ module.exports = function (object, opts) {
     if (options.charsetSentinel) {
         if (options.charset === 'iso-8859-1') {
             // encodeURIComponent('&#10003;'), the "numeric entity" representation of a checkmark
-            prefix += 'utf8=%26%2310003%3B&';
+            prefix += 'utf8=%26%2310003%3B' + options.delimiter;
         } else {
             // encodeURIComponent('✓')
-            prefix += 'utf8=%E2%9C%93&';
+            prefix += 'utf8=%E2%9C%93' + options.delimiter;
         }
     }
 
@@ -6911,7 +6948,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HttpClient = exports.HttpClientResponse = exports.HttpCodes = void 0;
 exports.isHttps = isHttps;
-const url = __nccwpck_require__(7016);
 const http = __nccwpck_require__(8611);
 const https = __nccwpck_require__(5692);
 const util = __nccwpck_require__(4143);
@@ -6987,7 +7023,7 @@ class HttpClientResponse {
 }
 exports.HttpClientResponse = HttpClientResponse;
 function isHttps(requestUrl) {
-    let parsedUrl = url.parse(requestUrl);
+    const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
 var EnvironmentVariables;
@@ -7104,7 +7140,7 @@ class HttpClient {
             if (this._disposed) {
                 throw new Error("Client has already been disposed.");
             }
-            let parsedUrl = url.parse(requestUrl);
+            const parsedUrl = new URL(requestUrl);
             let info = this._prepareRequest(verb, parsedUrl, headers);
             // Only perform retries on reads since writes may not be idempotent.
             let maxTries = (this._allowRetries && RetryableHttpVerbs.indexOf(verb) != -1) ? this._maxRetries + 1 : 1;
@@ -7149,7 +7185,7 @@ class HttpClient {
                         // if there's no location to redirect to, we won't
                         break;
                     }
-                    let parsedRedirectUrl = url.parse(redirectUrl);
+                    const parsedRedirectUrl = new URL(redirectUrl, parsedUrl.href);
                     if (parsedUrl.protocol == 'https:' && parsedUrl.protocol != parsedRedirectUrl.protocol && !this._allowRedirectDowngrade) {
                         throw new Error("Redirect from HTTPS to HTTP protocol. This downgrade is not allowed for security reasons. If you want to allow this behavior, set the allowRedirectDowngrade option to true.");
                     }
@@ -7252,13 +7288,13 @@ class HttpClient {
     _prepareRequest(method, requestUrl, headers) {
         const info = {};
         info.parsedUrl = requestUrl;
-        const usingSsl = info.parsedUrl.protocol === 'https:';
+        const usingSsl = requestUrl.protocol === 'https:';
         info.httpModule = usingSsl ? https : http;
         const defaultPort = usingSsl ? 443 : 80;
         info.options = {};
-        info.options.host = info.parsedUrl.hostname;
-        info.options.port = info.parsedUrl.port ? parseInt(info.parsedUrl.port) : defaultPort;
-        info.options.path = (info.parsedUrl.pathname || '') + (info.parsedUrl.search || '');
+        info.options.host = requestUrl.hostname;
+        info.options.port = requestUrl.port ? parseInt(requestUrl.port) : defaultPort;
+        info.options.path = requestUrl.pathname + requestUrl.search;
         info.options.method = method;
         info.options.timeout = (this.requestOptions && this.requestOptions.socketTimeout) || this._socketTimeout;
         this._socketTimeout = info.options.timeout;
@@ -7266,9 +7302,9 @@ class HttpClient {
         if (this.userAgent != null) {
             info.options.headers["user-agent"] = this.userAgent;
         }
-        info.options.agent = this._getAgent(info.parsedUrl);
+        info.options.agent = this._getAgent(requestUrl);
         // gives handlers an opportunity to participate
-        if (this.handlers && !this._isPresigned(url.format(requestUrl))) {
+        if (this.handlers && !this._isPresigned(requestUrl.href)) {
             this.handlers.forEach((handler) => {
                 handler.prepareRequest(info.options);
             });
@@ -7323,7 +7359,7 @@ class HttpClient {
                 proxy: {
                     proxyAuth: proxy.proxyAuth,
                     host: proxy.proxyUrl.hostname,
-                    port: proxy.proxyUrl.port
+                    port: Number(proxy.proxyUrl.port) || (proxy.proxyUrl.protocol === 'https:' ? 443 : 80)
                 },
             };
             let tunnelAgent;
@@ -7384,7 +7420,7 @@ class HttpClient {
         let proxyAuth;
         if (proxyConfig) {
             if (proxyConfig.proxyUrl.length > 0) {
-                proxyUrl = url.parse(proxyConfig.proxyUrl);
+                proxyUrl = new URL(proxyConfig.proxyUrl);
             }
             if (proxyConfig.proxyUsername || proxyConfig.proxyPassword) {
                 proxyAuth = proxyConfig.proxyUsername + ":" + proxyConfig.proxyPassword;
@@ -7436,8 +7472,6 @@ exports.decompressGzippedContent = decompressGzippedContent;
 exports.buildProxyBypassRegexFromEnv = buildProxyBypassRegexFromEnv;
 exports.obtainContentCharset = obtainContentCharset;
 const qs = __nccwpck_require__(240);
-const url = __nccwpck_require__(7016);
-const path = __nccwpck_require__(6928);
 const zlib = __nccwpck_require__(3106);
 /**
  * creates an url from a request url and optional base url (http://server:8080)
@@ -7447,7 +7481,6 @@ const zlib = __nccwpck_require__(3106);
  * @return {string} - resultant url
  */
 function getUrl(resource, baseUrl, queryParams) {
-    const pathApi = path.posix || path;
     let requestUrl = '';
     if (!baseUrl) {
         requestUrl = resource;
@@ -7456,17 +7489,17 @@ function getUrl(resource, baseUrl, queryParams) {
         requestUrl = baseUrl;
     }
     else {
-        const base = url.parse(baseUrl);
-        const resultantUrl = url.parse(resource);
-        // resource (specific per request) elements take priority
-        resultantUrl.protocol = resultantUrl.protocol || base.protocol;
-        resultantUrl.auth = resultantUrl.auth || base.auth;
-        resultantUrl.host = resultantUrl.host || base.host;
-        resultantUrl.pathname = pathApi.resolve(base.pathname, resultantUrl.pathname);
+        const effectiveBase = new URL(baseUrl);
+        // Ensure the base path is treated as a directory so relative resource paths
+        // append to it without corrupting any existing query string or fragment.
+        if (!effectiveBase.pathname.endsWith('/')) {
+            effectiveBase.pathname += '/';
+        }
+        const resultantUrl = new URL(resource, effectiveBase.href);
         if (!resultantUrl.pathname.endsWith('/') && resource.endsWith('/')) {
             resultantUrl.pathname += '/';
         }
-        requestUrl = url.format(resultantUrl);
+        requestUrl = resultantUrl.href;
     }
     return queryParams ?
         getUrlWithParsedQueryParams(requestUrl, queryParams) :
@@ -35150,13 +35183,6 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:zlib");
 
 /***/ }),
 
-/***/ 6928:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
-
-/***/ }),
-
 /***/ 3193:
 /***/ ((module) => {
 
@@ -35168,13 +35194,6 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("string_decod
 /***/ ((module) => {
 
 module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("tls");
-
-/***/ }),
-
-/***/ 7016:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("url");
 
 /***/ }),
 
@@ -35613,9 +35632,9 @@ function file_command_prepareKeyValueMessage(key, value) {
     return `${key}<<${delimiter}${external_os_namespaceObject.EOL}${convertedValue}${external_os_namespaceObject.EOL}${delimiter}`;
 }
 //# sourceMappingURL=file-command.js.map
-// EXTERNAL MODULE: external "path"
-var external_path_ = __nccwpck_require__(6928);
-var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
+;// CONCATENATED MODULE: external "path"
+const external_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
+var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_namespaceObject);
 // EXTERNAL MODULE: external "http"
 var external_http_ = __nccwpck_require__(8611);
 // EXTERNAL MODULE: external "https"
@@ -36983,7 +37002,7 @@ function tryGetExecutablePath(filePath, extensions) {
         if (stats && stats.isFile()) {
             if (IS_WINDOWS) {
                 // on Windows, test for valid extension
-                const upperExt = external_path_.extname(filePath).toUpperCase();
+                const upperExt = external_path_namespaceObject.extname(filePath).toUpperCase();
                 if (extensions.some(validExt => validExt.toUpperCase() === upperExt)) {
                     return filePath;
                 }
@@ -37012,11 +37031,11 @@ function tryGetExecutablePath(filePath, extensions) {
                 if (IS_WINDOWS) {
                     // preserve the case of the actual file (since an extension was appended)
                     try {
-                        const directory = external_path_.dirname(filePath);
-                        const upperName = external_path_.basename(filePath).toUpperCase();
+                        const directory = external_path_namespaceObject.dirname(filePath);
+                        const upperName = external_path_namespaceObject.basename(filePath).toUpperCase();
                         for (const actualName of yield readdir(directory)) {
                             if (upperName === actualName.toUpperCase()) {
-                                filePath = external_path_.join(directory, actualName);
+                                filePath = external_path_namespaceObject.join(directory, actualName);
                                 break;
                             }
                         }
@@ -37236,7 +37255,7 @@ function findInPath(tool) {
         // build the list of extensions to try
         const extensions = [];
         if (IS_WINDOWS && process.env['PATHEXT']) {
-            for (const extension of process.env['PATHEXT'].split(external_path_.delimiter)) {
+            for (const extension of process.env['PATHEXT'].split(external_path_namespaceObject.delimiter)) {
                 if (extension) {
                     extensions.push(extension);
                 }
@@ -37251,7 +37270,7 @@ function findInPath(tool) {
             return [];
         }
         // if any path separators, return empty
-        if (tool.includes(external_path_.sep)) {
+        if (tool.includes(external_path_namespaceObject.sep)) {
             return [];
         }
         // build the list of directories
@@ -37262,7 +37281,7 @@ function findInPath(tool) {
         // across platforms.
         const directories = [];
         if (process.env.PATH) {
-            for (const p of process.env.PATH.split(external_path_.delimiter)) {
+            for (const p of process.env.PATH.split(external_path_namespaceObject.delimiter)) {
                 if (p) {
                     directories.push(p);
                 }
@@ -37271,7 +37290,7 @@ function findInPath(tool) {
         // find all matches
         const matches = [];
         for (const directory of directories) {
-            const filePath = yield tryGetExecutablePath(external_path_.join(directory, tool), extensions);
+            const filePath = yield tryGetExecutablePath(external_path_namespaceObject.join(directory, tool), extensions);
             if (filePath) {
                 matches.push(filePath);
             }
@@ -37702,7 +37721,7 @@ class ToolRunner extends external_events_.EventEmitter {
                 (this.toolPath.includes('/') ||
                     (toolrunner_IS_WINDOWS && this.toolPath.includes('\\')))) {
                 // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
-                this.toolPath = external_path_.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+                this.toolPath = external_path_namespaceObject.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
             }
             // if the tool is only a file name, then resolve it from the PATH
             // otherwise verify it exists (add extension on Windows if necessary)
@@ -38391,8 +38410,8 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
-// EXTERNAL MODULE: external "url"
-var external_url_ = __nccwpck_require__(7016);
+;// CONCATENATED MODULE: external "url"
+const external_url_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("url");
 // EXTERNAL MODULE: ./node_modules/typed-rest-client/HttpClient.js
 var typed_rest_client_HttpClient = __nccwpck_require__(6184);
 ;// CONCATENATED MODULE: ./build-scan-shared/src/auth/short-lived-token.ts
@@ -38852,15 +38871,290 @@ class XmlNode {
   }
 }
 
+;// CONCATENATED MODULE: ./node_modules/xml-naming/src/index.js
+/**
+ * xml-naming
+ * Validates XML Name productions as defined in the XML 1.0 and 1.1 specifications.
+ * Covers: Name, NCName, QName, NMToken, NMTokens
+ *
+ * XML 1.0 spec: https://www.w3.org/TR/xml/#NT-Name
+ * XML 1.1 spec: https://www.w3.org/TR/xml11/#NT-NameStartChar
+ * XML NS spec:  https://www.w3.org/TR/xml-names/#NT-NCName
+ */
+
+// ---------------------------------------------------------------------------
+// Character class strings — XML 1.0
+//
+// NameStartChar ::= ":" | [A-Z] | "_" | [a-z]
+//   | [#xC0-#xD6]   | [#xD8-#xF6]   | [#xF8-#x2FF]
+//   | [#x370-#x37D] | [#x37F-#x1FFF]    <- split to exclude #x0487
+//   | [#x200C-#x200D]
+//   | [#x2070-#x218F] | [#x2C00-#x2FEF]
+//   | [#x3001-#xD7FF] | [#xF900-#xFDCF] | [#xFDF0-#xFFFD]
+//
+// NameChar ::= NameStartChar | "-" | "." | [0-9]
+//   | #xB7 | [#x0300-#x036F] | [#x203F-#x2040]
+//
+// Note: \u0487 (Combining Cyrillic Millions Sign) was added in Unicode 4.0,
+// after XML 1.0 was defined against Unicode 2.0. It falls inside the range
+// \u037F-\u1FFF but must be excluded. We split that range into
+// \u037F-\u0486 and \u0488-\u1FFF to exclude it explicitly.
+// ---------------------------------------------------------------------------
+
+const nameStartChar10 =
+  ':A-Za-z_' +
+  '\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF' +
+  '\u0370-\u037D' +
+  '\u037F-\u0486\u0488-\u1FFF' +  // split to exclude \u0487
+  '\u200C-\u200D' +
+  '\u2070-\u218F' +
+  '\u2C00-\u2FEF' +
+  '\u3001-\uD7FF' +
+  '\uF900-\uFDCF' +
+  '\uFDF0-\uFFFD';
+
+const nameChar10 =
+  nameStartChar10 +
+  '\\-\\.\\d' +
+  '\u00B7' +
+  '\u0300-\u036F' +
+  '\u203F-\u2040';
+
+// ---------------------------------------------------------------------------
+// Character class strings — XML 1.1
+//
+// Differences from XML 1.0:
+//
+// NameStartChar:
+//   1.0 has split ranges: \u00C0-\u00D6, \u00D8-\u00F6, \u00F8-\u02FF
+//   1.1 merges them into: \u00C0-\u02FF
+//   (\u00D7 x and \u00F7 / are division symbols, excluded in both versions)
+//
+//   1.0 tops out at \uFFFD (BMP only)
+//   1.1 adds \u{10000}-\u{EFFFF} (supplementary planes)
+//   These require the /u flag on the RegExp — see buildRegexes below.
+//
+// NameChar:
+//   1.1 adds \u0487 (Combining Cyrillic Millions Sign, added in Unicode 4.0)
+// ---------------------------------------------------------------------------
+
+const nameStartChar11 =
+  ':A-Za-z_' +
+  '\u00C0-\u02FF' +                    // merged — 1.0 had three split ranges here
+  '\u0370-\u037D' +
+  '\u037F-\u0486\u0488-\u1FFF' +       // split to exclude \u0487 (combining mark, never a NameStartChar)
+  '\u200C-\u200D' +
+  '\u2070-\u218F' +
+  '\u2C00-\u2FEF' +
+  '\u3001-\uD7FF' +
+  '\uF900-\uFDCF' +
+  '\uFDF0-\uFFFD' +
+  '\u{10000}-\u{EFFFF}';     // supplementary planes — REQUIRES /u flag on RegExp
+
+const nameChar11 =
+  nameStartChar11 +
+  '\\-\\.\\d' +
+  '\u00B7' +
+  '\u0300-\u036F' +
+  '\u0487' +                 // Combining Cyrillic Millions Sign — valid in 1.1, not 1.0
+  '\u203F-\u2040';
+
+// ---------------------------------------------------------------------------
+// Regex builders
+//
+// XML 1.0 regexes: no flags — BMP only, standard JS regex behaviour.
+// XML 1.1 regexes: /u flag — required for \u{10000}-\u{EFFFF} to match actual
+//   supplementary code points rather than lone surrogates (which are illegal XML).
+// ---------------------------------------------------------------------------
+
+const buildRegexes = (startChar, char, flags = '') => {
+  const ncStart = startChar.replace(':', '');
+  const ncChar = char.replace(':', '');
+  const ncNamePat = `[${ncStart}][${ncChar}]*`;
+
+  return {
+    name: new RegExp(`^[${startChar}][${char}]*$`, flags),
+    ncName: new RegExp(`^${ncNamePat}$`, flags),
+    qName: new RegExp(`^${ncNamePat}(?::${ncNamePat})?$`, flags),
+    nmToken: new RegExp(`^[${char}]+$`, flags),
+    nmTokens: new RegExp(`^[${char}]+(?:\\s+[${char}]+)*$`, flags),
+  };
+};
+
+const regexes10 = buildRegexes(nameStartChar10, nameChar10);       // no /u — BMP only
+const regexes11 = buildRegexes(nameStartChar11, nameChar11, 'u');  // /u — enables \u{10000}-\u{EFFFF}
+
+const getRegexes = (xmlVersion = '1.0') =>
+  xmlVersion === '1.1' ? regexes11 : regexes10;
+
+// ---------------------------------------------------------------------------
+// Boolean validators
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the string is a valid XML Name.
+ * Colons are allowed anywhere (Name production).
+ * Used for: DOCTYPE entity names, notation names, DTD element declarations.
+ */
+const src_name = (str, { xmlVersion = '1.0' } = {}) =>
+  getRegexes(xmlVersion).name.test(str);
+
+/**
+ * Returns true if the string is a valid NCName (Non-Colonized Name).
+ * Colons are not permitted.
+ * Used for: namespace prefixes, local names, SVG id attributes.
+ */
+const ncName = (str, { xmlVersion = '1.0' } = {}) =>
+  getRegexes(xmlVersion).ncName.test(str);
+
+/**
+ * Returns true if the string is a valid QName (Qualified Name).
+ * Allows exactly one colon as a prefix separator: prefix:localName.
+ * Used for: element and attribute names in namespace-aware XML/SVG.
+ */
+const qName = (str, { xmlVersion = '1.0' } = {}) =>
+  getRegexes(xmlVersion).qName.test(str);
+
+/**
+ * Returns true if the string is a valid NMToken.
+ * Like Name but no restriction on the first character.
+ * Used for: DTD NMTOKEN attribute values.
+ */
+const nmToken = (str, { xmlVersion = '1.0' } = {}) =>
+  getRegexes(xmlVersion).nmToken.test(str);
+
+/**
+ * Returns true if the string is a valid NMTokens value.
+ * A whitespace-separated list of NMToken values.
+ * Used for: DTD NMTOKENS attribute values.
+ */
+const nmTokens = (str, { xmlVersion = '1.0' } = {}) =>
+  getRegexes(xmlVersion).nmTokens.test(str);
+
+// ---------------------------------------------------------------------------
+// Diagnostic validator
+// ---------------------------------------------------------------------------
+
+const PRODUCTIONS = (/* unused pure expression or super */ null && (['name', 'ncName', 'qName', 'nmToken', 'nmTokens']));
+
+/**
+ * Validates a string against a named production and returns a detailed result.
+ *
+ * @param {string} str
+ * @param {'name'|'ncName'|'qName'|'nmToken'|'nmTokens'} production
+ * @param {{ xmlVersion?: '1.0'|'1.1' }} [opts]
+ * @returns {{ valid: boolean, production: string, input: string, reason?: string, position?: number }}
+ */
+const validate = (str, production, { xmlVersion = '1.0' } = {}) => {
+  if (!PRODUCTIONS.includes(production)) {
+    throw new TypeError(
+      `Unknown production "${production}". Must be one of: ${PRODUCTIONS.join(', ')}`
+    );
+  }
+
+  const validators = { name: src_name, ncName, qName, nmToken, nmTokens };
+  const isValid = validators[production](str, { xmlVersion });
+
+  if (isValid) return { valid: true, production, input: str };
+
+  let reason = 'Does not match the production rules';
+  let position;
+
+  if (str.length === 0) {
+    reason = 'Input is empty';
+  } else if (production === 'ncName' && str.includes(':')) {
+    position = str.indexOf(':');
+    reason = 'Colon is not allowed in NCName';
+  } else if (production === 'qName' && str.startsWith(':')) {
+    reason = 'QName cannot start with a colon';
+    position = 0;
+  } else if (production === 'qName' && str.endsWith(':')) {
+    reason = 'QName cannot end with a colon';
+    position = str.length - 1;
+  } else if (production === 'qName' && (str.match(/:/g) || []).length > 1) {
+    reason = 'QName can have at most one colon';
+    position = str.lastIndexOf(':');
+  } else if (
+    ['name', 'ncName', 'qName'].includes(production) &&
+    !/^[:A-Za-z_\u00C0-\uFFFD]/.test(str[0])
+  ) {
+    reason = `First character "${str[0]}" is not a valid NameStartChar`;
+    position = 0;
+  } else {
+    for (let i = 0; i < str.length; i++) {
+      if (!/[\w\-\\.:\u00B7\u00C0-\uFFFD]/.test(str[i])) {
+        reason = `Character "${str[i]}" at position ${i} is not a valid NameChar`;
+        position = i;
+        break;
+      }
+    }
+  }
+
+  return { valid: false, production, input: str, reason, position };
+};
+
+// ---------------------------------------------------------------------------
+// Batch validator
+// ---------------------------------------------------------------------------
+
+/**
+ * Validates an array of strings against a named production.
+ *
+ * @param {string[]} strings
+ * @param {'name'|'ncName'|'qName'|'nmToken'|'nmTokens'} production
+ * @param {{ xmlVersion?: '1.0'|'1.1' }} [opts]
+ * @returns {Array<{ valid: boolean, production: string, input: string, reason?: string, position?: number }>}
+ */
+const validateAll = (strings, production, opts = {}) =>
+  strings.map(str => validate(str, production, opts));
+
+// ---------------------------------------------------------------------------
+// Sanitizer
+// ---------------------------------------------------------------------------
+
+/**
+ * Transforms an invalid string into the nearest valid XML name for the given production.
+ *
+ * @param {string} str
+ * @param {'name'|'ncName'|'qName'|'nmToken'|'nmTokens'} production
+ * @param {{ replacement?: string }} [opts]
+ * @returns {string}
+ */
+const sanitize = (str, production = 'name', { replacement = '_' } = {}) => {
+  if (!str) return replacement;
+
+  let result = str;
+
+  // Strip colons for NCName
+  if (production === 'ncName') {
+    result = result.replace(/:/g, '');
+  }
+
+  // Replace illegal characters
+  result = result.replace(/[^\w\-\.:\u00B7\u00C0-\uFFFD]/g, replacement);
+
+  // Fix invalid start character for Name / NCName / QName
+  if (production !== 'nmToken' && production !== 'nmTokens') {
+    if (/^[\-\.\d]/.test(result)) {
+      result = replacement + result;
+    }
+  }
+
+  return result || replacement;
+};
 ;// CONCATENATED MODULE: ./node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js
 
 
 class DocTypeReader {
-    constructor(options) {
+    constructor(options, xmlVersion) {
         this.suppressValidationErr = !options;
         this.options = options;
+        this.xmlVersion = xmlVersion || 1.0;
     }
 
+    setXmlVersion(xmlVersion = 1.0) {
+        this.xmlVersion = xmlVersion;
+    }
     readDocType(xmlData, i) {
         const entities = Object.create(null);
         let entityCount = 0;
@@ -38958,7 +39252,7 @@ class DocTypeReader {
         }
         let entityName = xmlData.substring(startIndex, i);
 
-        validateEntityName(entityName);
+        validateEntityName(entityName, { xmlVersion: this.xmlVersion });
 
         // Skip whitespace after entity name
         i = skipWhitespace(xmlData, i);
@@ -39001,7 +39295,7 @@ class DocTypeReader {
         }
         let notationName = xmlData.substring(startIndex, i);
 
-        !this.suppressValidationErr && validateEntityName(notationName);
+        !this.suppressValidationErr && validateEntityName(notationName, { xmlVersion: this.xmlVersion });
 
         // Skip whitespace after notation name
         i = skipWhitespace(xmlData, i);
@@ -39081,7 +39375,7 @@ class DocTypeReader {
         let elementName = xmlData.substring(startIndex, i);
 
         // Validate element name
-        if (!this.suppressValidationErr && !isName(elementName)) {
+        if (!this.suppressValidationErr && !qName(elementName, { xmlVersion: this.xmlVersion })) {
             throw new Error(`Invalid element name: "${elementName}"`);
         }
 
@@ -39128,7 +39422,7 @@ class DocTypeReader {
         let elementName = xmlData.substring(startIndex, i);
 
         // Validate element name
-        validateEntityName(elementName)
+        validateEntityName(elementName, { xmlVersion: this.xmlVersion })
 
         // Skip whitespace after element name
         i = skipWhitespace(xmlData, i);
@@ -39141,7 +39435,7 @@ class DocTypeReader {
         let attributeName = xmlData.substring(startIndex, i);
 
         // Validate attribute name
-        if (!validateEntityName(attributeName)) {
+        if (!validateEntityName(attributeName, { xmlVersion: this.xmlVersion })) {
             throw new Error(`Invalid attribute name: "${attributeName}"`);
         }
 
@@ -39176,7 +39470,7 @@ class DocTypeReader {
 
                 // Validate notation name
                 notation = notation.trim();
-                if (!validateEntityName(notation)) {
+                if (!validateEntityName(notation, { xmlVersion: this.xmlVersion })) {
                     throw new Error(`Invalid notation name: "${notation}"`);
                 }
 
@@ -39254,8 +39548,8 @@ function hasSeq(data, seq, i) {
     return true;
 }
 
-function validateEntityName(name) {
-    if (isName(name))
+function validateEntityName(name, xmlVersion) {
+    if (qName(name, { xmlVersion: xmlVersion }))
         return name;
     else
         throw new Error(`Invalid entity name ${name}`);
@@ -42288,9 +42582,6 @@ class OrderedObjParser {
 
     // Initialize path matcher for path-expression-matcher
     this.matcher = new Matcher();
-
-    // Live read-only proxy of matcher — PEM creates and caches this internally.
-    // All user callbacks receive this instead of the mutable matcher.
     this.readonlyMatcher = this.matcher.readOnly();
 
     // Flag to track if current node is a stop node (optimization)
@@ -42526,6 +42817,7 @@ const parseXml = function (xmlData) {
         if (attsMap) {
           const ver = attsMap[this.options.attributeNamePrefix + "version"];
           this.entityDecoder.setXmlVersion(Number(ver) || 1.0);
+          docTypeReader.setXmlVersion(Number(ver) || 1.0);
         }
         if ((options.ignoreDeclaration && tagData.tagName === "?xml") || options.ignorePiTags) {
           //do nothing
@@ -43210,7 +43502,7 @@ const validator_defaultOptions = {
 };
 
 //const tagsPattern = new RegExp("<\\/?([\\w:\\-_\.]+)\\s*\/?>","g");
-function validate(xmlData, options) {
+function validator_validate(xmlData, options) {
   options = Object.assign({}, validator_defaultOptions, options);
 
   //xmlData = xmlData.replace(/(\r\n|\n|\r)/gm,"");//make it single line
@@ -43655,7 +43947,7 @@ class XMLParser {
         if (validationOption) {
             if (validationOption === true) validationOption = {}; //validate with default options
 
-            const result = validate(xmlData, validationOption);
+            const result = validator_validate(xmlData, validationOption);
             if (result !== true) {
                 throw Error(`${result.err.msg}:${result.err.line}:${result.err.col}`)
             }
@@ -48954,7 +49246,7 @@ function dirname(p) {
         return p;
     }
     // Get dirname
-    let result = external_path_.dirname(p);
+    let result = external_path_namespaceObject.dirname(p);
     // Trim trailing slash for Windows UNC root, e.g. \\hello\world\
     if (internal_path_helper_IS_WINDOWS && /^\\\\[^\\]+\\[^\\]+\\$/.test(result)) {
         result = safeTrimTrailingSeparator(result);
@@ -49013,7 +49305,7 @@ function ensureAbsoluteRoot(root, itemPath) {
     }
     else {
         // Append separator
-        root += external_path_.sep;
+        root += external_path_namespaceObject.sep;
     }
     return root + itemPath;
 }
@@ -49078,11 +49370,11 @@ function safeTrimTrailingSeparator(p) {
     // Normalize separators
     p = internal_path_helper_normalizeSeparators(p);
     // No trailing slash
-    if (!p.endsWith(external_path_.sep)) {
+    if (!p.endsWith(external_path_namespaceObject.sep)) {
         return p;
     }
     // Check '/' on Linux/macOS and '\' on Windows
-    if (p === external_path_.sep) {
+    if (p === external_path_namespaceObject.sep) {
         return p;
     }
     // On Windows check if drive root. E.g. C:\
@@ -51631,7 +51923,7 @@ class Path {
             itemPath = safeTrimTrailingSeparator(itemPath);
             // Not rooted
             if (!hasRoot(itemPath)) {
-                this.segments = itemPath.split(external_path_.sep);
+                this.segments = itemPath.split(external_path_namespaceObject.sep);
             }
             // Rooted
             else {
@@ -51640,7 +51932,7 @@ class Path {
                 let dir = dirname(remaining);
                 while (dir !== remaining) {
                     // Add the segment
-                    const basename = external_path_.basename(remaining);
+                    const basename = external_path_namespaceObject.basename(remaining);
                     this.segments.unshift(basename);
                     // Truncate the last segment
                     remaining = dir;
@@ -51670,7 +51962,7 @@ class Path {
                 // All other segments
                 else {
                     // Must not contain slash
-                    external_assert_(!segment.includes(external_path_.sep), `Parameter 'itemPath' contains unexpected path separators`);
+                    external_assert_(!segment.includes(external_path_namespaceObject.sep), `Parameter 'itemPath' contains unexpected path separators`);
                     this.segments.push(segment);
                 }
             }
@@ -51683,13 +51975,13 @@ class Path {
         // First segment
         let result = this.segments[0];
         // All others
-        let skipSlash = result.endsWith(external_path_.sep) || (internal_path_IS_WINDOWS && /^[A-Z]:$/i.test(result));
+        let skipSlash = result.endsWith(external_path_namespaceObject.sep) || (internal_path_IS_WINDOWS && /^[A-Z]:$/i.test(result));
         for (let i = 1; i < this.segments.length; i++) {
             if (skipSlash) {
                 skipSlash = false;
             }
             else {
-                result += external_path_.sep;
+                result += external_path_namespaceObject.sep;
             }
             result += this.segments[i];
         }
@@ -51740,7 +52032,7 @@ class Pattern {
         this.segments = new Path(pattern).segments;
         // Trailing slash indicates the pattern should only match directories, not regular files
         this.trailingSeparator = internal_path_helper_normalizeSeparators(pattern)
-            .endsWith(external_path_.sep);
+            .endsWith(external_path_namespaceObject.sep);
         pattern = safeTrimTrailingSeparator(pattern);
         // Search path (literal path prior to the first glob segment)
         let foundGlob = false;
@@ -51774,10 +52066,10 @@ class Pattern {
             // Append a trailing slash. Otherwise Minimatch will not match the directory immediately
             // preceding the globstar. For example, given the pattern `/foo/**`, Minimatch returns
             // false for `/foo` but returns true for `/foo/`. Append a trailing slash to handle that quirk.
-            if (!itemPath.endsWith(external_path_.sep) && this.isImplicitPattern === false) {
+            if (!itemPath.endsWith(external_path_namespaceObject.sep) && this.isImplicitPattern === false) {
                 // Note, this is safe because the constructor ensures the pattern has an absolute root.
                 // For example, formats like C: and C:foo on Windows are resolved to an absolute root.
-                itemPath = `${itemPath}${external_path_.sep}`;
+                itemPath = `${itemPath}${external_path_namespaceObject.sep}`;
             }
         }
         else {
@@ -51826,11 +52118,11 @@ class Pattern {
         // Normalize slashes
         pattern = internal_path_helper_normalizeSeparators(pattern);
         // Replace leading `.` segment
-        if (pattern === '.' || pattern.startsWith(`.${external_path_.sep}`)) {
+        if (pattern === '.' || pattern.startsWith(`.${external_path_namespaceObject.sep}`)) {
             pattern = Pattern.globEscape(process.cwd()) + pattern.substr(1);
         }
         // Replace leading `~` segment
-        else if (pattern === '~' || pattern.startsWith(`~${external_path_.sep}`)) {
+        else if (pattern === '~' || pattern.startsWith(`~${external_path_namespaceObject.sep}`)) {
             homedir = homedir || external_os_namespaceObject.homedir();
             external_assert_(homedir, 'Unable to determine HOME directory');
             external_assert_(hasAbsoluteRoot(homedir), `Expected HOME directory to be a rooted path. Actual '${homedir}'`);
@@ -52057,7 +52349,7 @@ class DefaultGlobber {
                     continue;
                 }
                 // Hidden file or directory?
-                if (options.excludeHiddenFiles && external_path_.basename(item.path).match(/^\./)) {
+                if (options.excludeHiddenFiles && external_path_namespaceObject.basename(item.path).match(/^\./)) {
                     continue;
                 }
                 // Directory
@@ -52072,7 +52364,7 @@ class DefaultGlobber {
                     }
                     // Push the child items in reverse
                     const childLevel = item.level + 1;
-                    const childItems = (yield __await(external_fs_.promises.readdir(item.path))).map(x => new SearchState(external_path_.join(item.path, x), childLevel));
+                    const childItems = (yield __await(external_fs_.promises.readdir(item.path))).map(x => new SearchState(external_path_namespaceObject.join(item.path, x), childLevel));
                     stack.push(...childItems.reverse());
                 }
                 // File
@@ -52549,7 +52841,7 @@ async function run() {
     }
 }
 function configureEnvironment(develocityMavenExtensionMavenOpts) {
-    const __filename = (0,external_url_.fileURLToPath)(import.meta.url);
+    const __filename = (0,external_url_namespaceObject.fileURLToPath)(import.meta.url);
     const __dirname = external_path_default().dirname(__filename);
     const captureExtensionSourcePath = external_path_default().resolve(__dirname, '..', '..', MAVEN_BUILD_SCAN_CAPTURE_EXTENSION, MAVEN_BUILD_SCAN_CAPTURE_EXTENSION_JAR);
     const mavenOptsCurrent = process.env[ENV_KEY_MAVEN_OPTS];
