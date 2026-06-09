@@ -35,6 +35,9 @@
     "all": "npm run build && npm run test"
   },
   "license": "MIT",
+  "overrides": {
+    "qs": "^6.15.2"
+  },
   "dependencies": {
     "@actions/artifact": "^6.2.1",
     "@actions/core": "^3.0.1",
