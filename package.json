@@ -36,7 +36,8 @@
   },
   "license": "MIT",
   "overrides": {
-    "qs": "^6.15.2"
+    "qs": "^6.15.2",
+    "shell-quote": "^1.8.4"
   },
   "dependencies": {
     "@actions/artifact": "^6.2.1",
