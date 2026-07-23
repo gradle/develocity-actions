@@ -10,6 +10,9 @@ updates:
           - "*"
     ignore:
       - dependency-name: "*eslint*"
+      - dependency-name: "typescript"
+        # ts-jest does not support TypeScript 7 yet
+        versions: [ ">= 7" ]
   - package-ecosystem: "maven"
     directory: "maven-build-scan-capture-extension"
     schedule:
