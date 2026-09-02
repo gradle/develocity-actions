@@ -39,6 +39,23 @@ describe('auth', () => {
         expect(accessToken).toBe('dev=token1')
     })
 
+    it('Get access key with short-lived token succeeds when the access key holds an OIDC token', async () => {
+        // given
+        const oidcToken = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJyZXBvOmZvby9iYXIifQ.c2lnbmF0dXJl_-=='
+        const develocityAccessKeyFromInput = `dev=${oidcToken}`
+        const develocityTokenExpiryFromInput = ''
+        nock('https://dev')
+            .matchHeader('Authorization', `Bearer ${oidcToken}`)
+            .post('/api/auth/token')
+            .reply(200, 'token1')
+
+        // when
+        const accessToken = await auth.getAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput)
+
+        // then
+        expect(accessToken).toBe('dev=token1')
+    })
+
     it('Fall back to Develocity access key when short-lived token retrieval fails', async () => {
         // given
         const develocityAccessKeyFromInput = 'dev=key1'
