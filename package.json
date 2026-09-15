@@ -51,13 +51,13 @@
     "@actions/tool-cache": "^4.0.0",
     "fast-xml-parser": "^5.11.1",
     "properties-reader": "^3.0.1",
-    "typed-rest-client": "^3.1.0"
+    "typed-rest-client": "^3.1.2"
   },
   "devDependencies": {
     "@gradle-tech/develocity-agent": "^4.1.1",
-    "@jest/globals": "30.5.0",
+    "@jest/globals": "30.5.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.5.1",
     "@types/properties-reader": "^2.1.1",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.14.1",
@@ -68,7 +68,7 @@
     "eslint-plugin-jest": "^28.8.0",
     "eslint-plugin-jsonc": "^2.16.0",
     "eslint-plugin-prettier": "^5.2.1",
-    "jest": "^30.5.0",
+    "jest": "^30.5.1",
     "js-yaml": "^5.2.2",
     "nock": "^14.0.17",
     "npm-run-all": "^4.1.5",
