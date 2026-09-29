@@ -1,0 +1,41 @@
+name: Docker Setup Action
+description: Setup action to capture Docker Build Scans
+author: Gradle team
+
+inputs:
+  develocity-url:
+    description: 'Develocity server URL'
+    required: true
+  develocity-access-key:
+    description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
+    required: false
+  develocity-token-expiry:
+    description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
+  develocity-docker-agent-version:
+    description: 'Develocity Docker agent version'
+    default: '0.9.0-rc1'
+    required: false
+  develocity-project-id:
+    description: 'Project identifier sent with the Build Scan token request. The project shown on the Build Scan comes from the build argument DEVELOCITY_PROJECT_ID, falling back to the git repository name.'
+    required: false
+  buildx-builder:
+    description: 'Name of the buildx builder the agent attaches to (Default is the current builder)'
+    required: false
+  package-scan-enabled:
+    description: 'Whether to catalogue the packages in each built image'
+    default: 'true'
+    required: false
+  drain-timeout-seconds:
+    description: 'How long to wait, at the end of the job, for a Build Scan of each build BuildKit recorded'
+    default: '300'
+    required: false
+  shutdown-timeout-seconds:
+    description: 'How long to wait for the agent to exit once signalled, before killing it'
+    default: '120'
+    required: false
+
+runs:
+  using: node20
+  main: ../dist/setup-docker/main/index.js
+  post: ../dist/setup-docker/post/index.js
