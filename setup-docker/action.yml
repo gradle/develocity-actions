@@ -14,7 +14,7 @@ inputs:
     required: false
   develocity-docker-agent-version:
     description: 'Develocity Docker agent version'
-    default: '0.9.0-rc1'
+    default: '0.9.0'
     required: false
   develocity-project-id:
     description: 'Project identifier sent with the Build Scan token request. The project shown on the Build Scan comes from the build argument DEVELOCITY_PROJECT_ID, falling back to the git repository name.'
