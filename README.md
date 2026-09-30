@@ -4,6 +4,7 @@ A collection of composite GitHub Actions related to [Develocity](https://gradle.
 - [setup-maven](#setup-maven-action)
 - [maven-publish-build-scan](#maven-publish-build-scan-action)
 - [setup-npm](#setup-npm-action)
+- [setup-docker](#setup-docker-action)
 
 ---
 
@@ -340,3 +341,69 @@ jobs:
 | `develocity-pacote-version`                                | *Optional*: Version of pacote to use to install the Develocity npm build agent                                                                          | `21.0.0`                       |
 | `develocity-allow-untrusted-server`                        | *Optional*: Whether to allow communicating with untrusted server                                                                                        |                                |
 | `develocity-npm-agent-url-override`                        | *Optional*: Override the URL to use to download the Develocity NPM agent                                                                                |                                |
+
+## setup-docker action
+
+### Description
+
+Publishes a Build Scan® for every container image built in the job.
+
+The agent subscribes to BuildKit's build history stream, so it captures whatever reaches BuildKit
+without the build itself being changed: no Dockerfile edit, no wrapper script, no change to the
+command that builds the image. A build that talks to the Docker Engine API instead of BuildKit
+produces no history record and is not captured.
+
+### Usage
+
+Insert the `Setup Docker` step once in each job that builds an image, before the build runs. The
+agent is stopped automatically when the job ends, and the scans it published are written to the job
+summary.
+
+```yaml
+name: PR Build
+jobs:
+  build:
+      - name: Setup Docker
+        uses: gradle/develocity-actions/setup-docker@v2.0
+        with:
+          develocity-url: 'https://<develocity-server>'
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+      - name: Build image
+        run: docker build -t my-image .
+[...]
+```
+
+The agent runs on a JDK 21 or later that it finds on the runner. It deliberately does not use
+`actions/setup-java`, which would export `JAVA_HOME` and prepend `PATH` for the whole job and so
+change the JDK the build under test compiles with. When the runner has no suitable JDK, one is
+downloaded for the agent alone.
+
+#### Naming the scans
+
+Capturing a scan needs no change to the build. Giving that scan a project name does, and the two
+levers are not interchangeable. The name shown on the scan comes from the build's own
+`--build-arg DEVELOCITY_PROJECT_ID`, falling back to the last segment of the git repository. The
+`develocity-project-id` input below is the identifier sent when requesting a scan token, and it
+never reaches the name on the scan.
+
+#### Builds on their own builder
+
+The agent attaches to whichever buildx builder is current when it starts. A job that runs
+`docker buildx create` and builds on that builder has to name it through `buildx-builder`, otherwise
+those builds are invisible to the agent.
+
+### Action inputs
+
+| Name                                   | Description                                                                                                      | Default                                            |
+|----------------------------------------|------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| `develocity-url`                       | *Required*: Develocity server URL                                                                                |                                                    |
+| `develocity-access-key`                | *Required*: Develocity access key. Should be set to a secret containing the Develocity Access key                | ``                                                 |
+| `develocity-token-expiry`              | *Optional*: Develocity short-lived access tokens expiry in hours                                                 | `2`                                                |
+| `develocity-project-id`                | *Optional*: Develocity project identifier sent when requesting a scan token                                      |                                                    |
+| `develocity-docker-agent-version`      | *Optional*: Develocity Docker agent version                                                                      | `0.9.0`                                            |
+| `develocity-docker-agent-url-override` | *Optional*: Override the base URL the Develocity Docker agent is downloaded from                                 | `https://develocity-docker-build-agent.gradle.com` |
+| `capture-package-list`                 | *Optional*: Whether to catalogue the packages contained in each built image                                      | `true`                                             |
+| `buildx-builder`                       | *Optional*: Name of the buildx builder to attach to. Required when the job builds on a builder it creates itself |                                                    |
+| `drain-timeout`                        | *Optional*: Seconds to wait for the agent to publish every captured build before stopping it                     | `300`                                              |
+| `shutdown-timeout`                     | *Optional*: Seconds to wait for the agent to exit once it has been signalled                                     | `120`                                              |
+| `java-home-override`                   | *Optional*: JDK 21 or later used to run the agent. Detected from the runner when not set                         |                                                    |
