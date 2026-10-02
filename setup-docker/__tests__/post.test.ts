@@ -11,9 +11,10 @@ jest.unstable_mockModule('../src/agent', () => ({
 const mockAddHeading = jest.fn()
 const mockAddList = jest.fn()
 const mockWrite = jest.fn()
+const mockGetInput = jest.fn<(name: string) => string>().mockReturnValue('')
 
 jest.unstable_mockModule('@actions/core', () => ({
-    getInput: jest.fn<() => string>().mockReturnValue(''),
+    getInput: mockGetInput,
     getState: jest.fn<() => string>().mockReturnValue(''),
     info: jest.fn(),
     warning: jest.fn(),
@@ -56,6 +57,21 @@ describe('Post Setup Docker', () => {
         expect(mockStop).toHaveBeenCalled()
         expect(mockAddHeading).not.toHaveBeenCalled()
         expect(mockWrite).not.toHaveBeenCalled()
+    })
+
+    it('Writes no summary when add-job-summary is false', async () => {
+        // given
+        mockStop.mockResolvedValue(['https://develocity.example.com/s/aaaaaaaaaaaaa'])
+        mockGetInput.mockImplementation(name => (name === 'add-job-summary' ? 'false' : ''))
+
+        // when
+        await run()
+
+        // then
+        expect(mockStop).toHaveBeenCalled()
+        expect(mockAddHeading).not.toHaveBeenCalled()
+        expect(mockWrite).not.toHaveBeenCalled()
+        mockGetInput.mockReturnValue('')
     })
 
     it('Does not fail the job when the agent cannot be stopped', async () => {

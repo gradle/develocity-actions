@@ -13,13 +13,13 @@ process.on('uncaughtException', e => errorHandler.handle(e))
 export async function run(): Promise<void> {
     try {
         const scans = await agent.stop(input.getDrainTimeout(), input.getShutdownTimeout())
-        await dumpSummary(scans)
+        await dumpSummary(scans, input.getAddJobSummary())
     } catch (error) {
         errorHandler.handle(error)
     }
 }
 
-async function dumpSummary(scans: string[]): Promise<void> {
+async function dumpSummary(scans: string[], addJobSummary: boolean): Promise<void> {
     if (scans.length === 0) {
         core.info('No Docker Build Scan was published')
         return
@@ -29,6 +29,9 @@ async function dumpSummary(scans: string[]): Promise<void> {
         core.info(`Docker Build Scan published: ${scan}`)
     }
 
+    if (!addJobSummary) {
+        return
+    }
     core.summary.addHeading('Docker Build Scans', 3)
     core.summary.addList(scans.map(scan => `<a href="${scan}">${scan}</a>`))
     await core.summary.write()

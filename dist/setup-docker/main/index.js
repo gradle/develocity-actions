@@ -37620,7 +37620,7 @@ function exportVariable(name, val) {
  * ```
  */
 function core_setSecret(secret) {
-    issueCommand('add-mask', {}, secret);
+    command_issueCommand('add-mask', {}, secret);
 }
 /**
  * Prepends inputPath to the PATH (for this action and future actions)
@@ -38669,10 +38669,28 @@ function _unique(values) {
 const AGENT_JAR_NAME = 'develocity-docker-agent.jar';
 const AGENT_LOG_NAME = 'develocity-docker-agent.log';
 const SUBSCRIBED_MARKER = 'waiting for builds';
-const SCAN_PUBLISHED_MARKER = 'scan published: ';
+// The agent's wording changed after 0.9.0, so accept both
+const SCAN_PUBLISHED = /(?:scan published|Build Scan published to Develocity): (\S+)/;
+const BUILD_NOT_PUBLISHED = (/* unused pure expression or super */ null && ([
+    /failed to publish scan for ref=(\S+)/,
+    /build history consumer failed on type=COMPLETE ref=(\S+)/,
+    /ignoring build created before the agent started at \S+ \(ref=([^)\s]+)\)/
+]));
 const MINIMUM_JAVA_VERSION = 21;
 const SUBSCRIPTION_TIMEOUT_SECONDS = 60;
+const MAXIMUM_AGENT_GRACE_PERIOD_SECONDS = 3600;
+const SHUTDOWN_MARGIN_SECONDS = 10;
 const ADOPTIUM_API = 'https://api.adoptium.net/v3/binary/latest';
+// `docker buildx history ls` lists at most this many records per call
+const HISTORY_PAGE_SIZE = 50;
+const MAXIMUM_HISTORY_PAGES = 20;
+// The runner gives these to JavaScript actions only, never to `run` steps
+const ACTION_ONLY_VARIABLES = [
+    'ACTIONS_RUNTIME_TOKEN',
+    'ACTIONS_RUNTIME_URL',
+    'ACTIONS_CACHE_URL',
+    'ACTIONS_RESULTS_URL'
+];
 const STATE_PID = 'develocity-docker-agent-pid';
 const STATE_LOG = 'develocity-docker-agent-log';
 const STATE_HISTORY_BASELINE = 'develocity-docker-agent-history-baseline';
@@ -38684,20 +38702,22 @@ const STATE_BUILDX_BUILDER = 'develocity-docker-agent-buildx-builder';
  * returning early would race the first build of the job.
  */
 async function start(configuration) {
-    const javaExecutable = await resolveJavaExecutable(configuration.javaHomeOverride);
-    const agentJar = await downloadAgent(configuration.agentBaseUrl, configuration.agentVersion);
-    // BuildKit's history is cumulative and a job may set the agent up more than once, so record how
-    // deep it is now. The post step waits for one scan per record added after this point, rather than
-    // for records a previous agent in the same job has already published.
-    const historyBaseline = countBuildKitHistory(configuration.buildxBuilder);
-    info(`BuildKit history holds ${historyBaseline} record(s) before the agent starts`);
-    const logFile = external_path_default().join(runnerTemp(), AGENT_LOG_NAME);
-    const pid = spawnAgent(javaExecutable, agentJar, logFile, configuration);
-    saveState(STATE_PID, String(pid));
+    maskAccessKey(configuration.accessKey);
+    // Each step gets its own directory, so a second setup in the same job reads and counts only its own agent
+    const workDirectory = external_fs_default().mkdtempSync(external_path_default().join(runnerTemp(), 'develocity-docker-agent-'));
+    const javaExecutable = await resolveJavaExecutable(configuration.javaHome);
+    const agentJar = await downloadAgent(configuration.agentUrl, workDirectory);
+    // The agent and the post step's history count both use the builder resolved now, even if a later step
+    // switches the current one
+    const builder = resolveBuilder(configuration.buildxBuilder);
+    const baseline = readHistoryBaseline(builder);
+    const logFile = external_path_default().join(workDirectory, AGENT_LOG_NAME);
+    const agent = spawnAgent(javaExecutable, agentJar, logFile, { ...configuration, buildxBuilder: builder });
+    saveState(STATE_PID, String(agent.pid));
     saveState(STATE_LOG, logFile);
-    saveState(STATE_HISTORY_BASELINE, String(historyBaseline));
-    saveState(STATE_BUILDX_BUILDER, configuration.buildxBuilder);
-    await waitForSubscription(logFile);
+    saveState(STATE_HISTORY_BASELINE, baseline ? JSON.stringify(baseline) : '');
+    saveState(STATE_BUILDX_BUILDER, builder);
+    await waitForSubscription(agent, logFile);
 }
 /**
  * Waits for the agent to publish everything it captured, then stops it.
@@ -38713,46 +38733,63 @@ async function stop(drainTimeoutSeconds, shutdownTimeoutSeconds) {
         core.info('No Develocity Docker agent was started by this job');
         return [];
     }
-    await drain(logFile, drainTimeoutSeconds);
+    await drain(pid, logFile, drainTimeoutSeconds);
     await shutdown(pid, shutdownTimeoutSeconds);
-    return publishedScans(logFile);
+    return publishedScans(readLog(logFile));
 }
-async function drain(logFile, drainTimeoutSeconds) {
-    const baseline = Number.parseInt(core.getState(STATE_HISTORY_BASELINE), 10);
-    const builder = core.getState(STATE_BUILDX_BUILDER);
-    const expected = Math.max(0, countBuildKitHistory(builder) - (Number.isFinite(baseline) ? baseline : 0));
-    if (expected === 0) {
-        core.info('BuildKit recorded no new builds since the agent started, nothing to drain');
+async function drain(pid, logFile, drainTimeoutSeconds) {
+    const baseline = parseHistoryBaseline(core.getState(STATE_HISTORY_BASELINE));
+    if (!baseline) {
+        core.warning('BuildKit history could not be read when the agent started, so the number of scans to wait for is unknown. Scans still queued in the agent may be lost');
         return;
     }
-    core.info(`BuildKit recorded ${expected} build(s) since the agent started, waiting for that many scans`);
-    for (let elapsed = 0; elapsed < drainTimeoutSeconds; elapsed++) {
-        if (publishedScans(logFile).length >= expected) {
-            break;
+    const builder = core.getState(STATE_BUILDX_BUILDER);
+    const expected = await readNewBuilds(builder, baseline);
+    if (!expected) {
+        core.warning(`BuildKit history of builder '${builder || 'current'}' could not be read, so the number of scans to wait for is unknown. Scans still queued in the agent may be lost`);
+        return;
+    }
+    if (expected.size === 0) {
+        core.info('BuildKit recorded no builds since the agent started, nothing to drain');
+        return;
+    }
+    core.info(`BuildKit recorded ${expected.size} build(s) since the agent started, waiting for each to be published`);
+    let outcome = buildOutcomes(readLog(logFile), expected);
+    for (let elapsed = 0; elapsed < drainTimeoutSeconds && outcome.settled < expected.size; elapsed++) {
+        if (!isAlive(pid)) {
+            core.warning(`The agent exited after settling ${outcome.settled} of ${expected.size} build(s)`);
+            core.info(readLog(logFile));
+            return;
         }
         await sleep(1000);
+        outcome = buildOutcomes(readLog(logFile), expected);
     }
-    const published = publishedScans(logFile).length;
-    if (published < expected) {
-        core.warning(`${published} of ${expected} scans published after ${drainTimeoutSeconds}s, stopping the agent anyway`);
+    if (outcome.settled < expected.size) {
+        core.warning(`${outcome.settled} of ${expected.size} build(s) settled after ${drainTimeoutSeconds}s, stopping the agent anyway`);
+        core.info(readLog(logFile));
+    }
+    else if (outcome.notPublished > 0) {
+        core.warning(`${outcome.notPublished} of ${expected.size} build(s) were not published, see the agent log`);
         core.info(readLog(logFile));
     }
     else {
-        core.info(`All ${published} scan(s) published`);
+        core.info(`All ${outcome.published} scan(s) published`);
     }
 }
 async function shutdown(pid, shutdownTimeoutSeconds) {
     if (!isAlive(pid)) {
         return;
     }
+    // The agent spends up to shutdownTimeoutSeconds on the build in flight, so allow it a little longer to exit
+    const deadline = shutdownTimeoutSeconds + SHUTDOWN_MARGIN_SECONDS;
     process.kill(pid, 'SIGTERM');
-    for (let elapsed = 0; elapsed < shutdownTimeoutSeconds; elapsed++) {
+    for (let elapsed = 0; elapsed < deadline; elapsed++) {
         if (!isAlive(pid)) {
             return;
         }
         await sleep(1000);
     }
-    core.warning(`Agent still running after ${shutdownTimeoutSeconds}s, killing it. A Build Scan may be lost`);
+    core.warning(`Agent still running after ${deadline}s, killing it. A Build Scan may be lost`);
     try {
         process.kill(pid, 'SIGKILL');
     }
@@ -38760,12 +38797,30 @@ async function shutdown(pid, shutdownTimeoutSeconds) {
         core.debug(`Could not kill the agent: ${error}`);
     }
 }
-function publishedScans(logFile) {
-    return readLog(logFile)
+function publishedScans(agentLog) {
+    return agentLog
         .split('\n')
-        .filter(line => line.includes(SCAN_PUBLISHED_MARKER))
-        .map(line => line.substring(line.indexOf(SCAN_PUBLISHED_MARKER) + SCAN_PUBLISHED_MARKER.length).trim())
-        .filter(url => url.length > 0);
+        .map(line => SCAN_PUBLISHED.exec(line)?.[1])
+        .filter((url) => url !== undefined);
+}
+/**
+ * Counts how many of the expected builds the agent has finished with, published or not.
+ *
+ * Published lines carry no ref, so every one counts. Every other outcome is matched by ref. That
+ * keeps builds older than the agent out of the count.
+ */
+function buildOutcomes(agentLog, expected) {
+    const notPublished = new Set();
+    for (const line of agentLog.split('\n')) {
+        for (const pattern of BUILD_NOT_PUBLISHED) {
+            const ref = pattern.exec(line)?.[1];
+            if (ref && expected.has(shortRef(ref))) {
+                notPublished.add(shortRef(ref));
+            }
+        }
+    }
+    const published = publishedScans(agentLog).length;
+    return { published, notPublished: notPublished.size, settled: published + notPublished.size };
 }
 function readLog(logFile) {
     try {
@@ -38776,12 +38831,39 @@ function readLog(logFile) {
         return '';
     }
 }
-function spawnAgent(javaExecutable, agentJar, logFile, configuration) {
-    const environment = {
-        ...process.env,
-        DEVELOCITY_URL: configuration.develocityUrl,
-        DEVELOCITY_DOCKER_PACKAGE_SCAN_ENABLED: String(configuration.capturePackageList)
-    };
+/**
+ * Registers the access key as a secret, so that printing the agent log never shows it.
+ *
+ * The runner masks a registered value only where it appears whole. The agent holds the part after
+ * `host=`, so each per-host key is registered as well.
+ */
+function maskAccessKey(accessKey) {
+    if (!accessKey) {
+        return;
+    }
+    core_setSecret(accessKey);
+    for (const entry of accessKey.split(';')) {
+        const key = entry.substring(entry.indexOf('=') + 1).trim();
+        if (key) {
+            core_setSecret(key);
+        }
+    }
+}
+/**
+ * Builds the agent's environment from the step's.
+ *
+ * The agent outlives this step, and later steps can read its environment. It therefore gets neither
+ * the step's inputs, where the long-lived access key is, nor the credentials the runner gives only to
+ * JavaScript actions.
+ */
+function agentEnvironment(stepEnvironment, configuration) {
+    const environment = Object.fromEntries(Object.entries(stepEnvironment).filter(([name]) => !name.startsWith('INPUT_') && !ACTION_ONLY_VARIABLES.includes(name)));
+    environment['DEVELOCITY_URL'] = configuration.develocityUrl;
+    environment['DEVELOCITY_DOCKER_PACKAGE_SCAN_ENABLED'] = String(configuration.packageScanEnabled);
+    environment['DEVELOCITY_DOCKER_AGENT_SHUTDOWN_GRACE_PERIOD_SECONDS'] = String(Math.min(configuration.shutdownTimeoutSeconds, MAXIMUM_AGENT_GRACE_PERIOD_SECONDS));
+    if (configuration.allowUntrustedServer !== undefined) {
+        environment['DEVELOCITY_ALLOW_UNTRUSTED_SERVER'] = String(configuration.allowUntrustedServer);
+    }
     if (configuration.accessKey) {
         environment['DEVELOCITY_ACCESS_KEY'] = configuration.accessKey;
     }
@@ -38793,37 +38875,45 @@ function spawnAgent(javaExecutable, agentJar, logFile, configuration) {
     if (configuration.projectId) {
         environment['DEVELOCITY_PROJECT_ID'] = configuration.projectId;
     }
+    return environment;
+}
+function spawnAgent(javaExecutable, agentJar, logFile, configuration) {
     const logFd = external_fs_default().openSync(logFile, 'a');
     const agent = (0,external_child_process_namespaceObject.spawn)(javaExecutable, ['-jar', agentJar], {
         detached: true,
         stdio: ['ignore', logFd, logFd],
-        env: environment
+        env: agentEnvironment(process.env, configuration)
     });
     agent.unref();
+    external_fs_default().closeSync(logFd);
+    // A failed spawn emits 'error'. Handling it lets the pid check below report the failure.
+    agent.once('error', error => core_debug(`Could not start the agent: ${error}`));
     if (!agent.pid) {
         throw new Error('Failed to start the Develocity Docker agent');
     }
     info(`Develocity Docker agent started, pid ${agent.pid}, logging to ${logFile}`);
-    return agent.pid;
+    return agent;
 }
-async function waitForSubscription(logFile) {
+async function waitForSubscription(agent, logFile) {
     for (let elapsed = 0; elapsed < SUBSCRIPTION_TIMEOUT_SECONDS; elapsed++) {
         if (readLog(logFile).includes(SUBSCRIBED_MARKER)) {
             info('Develocity Docker agent subscribed to BuildKit');
             return;
+        }
+        if (agent.exitCode !== null || agent.signalCode !== null) {
+            // Leaves the post step nothing to drain or stop
+            saveState(STATE_PID, '');
+            info(readLog(logFile));
+            throw new Error(`The Develocity Docker agent exited with ${agent.exitCode ?? agent.signalCode} before subscribing to BuildKit`);
         }
         await sleep(1000);
     }
     info(readLog(logFile));
     throw new Error(`The Develocity Docker agent did not subscribe to BuildKit within ${SUBSCRIPTION_TIMEOUT_SECONDS}s`);
 }
-async function downloadAgent(baseUrl, version) {
-    const url = `${baseUrl.replace(/\/$/, '')}/develocity-docker-agent-${version}.jar`;
+async function downloadAgent(url, workDirectory) {
     info(`Downloading the Develocity Docker agent from ${url}`);
-    const downloaded = await downloadTool(url);
-    const agentJar = external_path_default().join(runnerTemp(), AGENT_JAR_NAME);
-    external_fs_default().copyFileSync(downloaded, agentJar);
-    return agentJar;
+    return await downloadTool(url, external_path_default().join(workDirectory, AGENT_JAR_NAME));
 }
 /**
  * Finds a JDK for the agent without touching the one the job builds with.
@@ -38832,10 +38922,18 @@ async function downloadAgent(baseUrl, version) {
  * which changes the JDK the build under test compiles with.
  */
 async function resolveJavaExecutable(javaHomeOverride) {
-    const candidates = [];
     if (javaHomeOverride) {
-        candidates.push(javaHomeOverride);
+        const executable = javaExecutableIn(javaHomeOverride);
+        const version = executable ? majorVersionOf(executable) : 0;
+        if (executable && version >= MINIMUM_JAVA_VERSION) {
+            info(`Running the Develocity Docker agent on ${executable}`);
+            return executable;
+        }
+        warning(executable
+            ? `${javaHomeOverride} holds Java ${version || 'of an unknown version'}, the agent needs ${MINIMUM_JAVA_VERSION} or later. Looking for a JDK on the runner instead`
+            : `${javaHomeOverride} holds no bin/java. Looking for a JDK on the runner instead`);
     }
+    const candidates = [];
     for (let version = MINIMUM_JAVA_VERSION; version <= MINIMUM_JAVA_VERSION + 10; version++) {
         for (const architecture of ['X64', 'ARM64']) {
             const fromEnv = process.env[`JAVA_HOME_${version}_${architecture}`];
@@ -38910,38 +39008,171 @@ async function downloadJava() {
     throw new Error(`No java executable found in the JDK downloaded from ${url}`);
 }
 /**
- * Counts the build records `docker buildx history ls` reported, ignoring its header line.
+ * Names the builder `buildxBuilder` refers to, or the current builder when it is empty.
  */
-function countHistoryRecords(dockerOutput) {
-    return dockerOutput
-        .split('\n')
-        .slice(1)
-        .filter(line => line.trim().length > 0).length;
-}
-function countBuildKitHistory(buildxBuilder) {
+function resolveBuilder(buildxBuilder) {
     try {
-        const environment = buildxBuilder ? { ...process.env, BUILDX_BUILDER: buildxBuilder } : process.env;
-        const output = (0,external_child_process_namespaceObject.execFileSync)('docker', ['buildx', 'history', 'ls'], {
+        const output = (0,external_child_process_namespaceObject.execFileSync)('docker', ['buildx', 'inspect', ...(buildxBuilder ? [buildxBuilder] : [])], {
             encoding: 'utf-8',
             stdio: 'pipe',
-            env: environment
+            env: process.env
         });
-        return countHistoryRecords(output);
+        return parseBuilderName(output) ?? buildxBuilder;
     }
     catch (error) {
-        core_debug(`Could not read BuildKit's build history: ${error}`);
-        return 0;
+        if (buildxBuilder) {
+            warning(`The buildx builder '${buildxBuilder}' was not found. The Setup Docker step has to run after the step that creates it: ${error}`);
+        }
+        else {
+            core_debug(`Could not resolve the current buildx builder: ${error}`);
+        }
+        return buildxBuilder;
     }
+}
+function parseBuilderName(inspectOutput) {
+    return /^Name:\s+(\S+)/m.exec(inspectOutput)?.[1];
+}
+function readHistoryBaseline(builder) {
+    try {
+        const refs = listHistory(builder, []).map(record => record.ref);
+        info(`BuildKit history holds ${refs.length} recent record(s) before the agent starts`);
+        return refs;
+    }
+    catch (error) {
+        const reason = String(error).includes('unknown command')
+            ? '`docker buildx history` needs buildx 0.20 or later'
+            : error;
+        warning(`Could not read BuildKit's build history (${reason}). The post step cannot tell how many scans to wait for, so scans still queued when the job ends may be lost`);
+        return undefined;
+    }
+}
+function parseHistoryBaseline(state) {
+    if (!state) {
+        return undefined;
+    }
+    try {
+        return new Set(JSON.parse(state));
+    }
+    catch (error) {
+        core.debug(`Could not parse the history baseline: ${error}`);
+        return undefined;
+    }
+}
+async function readNewBuilds(builder, baseline) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            return newBuilds(filters => listHistory(builder, filters), baseline);
+        }
+        catch (error) {
+            core.debug(`Could not read BuildKit's build history (attempt ${attempt}): ${error}`);
+            await sleep(2000);
+        }
+    }
+    return undefined;
+}
+/**
+ * Collects the refs of every record newer than the baseline, paging past the listing's limit.
+ *
+ * buildx lists running records first, then completed ones newest first, so the first completed
+ * record in the baseline ends the search. The paging filter only resolves seconds. Each page
+ * therefore starts at the second the previous one ended in, leaving out the refs already seen there.
+ */
+function newBuilds(list, baseline) {
+    const found = new Set();
+    let before;
+    let seenInBoundary = [];
+    for (let page = 0; page < MAXIMUM_HISTORY_PAGES; page++) {
+        const filters = before ? [`startedAt<${before}`, ...seenInBoundary.map(ref => `ref!=${ref}`)] : [];
+        let records;
+        try {
+            records = list(filters);
+        }
+        catch (error) {
+            if (page === 0) {
+                throw error;
+            }
+            // buildx before 0.23 has no --filter, but it lists every record, so the first page was complete
+            core.debug(`Stopped paging BuildKit history: ${error}`);
+            return found;
+        }
+        let added = 0;
+        for (const record of records) {
+            if (baseline.has(record.ref)) {
+                if (record.completed) {
+                    return found;
+                }
+                continue;
+            }
+            if (!found.has(record.ref)) {
+                found.add(record.ref);
+                added++;
+            }
+        }
+        // Only a page holding exactly the limit can have more behind it. A buildx that does not limit
+        // the listing returns more.
+        const completed = records.filter(record => record.completed);
+        if (completed.length !== HISTORY_PAGE_SIZE || added === 0) {
+            return found;
+        }
+        const boundary = secondAfter(completed[completed.length - 1].createdAt);
+        const inBoundary = completed
+            .filter(record => secondAfter(record.createdAt) === boundary)
+            .map(record => record.ref);
+        seenInBoundary = boundary === before ? [...seenInBoundary, ...inBoundary] : inBoundary;
+        before = boundary;
+    }
+    core.warning(`Stopped counting builds after ${MAXIMUM_HISTORY_PAGES} pages of BuildKit history`);
+    return found;
+}
+function listHistory(builder, filters) {
+    const environment = builder ? { ...process.env, BUILDX_BUILDER: builder } : process.env;
+    const output = (0,external_child_process_namespaceObject.execFileSync)('docker', ['buildx', 'history', 'ls', '--format', 'json', ...filters.flatMap(filter => ['--filter', filter])], { encoding: 'utf-8', stdio: 'pipe', env: environment });
+    return parseHistoryRecords(output);
+}
+/**
+ * Reads the JSON lines `docker buildx history ls --format json` prints.
+ */
+function parseHistoryRecords(dockerOutput) {
+    return dockerOutput
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .map(line => JSON.parse(line))
+        .map(record => ({
+        ref: shortRef(record.ref),
+        createdAt: record.created_at,
+        completed: Boolean(record.completed_at)
+    }));
+}
+// buildx prefixes a ref with its builder and node. The agent logs it bare.
+function shortRef(ref) {
+    return ref.substring(ref.lastIndexOf('/') + 1);
+}
+function secondAfter(timestamp) {
+    const seconds = Math.floor(Date.parse(timestamp.replace(/(\.\d{3})\d+/, '$1')) / 1000) + 1;
+    return new Date(seconds * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 function isAlive(pid) {
     try {
         process.kill(pid, 0);
-        return true;
     }
     catch (error) {
         core.debug(`Agent process ${pid} is gone: ${error}`);
         return false;
     }
+    // An exited agent that nobody has reaped still answers signal 0. That happens in a container job.
+    return !isZombie(readProcessStat(pid));
+}
+function readProcessStat(pid) {
+    try {
+        return fs.readFileSync(`/proc/${pid}/stat`, 'utf-8');
+    }
+    catch {
+        return '';
+    }
+}
+function isZombie(processStat) {
+    // The state follows the command name, which is in parentheses and may itself contain spaces
+    return processStat.substring(processStat.lastIndexOf(')') + 2).startsWith('Z');
 }
 function runnerTemp() {
     return process.env['RUNNER_TEMP'] || process.env['TMPDIR'] || '/tmp';
@@ -39206,6 +39437,7 @@ function getGithubToken() {
 
 ;// CONCATENATED MODULE: ./setup-docker/src/input.ts
 
+
 const DEFAULT_AGENT_BASE_URL = 'https://develocity-docker-build-agent.gradle.com';
 function getDevelocityUrl() {
     return input_getInput('develocity-url', { required: true });
@@ -39219,33 +39451,52 @@ function getDevelocityTokenExpiry() {
 function getDevelocityProjectId() {
     return input_getInput('develocity-project-id');
 }
-function getAgentVersion() {
-    return input_getInput('develocity-docker-agent-version');
+function getDevelocityAllowUntrustedServer() {
+    if (!input_getInput('develocity-allow-untrusted-server')) {
+        return undefined;
+    }
+    return input_getBooleanInput('develocity-allow-untrusted-server');
 }
-function getAgentBaseUrl() {
-    return input_getInput('develocity-docker-agent-url-override') || DEFAULT_AGENT_BASE_URL;
+function getAgentUrl() {
+    return agentDownloadUrl(input_getInput('develocity-docker-agent-url-override'), input_getInput('develocity-docker-agent-version'));
 }
-function getCapturePackageList() {
-    return input_getBooleanInput('capture-package-list', true);
+/**
+ * The override is the full URL of the agent jar, so the version is ignored when it is set.
+ */
+function agentDownloadUrl(urlOverride, version) {
+    return urlOverride || `${DEFAULT_AGENT_BASE_URL}/develocity-docker-agent-${version}.jar`;
+}
+function getPackageScanEnabled() {
+    return input_getBooleanInput('develocity-package-scan-enabled', true);
+}
+function getJavaHome() {
+    return input_getInput('develocity-docker-agent-java-home');
 }
 function getBuildxBuilder() {
     return input_getInput('buildx-builder');
 }
 function getDrainTimeout() {
-    return toPositiveInt(sharedInput.getInput('drain-timeout'), 300);
+    return toSeconds('drain-timeout', sharedInput.getInput('drain-timeout'), 300);
 }
 function getShutdownTimeout() {
-    return toPositiveInt(sharedInput.getInput('shutdown-timeout'), 120);
+    return toSeconds('shutdown-timeout', input_getInput('shutdown-timeout'), 120);
 }
-function getJavaHomeOverride() {
-    return input_getInput('java-home-override');
+function getAddJobSummary() {
+    return sharedInput.getBooleanInput('add-job-summary', true);
 }
-function toPositiveInt(value, fallback) {
-    const parsed = Number.parseInt(value, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+function toSeconds(name, value, fallback) {
+    if (!value.trim()) {
+        return fallback;
+    }
+    if (!/^\s*\d+\s*$/.test(value)) {
+        warning(`Ignoring ${name}: '${value}' is not a whole number of seconds, using ${fallback}`);
+        return fallback;
+    }
+    return Number.parseInt(value, 10);
 }
 
 ;// CONCATENATED MODULE: ./setup-docker/src/main.ts
+
 
 
 
@@ -39255,16 +39506,21 @@ function toPositiveInt(value, fallback) {
  */
 async function run() {
     try {
-        const accessToken = await getAccessToken(getDevelocityAccessKey(), getDevelocityTokenExpiry());
+        const accessKey = getDevelocityAccessKey();
+        const accessToken = await getAccessToken(accessKey, getDevelocityTokenExpiry());
+        if (accessKey && accessToken === accessKey) {
+            warning('No short-lived token could be fetched, so the Docker agent holds the long-lived access key');
+        }
         await start({
             develocityUrl: getDevelocityUrl(),
             accessKey: accessToken,
             projectId: getDevelocityProjectId(),
-            agentVersion: getAgentVersion(),
-            agentBaseUrl: getAgentBaseUrl(),
-            capturePackageList: getCapturePackageList(),
+            agentUrl: getAgentUrl(),
+            packageScanEnabled: getPackageScanEnabled(),
+            allowUntrustedServer: getDevelocityAllowUntrustedServer(),
             buildxBuilder: getBuildxBuilder(),
-            javaHomeOverride: getJavaHomeOverride()
+            javaHome: getJavaHome(),
+            shutdownTimeoutSeconds: getShutdownTimeout()
         });
     }
     catch (error) {
