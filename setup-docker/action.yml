@@ -1,0 +1,60 @@
+name: Docker Setup Action
+description: Setup action to capture Docker Build Scans
+author: Gradle team
+
+inputs:
+  develocity-url:
+    description: 'Develocity server URL'
+    required: true
+  develocity-access-key:
+    description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
+    required: true
+  develocity-token-expiry:
+    description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
+  develocity-project-id:
+    description: 'Develocity project identifier sent when requesting a scan token for a build that declares none'
+    required: false
+  develocity-allow-untrusted-server:
+    description: 'Whether to allow communicating with untrusted server'
+    required: false
+  develocity-docker-agent-version:
+    description: >-
+      Develocity Docker agent version (ignored when develocity-docker-agent-url-override is set). The default is
+      the version this release of the action was tested with. Develocity rejects an agent newer than the server
+      supports
+    required: false
+    default: '0.9.0'
+  develocity-docker-agent-url-override:
+    description: 'Override the URL to use to download the Develocity Docker agent jar'
+    required: false
+  develocity-docker-agent-java-home:
+    description: 'JDK 21 or later used to run the agent. Detected from the runner when not set'
+    required: false
+  develocity-package-scan-enabled:
+    description: 'Whether to catalogue the packages contained in each built image'
+    required: false
+    default: 'true'
+  buildx-builder:
+    description: >-
+      Name of the buildx builder to attach to. The agent attaches to whichever builder is current
+      when it starts, so a job building on another builder has to name it here. The builder has to
+      exist when this step runs
+    required: false
+  drain-timeout:
+    description: 'Seconds to wait for the agent to publish every captured build before stopping it. 0 skips the wait'
+    required: false
+    default: '300'
+  shutdown-timeout:
+    description: 'Seconds the agent may spend on the build in flight once it has been signalled to stop'
+    required: false
+    default: '120'
+  add-job-summary:
+    description: 'Whether to add or not a job summary listing the published Build Scans'
+    required: false
+    default: 'true'
+
+runs:
+  using: node20
+  main: ../dist/setup-docker/main/index.js
+  post: ../dist/setup-docker/post/index.js
