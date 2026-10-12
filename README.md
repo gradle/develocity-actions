@@ -462,7 +462,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Setup Develocity for Python
-        uses: gradle/develocity-actions/setup-python@v2.4
+        uses: gradle/develocity-actions/setup-python@v2.5
         with:
           develocity-url: 'https://<develocity-server>'
           develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
