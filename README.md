@@ -435,8 +435,10 @@ Installs the [Develocity Python agent](https://docs.develocity.ai/python/current
 supported Python tools run later in the job, such as pytest, pip, mypy or pylint, publish a Build Scan®.
 
 The agent is configured through environment variables, so the project needs no `.develocity.py`. A
-`.develocity.py` the project already has still applies, except for the server URL and access key, where the
-environment variables set by this action take precedence.
+`.develocity.py` the project already has keeps applying (project name, tags, custom values), with the server URL
+and access key from this action taking precedence. The agent expects a `.develocity.py` next to the nearest
+`pyproject.toml` of the tool it instruments: with one at the repository root but none in a nested project, it
+publishes nothing for that project. Use either no `.develocity.py` at all, or one per project.
 
 ### Usage
 
