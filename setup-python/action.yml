@@ -1,0 +1,37 @@
+name: Python Setup Action
+description: Setup action to capture Python Build Scans
+author: Gradle team
+inputs:
+  develocity-url:
+    description: 'Develocity server URL'
+    required: true
+  develocity-access-key:
+    description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
+    required: false
+  develocity-token-expiry:
+    description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
+  develocity-injection-enabled:
+    description: 'Whether to enable or not Develocity Python agent injection'
+    required: false
+    default: 'true'
+  develocity-python-agent-version:
+    description: >-
+      Develocity Python agent version (ignored when develocity-python-agent-url-override is set). The default is
+      the version this release of the action was tested with
+    required: false
+    default: '0.10.1'
+  develocity-python-agent-url-override:
+    description: 'Override the URL to use to download the Develocity Python agent wheel'
+    required: false
+  develocity-python-agent-sha256:
+    description: >-
+      Expected SHA-256 of the agent wheel. Known for the default version; set it when changing the version or the URL
+    required: false
+  python-executable:
+    description: 'Python interpreter the agent is installed into. It has to be the one that runs the instrumented tools'
+    required: false
+    default: 'python'
+runs:
+  using: node20
+  main: ../dist/setup-python/main/index.js

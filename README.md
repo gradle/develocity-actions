@@ -5,6 +5,7 @@ A collection of composite GitHub Actions related to [Develocity](https://gradle.
 - [maven-publish-build-scan](#maven-publish-build-scan-action)
 - [setup-npm](#setup-npm-action)
 - [setup-docker](#setup-docker-action)
+- [setup-python](#setup-python-action)
 
 ---
 
@@ -425,3 +426,59 @@ compatibility of your server before raising it.
 | `drain-timeout`                        | *Optional*: Seconds to wait for the agent to publish every captured build before stopping it. `0` skips the wait   | `300`   |
 | `shutdown-timeout`                     | *Optional*: Seconds the agent may spend on the build in flight once it has been signalled to stop                  | `120`   |
 | `add-job-summary`                      | *Optional*: Whether to add or not a job summary listing the published Build Scans                                  | `true`  |
+
+## setup-python action
+
+### Description
+
+Installs the [Develocity Python agent](https://docs.develocity.ai/python/current/python-agent/) so that the
+supported Python tools run later in the job, such as pytest, pip, mypy or pylint, publish a Build Scan®.
+
+The agent is configured through environment variables, so the project needs no `.develocity.py`. A
+`.develocity.py` the project already has still applies, except for the server URL and access key, where the
+environment variables set by this action take precedence.
+
+### Usage
+
+Insert the `Setup Python` step after the step that sets up the interpreter and before the tools run. The agent
+is installed into that interpreter, with pip, or with `uv pip` when the interpreter has no pip, so it only
+instruments the tools run by it: a tool running in another virtual environment, such as a pre-commit hook, is not
+instrumented.
+
+```yaml
+name: PR Build
+on: pull_request
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Setup Python
+        uses: gradle/develocity-actions/setup-python@v2.4
+        with:
+          develocity-url: 'https://<develocity-server>'
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+      - name: Test
+        run: pytest
+```
+
+Python support needs to be enabled in the Develocity license.
+
+The project name shown on the scan comes from `pyproject.toml`. The agent has no environment variable to change it,
+so a different name needs `configuration.project_name` in a `.develocity.py`.
+
+### Action inputs
+
+| Name                                   | Description                                                                                                         | Default  |
+|----------------------------------------|---------------------------------------------------------------------------------------------------------------------|----------|
+| `develocity-url`                       | *Required*: Develocity server URL                                                                                   |          |
+| `develocity-access-key`                | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                   |          |
+| `develocity-token-expiry`              | *Optional*: Develocity short-lived access tokens expiry in hours                                                    | `2`      |
+| `develocity-injection-enabled`         | *Optional*: Whether to enable or not Develocity Python agent injection                                              | `true`   |
+| `develocity-python-agent-version`      | *Optional*: Develocity Python agent version (ignored when `develocity-python-agent-url-override` is set)            | `0.10.1` |
+| `develocity-python-agent-url-override` | *Optional*: Override the URL to use to download the Develocity Python agent wheel                                   |          |
+| `develocity-python-agent-sha256`       | *Optional*: Expected SHA-256 of the agent wheel. Known for the default version                                     |          |
+| `python-executable`                    | *Optional*: Python interpreter the agent is installed into                                                          | `python` |
