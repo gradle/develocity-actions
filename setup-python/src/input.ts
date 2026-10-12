@@ -14,18 +14,6 @@ export function getDevelocityUrl(): string {
     return sharedInput.getInput('develocity-url', {required: true})
 }
 
-export function getDevelocityAccessKey(): string {
-    return sharedInput.getInput('develocity-access-key')
-}
-
-export function getDevelocityTokenExpiry(): string {
-    return sharedInput.getInput('develocity-token-expiry')
-}
-
-export function getDevelocityInjectionEnabled(): boolean {
-    return sharedInput.getBooleanInput('develocity-injection-enabled', true)
-}
-
 export function getPythonExecutable(): string {
     return sharedInput.getInput('python-executable') || 'python'
 }
@@ -43,6 +31,11 @@ export function getAgentRequirement(): string {
  * when it is set. pip refuses a wheel whose hash differs from the one given in the URL fragment.
  */
 export function agentRequirement(urlOverride: string, version: string, sha256: string): string {
+    if (!urlOverride && !version) {
+        throw new Error(
+            'develocity-python-agent-version is empty: set it or develocity-python-agent-url-override, or remove it to use the default'
+        )
+    }
     const url = urlOverride || `${DEFAULT_AGENT_BASE_URL}/develocity_agent-${version}-py3-none-any.whl`
     const hash = sha256 || (urlOverride ? '' : KNOWN_AGENT_SHA256[version] || '')
     return hash ? `develocity-agent @ ${url}#sha256=${hash}` : `develocity-agent @ ${url}`

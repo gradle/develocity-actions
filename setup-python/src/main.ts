@@ -1,7 +1,7 @@
 import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
 import * as injection from './injection'
-import * as input from './input'
+import * as input from '../../build-scan-shared/src/setup/input'
 
 /**
  * Main entrypoint for the action

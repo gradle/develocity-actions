@@ -440,10 +440,13 @@ environment variables set by this action take precedence.
 
 ### Usage
 
-Insert the `Setup Python` step after the step that sets up the interpreter and before the tools run. The agent
-is installed into that interpreter, with pip, or with `uv pip` when the interpreter has no pip, so it only
-instruments the tools run by it: a tool running in another virtual environment, such as a pre-commit hook, is not
-instrumented.
+Insert the `Setup Develocity for Python` step after the step that sets up the interpreter and before the tools
+run. The agent is installed into that interpreter, with pip, or with `uv pip` when the interpreter has no pip, so it
+only instruments the tools run by it: a tool running in another virtual environment, such as a pre-commit hook, is
+not instrumented.
+
+The interpreter must be able to install packages: use one set up by `actions/setup-python` or a virtual environment.
+The system Python of the runner is externally managed (PEP 668), so pip and uv refuse to install into it.
 
 ```yaml
 name: PR Build
@@ -456,7 +459,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Setup Python
+      - name: Setup Develocity for Python
         uses: gradle/develocity-actions/setup-python@v2.4
         with:
           develocity-url: 'https://<develocity-server>'
@@ -478,6 +481,7 @@ so a different name needs `configuration.project_name` in a `.develocity.py`.
 | `develocity-access-key`                | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                   |          |
 | `develocity-token-expiry`              | *Optional*: Develocity short-lived access tokens expiry in hours                                                    | `2`      |
 | `develocity-injection-enabled`         | *Optional*: Whether to enable or not Develocity Python agent injection                                              | `true`   |
+| `develocity-allow-untrusted-server`    | *Optional*: Whether to allow communicating with untrusted server (sets `DEVELOCITY_ALLOW_INSECURE_PROTOCOL`)        |          |
 | `develocity-python-agent-version`      | *Optional*: Develocity Python agent version (ignored when `develocity-python-agent-url-override` is set)            | `0.10.1` |
 | `develocity-python-agent-url-override` | *Optional*: Override the URL to use to download the Develocity Python agent wheel                                   |          |
 | `develocity-python-agent-sha256`       | *Optional*: Expected SHA-256 of the agent wheel. Known for the default version                                     |          |

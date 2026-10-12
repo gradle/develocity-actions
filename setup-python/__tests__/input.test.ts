@@ -22,5 +22,9 @@ describe('Setup Python inputs', () => {
                 'develocity-agent @ https://mirror.example.com/agent.whl'
             )
         })
+
+        it('fails on an empty version without an override', () => {
+            expect(() => agentRequirement('', '', '')).toThrow('develocity-python-agent-version is empty')
+        })
     })
 })

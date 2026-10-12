@@ -15,6 +15,9 @@ inputs:
     description: 'Whether to enable or not Develocity Python agent injection'
     required: false
     default: 'true'
+  develocity-allow-untrusted-server:
+    description: 'Whether to allow communicating with untrusted server. Sets DEVELOCITY_ALLOW_INSECURE_PROTOCOL for the agent'
+    required: false
   develocity-python-agent-version:
     description: >-
       Develocity Python agent version (ignored when develocity-python-agent-url-override is set). The default is
