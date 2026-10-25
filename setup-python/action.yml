@@ -36,5 +36,5 @@ inputs:
     required: false
     default: 'python'
 runs:
-  using: node20
+  using: node24
   main: ../dist/setup-python/main/index.js

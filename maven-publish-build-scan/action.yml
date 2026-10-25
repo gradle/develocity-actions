@@ -22,5 +22,5 @@ inputs:
     required: false
 
 runs:
-  using: node20
+  using: node24
   main: ../dist/maven-publish-build-scan/index.js
