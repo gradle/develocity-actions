@@ -74,12 +74,12 @@ function renderBuildResultRow(build: BuildMetadata): string {
     <tr>${
         input.isAddProjectIdInJobSummary()
             ? `        
-        <td>${build.projectId}</td>`
+        <td>${escapeHtml(build.projectId)}</td>`
             : ''
     }
-        <td>${build.jobName}</td>
-        <td>${build.requestedTasks}</td>
-        <td align='center'>${build.buildToolVersion}</td>
+        <td>${escapeHtml(build.jobName)}</td>
+        <td>${escapeHtml(build.requestedTasks)}</td>
+        <td align='center'>${escapeHtml(build.buildToolVersion)}</td>
         <td align='center'>${renderOutcome(build)}</td>
         <td>${renderBuildScan(build)}</td>
     </tr>`
@@ -90,8 +90,8 @@ function renderOutcome(build: BuildMetadata): string {
 }
 
 function renderBuildScan(build: BuildMetadata): string {
-    if (build.buildScanLink) {
-        return renderBuildScanBadge('PUBLISHED', '06A0CE', build.buildScanLink)
+    if (build.buildScanLink?.startsWith('https://')) {
+        return renderBuildScanBadge('PUBLISHED', '06A0CE', escapeHtml(build.buildScanLink))
     }
     return renderBuildScanBadge('NOT_PUBLISHED', 'lightgrey', 'https://scans.gradle.com')
 }
@@ -100,6 +100,16 @@ function renderBuildScanBadge(outcomeText: string, outcomeColor: string, targetU
     const badgeUrl = `https://img.shields.io/badge/Build%20Scan%C2%AE-${outcomeText}-${outcomeColor}?logo=Gradle`
     const badgeHtml = `<img src="${badgeUrl}" alt="Build Scan ${outcomeText}" />`
     return `<a href="${targetUrl}" rel="nofollow">${badgeHtml}</a>`
+}
+
+// Build metadata comes from an artifact uploaded by the origin workflow, which may be an untrusted fork
+export function escapeHtml(value: string | undefined): string {
+    return (value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
 }
 
 async function dumpToPullRequestComment(prNumber: number, htmlSummary: string): Promise<void> {

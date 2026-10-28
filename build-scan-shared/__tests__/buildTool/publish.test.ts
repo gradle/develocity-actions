@@ -109,4 +109,25 @@ describe('publish', () => {
         expect(createPluginDescriptorMock).toHaveBeenCalledTimes(2)
         expect(mockExecOutput).toHaveBeenCalledTimes(4)
     })
+
+    it('Publish build scan skips scan dumps with an unexpected version or build id', async () => {
+        // given
+        mockExecOutput
+            .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Java 1.0'}))
+            .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Maven 1.0'}))
+            .mockReturnValueOnce(Promise.resolve({stderr: '', exitCode: 0, stdout: 'Build Successful'}))
+        setupGlob([
+            '/home/foo/.m2/build-scan-data/1.42</version></extension><extension><groupId>unknown</groupId><artifactId>unknown</artifactId><version>1/previous/abcdef/scan.scan',
+            '/home/foo/.m2/build-scan-data/1.42/previous/ghi<jkl/scan.scan',
+            '/home/foo/.m2/build-scan-data/1.42/previous/mnopqr/scan.scan'
+        ])
+
+        // when
+        await mavenBuildTool.buildScanPublish()
+
+        // then
+        expect(createPluginDescriptorMock).toHaveBeenCalledTimes(1)
+        expect(createPluginDescriptorMock).toHaveBeenCalledWith('1.42')
+        expect(mockExecOutput).toHaveBeenCalledTimes(3)
+    })
 })

@@ -175,7 +175,11 @@ export abstract class PostPublishingBuildTool extends BuildTool {
 
 export function parseScanDumpPath(scanDumpPath: string): {version: string; buildId: string} {
     // capture extension version and buildId assuming scan name is ${HOME}/.m2/build-scan-data/<version>/previous/<buildId>/scan.scan
-    const scanDumpPathMatch = scanDumpPath.match(/^.*\/build-scan-data\/(.*)\/previous\/(.*)\/.*$/)
+    // The path comes from an artifact uploaded by an untrusted workflow, and the version is written into extensions.xml:
+    // only accept characters that can appear in a version or build id
+    const scanDumpPathMatch = scanDumpPath.match(
+        /^.*\/build-scan-data\/([0-9A-Za-z._-]+)\/previous\/([0-9A-Za-z_-]+)\/[^/]+$/
+    )
     const version = scanDumpPathMatch?.at(1)
     const buildId = scanDumpPathMatch?.at(2)
     if (!version || !buildId) {

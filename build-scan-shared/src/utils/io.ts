@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import * as toolCache from '@actions/tool-cache'
 import https from 'https'
@@ -18,6 +19,44 @@ export function existsSync(fileName: string): boolean {
 
 export async function extractZip(zipFileName: string, extractDir: string): Promise<string> {
     return await toolCache.extractZip(zipFileName, extractDir)
+}
+
+export function mkdtempSync(prefix: string): string {
+    return fs.mkdtempSync(path.join(os.tmpdir(), prefix))
+}
+
+export function rmSync(dir: string): void {
+    fs.rmSync(dir, {recursive: true, force: true})
+}
+
+/**
+ * Copy the regular files of sourceDir whose path relative to sourceDir is accepted by isAllowed into destDir.
+ * Symbolic links and other special files are skipped, so the copy cannot write outside destDir.
+ */
+export function copyAllowedFilesSync(
+    sourceDir: string,
+    destDir: string,
+    isAllowed: (relativePath: string) => boolean
+): string[] {
+    const copied: string[] = []
+    const walk = (dir: string): void => {
+        for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
+            const sourcePath = path.join(dir, entry.name)
+            const relativePath = path.relative(sourceDir, sourcePath).split(path.sep).join('/')
+            if (entry.isDirectory()) {
+                walk(sourcePath)
+            } else if (entry.isFile() && isAllowed(relativePath)) {
+                const destPath = path.join(destDir, relativePath)
+                fs.mkdirSync(path.dirname(destPath), {recursive: true})
+                fs.copyFileSync(sourcePath, destPath)
+                copied.push(relativePath)
+            } else {
+                core.warning(`Skipping unexpected artifact entry ${relativePath}`)
+            }
+        }
+    }
+    walk(sourceDir)
+    return copied
 }
 
 export function mkdirSync(dir: string): void {

@@ -54,7 +54,7 @@ jest.unstable_mockModule('../../src/utils/github', () => ({
     addSummary: mockGitHubAddSummary
 }))
 
-const {dump} = await import('../../src/summary/dump')
+const {dump, escapeHtml} = await import('../../src/summary/dump')
 
 describe('dump', () => {
     afterEach(() => {
@@ -160,4 +160,29 @@ describe('dump', () => {
             expect(mockGitHubAddSummary).not.toHaveBeenCalled()
         }
     )
+
+    it('Dump escapes build metadata in the summary', async () => {
+        // Given
+        const unexpectedJob = job(BuildToolType.MAVEN)
+        unexpectedJob.builds[0].jobName = '<img src=x onerror=alert(1)>'
+        mockLoadJobMetadata.mockReturnValue(unexpectedJob)
+        mockIsAddPrComment.mockReturnValue(true)
+        mockIsAddJobSummary.mockReturnValue(false)
+        mockGitHubCommentPr.mockReturnValue(Promise.resolve(undefined))
+
+        // when
+        await dump(BuildToolType.MAVEN, '', '')
+
+        // then
+        const summary = mockGitHubCommentPr.mock.calls[0][1] as string
+        expect(summary).toContain('&lt;img src=x onerror=alert(1)&gt;')
+        expect(summary).not.toContain('<img src=x')
+    })
+
+    it('escapeHtml escapes HTML special characters', () => {
+        expect(escapeHtml(`<a href="x" title='y'>&</a>`)).toBe(
+            '&lt;a href=&quot;x&quot; title=&#39;y&#39;&gt;&amp;&lt;/a&gt;'
+        )
+        expect(escapeHtml(undefined)).toBe('')
+    })
 })
