@@ -1451,6 +1451,10 @@ class RpcOutputStreamController {
             cmp: [],
         };
         this._closed = false;
+        // --- RpcOutputStream async iterator API
+        // iterator state.
+        // is undefined when no iterator has been acquired yet.
+        this._itState = { q: [] };
     }
     // --- RpcOutputStream callback API
     onNext(callback) {
@@ -1550,10 +1554,6 @@ class RpcOutputStreamController {
      *   messages are queued.
      */
     [Symbol.asyncIterator]() {
-        // init the iterator state, enabling pushIt()
-        if (!this._itState) {
-            this._itState = { q: [] };
-        }
         // if we are closed, we are definitely not receiving any more messages.
         // but we can't let the iterator get stuck. we want to either:
         // a) finish the new iterator immediately, because we are completed
@@ -1586,8 +1586,6 @@ class RpcOutputStreamController {
     // this either resolves a pending promise, or enqueues the result.
     pushIt(result) {
         let state = this._itState;
-        if (!state)
-            return;
         // is the consumer waiting for us?
         if (state.p) {
             // yes, consumer is waiting for this promise.
@@ -3481,6 +3479,7 @@ const reflection_equals_1 = __nccwpck_require__(4827);
 const binary_writer_1 = __nccwpck_require__(23957);
 const binary_reader_1 = __nccwpck_require__(92889);
 const baseDescriptors = Object.getOwnPropertyDescriptors(Object.getPrototypeOf({}));
+const messageTypeDescriptor = baseDescriptors[message_type_contract_1.MESSAGE_TYPE] = {};
 /**
  * This standard message type provides reflection-based
  * operations to work with a message.
@@ -3491,7 +3490,8 @@ class MessageType {
         this.typeName = name;
         this.fields = fields.map(reflection_info_1.normalizeFieldInfo);
         this.options = options !== null && options !== void 0 ? options : {};
-        this.messagePrototype = Object.create(null, Object.assign(Object.assign({}, baseDescriptors), { [message_type_contract_1.MESSAGE_TYPE]: { value: this } }));
+        messageTypeDescriptor.value = this;
+        this.messagePrototype = Object.create(null, baseDescriptors);
         this.refTypeCheck = new reflection_type_check_1.ReflectionTypeCheck(this);
         this.refJsonReader = new reflection_json_reader_1.ReflectionJsonReader(this);
         this.refJsonWriter = new reflection_json_writer_1.ReflectionJsonWriter(this);
@@ -4998,12 +4998,16 @@ class ReflectionJsonReader {
                         target[localName] = field.T().internalJsonRead(jsonValue, options, target[localName]);
                         break;
                     case "enum":
+                        if (jsonValue === null)
+                            continue;
                         let val = this.enum(field.T(), jsonValue, field.name, options.ignoreUnknownFields);
                         if (val === false)
                             continue;
                         target[localName] = val;
                         break;
                     case "scalar":
+                        if (jsonValue === null)
+                            continue;
                         target[localName] = this.scalar(jsonValue, field.T, field.L, field.name);
                         break;
                 }
@@ -79869,183 +79873,6 @@ function expand_(str, max, maxLength, maxDepth, depth, maxRewrites, isTop) {
 
 /***/ }),
 
-/***/ 41120:
-/***/ ((module) => {
-
-var __webpack_unused_export__;
-
-
-const NullObject = function NullObject () { }
-NullObject.prototype = Object.create(null)
-
-/**
- * RegExp to match *( ";" parameter ) in RFC 7231 sec 3.1.1.1
- *
- * parameter     = token "=" ( token / quoted-string )
- * token         = 1*tchar
- * tchar         = "!" / "#" / "$" / "%" / "&" / "'" / "*"
- *               / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
- *               / DIGIT / ALPHA
- *               ; any VCHAR, except delimiters
- * quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
- * qdtext        = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
- * obs-text      = %x80-FF
- * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
- */
-const paramRE = /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\v\u0020-\u00ff])*"|[!#$%&'*+.^\w`|~-]+) */gu
-
-/**
- * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
- *
- * quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
- * obs-text    = %x80-FF
- */
-const quotedPairRE = /\\([\v\u0020-\u00ff])/gu
-
-/**
- * RegExp to match type in RFC 7231 sec 3.1.1.1
- *
- * media-type = type "/" subtype
- * type       = token
- * subtype    = token
- */
-const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u
-
-// default ContentType to prevent repeated object creation
-const defaultContentType = { type: '', parameters: new NullObject() }
-Object.freeze(defaultContentType.parameters)
-Object.freeze(defaultContentType)
-
-/**
- * Parse media type to object.
- *
- * @param {string|object} header
- * @return {Object}
- * @public
- */
-
-function parse (header) {
-  if (typeof header !== 'string') {
-    throw new TypeError('argument header is required and must be a string')
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    throw new TypeError('invalid media type')
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      throw new TypeError('invalid parameter format')
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    throw new TypeError('invalid parameter format')
-  }
-
-  return result
-}
-
-function safeParse (header) {
-  if (typeof header !== 'string') {
-    return defaultContentType
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    return defaultContentType
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      return defaultContentType
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    return defaultContentType
-  }
-
-  return result
-}
-
-__webpack_unused_export__ = { parse, safeParse }
-__webpack_unused_export__ = parse
-module.exports.xL = safeParse
-__webpack_unused_export__ = defaultContentType
-
-
-/***/ }),
-
 /***/ 78275:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -84992,7 +84819,7 @@ module.exports = index;
 /***/ 2822:
 /***/ ((module) => {
 
-module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/artifact","version":"6.2.1","preview":true,"description":"Actions artifact lib","keywords":["github","actions","artifact"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/artifact","license":"MIT","type":"module","main":"lib/artifact.js","types":"lib/artifact.d.ts","exports":{".":{"types":"./lib/artifact.d.ts","import":"./lib/artifact.js"}},"directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/artifact"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"cd ../../ && npm run test ./packages/artifact","bootstrap":"cd ../../ && npm run bootstrap","tsc-run":"tsc && cp src/internal/shared/package-version.cjs lib/internal/shared/","tsc":"npm run bootstrap && npm run tsc-run","gen:docs":"typedoc --plugin typedoc-plugin-markdown --out docs/generated src/artifact.ts --githubPages false --readme none"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^3.0.0","@actions/github":"^9.0.0","@actions/http-client":"^4.0.0","@azure/storage-blob":"^12.30.0","@octokit/core":"^7.0.6","@octokit/plugin-request-log":"^6.0.0","@octokit/plugin-retry":"^8.0.0","@octokit/request":"^10.0.7","@octokit/request-error":"^7.1.0","@protobuf-ts/plugin":"^2.2.3-alpha.1","@protobuf-ts/runtime":"^2.9.4","archiver":"^7.0.1","jwt-decode":"^4.0.0","unzip-stream":"^0.3.1"},"devDependencies":{"@types/archiver":"^7.0.0","@types/unzip-stream":"^0.3.4","typedoc":"^0.28.16","typedoc-plugin-markdown":"^4.9.0","typescript":"^5.9.3"},"overrides":{"uri-js":"npm:uri-js-replace@^1.0.1","node-fetch":"^3.3.2"}}');
+module.exports = /*#__PURE__*/JSON.parse('{"name":"@actions/artifact","version":"6.3.1","preview":true,"description":"Actions artifact lib","keywords":["github","actions","artifact"],"homepage":"https://github.com/actions/toolkit/tree/main/packages/artifact","license":"MIT","type":"module","main":"lib/artifact.js","types":"lib/artifact.d.ts","exports":{".":{"types":"./lib/artifact.d.ts","import":"./lib/artifact.js"}},"directories":{"lib":"lib","test":"__tests__"},"files":["lib","!.DS_Store"],"publishConfig":{"access":"public"},"repository":{"type":"git","url":"git+https://github.com/actions/toolkit.git","directory":"packages/artifact"},"scripts":{"audit-moderate":"npm install && npm audit --json --audit-level=moderate > audit.json","test":"cd ../../ && npm run test ./packages/artifact","bootstrap":"cd ../../ && npm run bootstrap","tsc-run":"tsc && cp src/internal/shared/package-version.cjs lib/internal/shared/","tsc":"npm run bootstrap && npm run tsc-run","gen:docs":"typedoc --plugin typedoc-plugin-markdown --out docs/generated src/artifact.ts --githubPages false --readme none"},"bugs":{"url":"https://github.com/actions/toolkit/issues"},"dependencies":{"@actions/core":"^3.0.1","@actions/github":"^9.1.1","@actions/http-client":"^4.0.1","@azure/storage-blob":"^12.31.0","@octokit/core":"^7.0.6","@octokit/plugin-request-log":"^6.0.0","@octokit/plugin-retry":"^8.1.0","@octokit/request":"^10.0.8","@octokit/request-error":"^7.1.0","@protobuf-ts/runtime":"^2.11.1","@protobuf-ts/runtime-rpc":"^2.11.1","archiver":"^7.0.1","jwt-decode":"^4.0.0","unzip-stream":"^0.3.1"},"devDependencies":{"@protobuf-ts/plugin":"^2.11.1","@types/archiver":"^7.0.0","@types/unzip-stream":"^0.3.4","typedoc":"^0.28.19","typedoc-plugin-markdown":"^4.11.0","typescript":"^5.9.3"},"overrides":{"uri-js":"npm:uri-js-replace@^1.0.1","node-fetch":"^3.3.2"}}');
 
 /***/ })
 
@@ -92437,7 +92264,7 @@ function isKeyOperator(operator) {
 function getValues(context, operator, key, modifier) {
   var value = context[key], result = [];
   if (isDefined(value) && value !== "") {
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean") {
       value = value.toString();
       if (modifier && modifier !== "*") {
         value = value.substring(0, parseInt(modifier, 10));
@@ -92624,8 +92451,899 @@ function withDefaults(oldDefaults, newDefaults) {
 var endpoint = withDefaults(null, DEFAULTS);
 
 
-// EXTERNAL MODULE: ./node_modules/fast-content-type-parse/index.js
-var fast_content_type_parse = __nccwpck_require__(41120);
+;// CONCATENATED MODULE: ./node_modules/content-type/dist/index.js
+/*!
+ * content-type
+ * Copyright(c) 2015 Douglas Christopher Wilson
+ * MIT Licensed
+ */
+const SP = 32; // " "
+const HTAB = 9; // "\t"
+const SEMI = 59; // ";"
+const EQ = 61; // "="
+const DQUOTE = 34; // '"'
+const BSLASH = 92; // "\\"
+const COMMA = 44; // ","
+const LOWER_CASE = 1;
+const OWS = 2;
+const SEMI_FLAG = 4;
+const COMMA_FLAG = 8;
+const TOKEN_FLAG = 16;
+const NON_ASCII = 0xff00;
+const CASE_FLAGS = LOWER_CASE | NON_ASCII;
+/**
+ * Character flags used to normalize HTTP field values while scanning.
+ * Out-of-range reads intentionally coerce to zero in bitwise expressions.
+ */
+const CHAR_MAP = new Uint8Array(0x100);
+CHAR_MAP[HTAB] |= OWS;
+CHAR_MAP[SP] |= OWS;
+CHAR_MAP[SEMI] |= SEMI_FLAG;
+CHAR_MAP[COMMA] |= COMMA_FLAG;
+for (let code = 0x80 /* non-ASCII */; code <= 0xff; code++) {
+    CHAR_MAP[code] |= LOWER_CASE;
+}
+for (const char of "!#$%&'*+-.^_`|~") {
+    CHAR_MAP[char.charCodeAt(0)] |= TOKEN_FLAG;
+}
+for (let code = 0x30 /* 0 */; code <= 0x39 /* 9 */; code++) {
+    CHAR_MAP[code] |= TOKEN_FLAG;
+}
+for (let code = 0x41 /* A */; code <= 0x5a /* Z */; code++) {
+    CHAR_MAP[code] |= LOWER_CASE | TOKEN_FLAG;
+}
+for (let code = 0x61 /* a */; code <= 0x7a /* z */; code++) {
+    CHAR_MAP[code] |= TOKEN_FLAG;
+}
+/**
+ * Null object perf optimization. Faster than `Object.create(null)` and `{ __proto__: null }`.
+ */
+const NullObject = /* @__PURE__ */ (() => {
+    const C = function () { };
+    C.prototype = Object.create(null);
+    return C;
+})();
+/**
+ * Validate a type string against RFC 9110.
+ */
+function isTypeValid(type, start = 0, end = type.length) {
+    let hasSlash = false;
+    for (let index = start; index < end; index++) {
+        const code = type.charCodeAt(index);
+        if (code === 47 /* / */) {
+            if (hasSlash || index === start || index >= end - 1)
+                return false;
+            hasSlash = true;
+        }
+        else if (!isTokenCode(code)) {
+            return false;
+        }
+    }
+    return hasSlash;
+}
+/**
+ * Validate a token against RFC 9110.
+ */
+function isTokenValid(token, start = 0, end = token.length) {
+    if (start >= end)
+        return false;
+    for (let index = start; index < end; index++) {
+        if (!isTokenCode(token.charCodeAt(index)))
+            return false;
+    }
+    return true;
+}
+/**
+ * Check whether a character code belongs to the token production in RFC 9110.
+ */
+function isTokenCode(code) {
+    return (CHAR_MAP[code] & TOKEN_FLAG) !== 0;
+}
+/**
+ * Serialize a parameter value.
+ */
+function parameterValue(str) {
+    const len = str.length;
+    if (len === 0)
+        return '""';
+    let index = 0;
+    while (index < len && isTokenCode(str.charCodeAt(index)))
+        index++;
+    if (index === len)
+        return str;
+    let result = '"';
+    let start = 0;
+    while (index < len) {
+        const code = str.charCodeAt(index);
+        if (code !== HTAB && (code < SP || code === 127 || code > 255)) {
+            throw new TypeError(`Invalid parameter value: ${str}`);
+        }
+        if (code === 34 /* " */ || code === 92 /* \\ */) {
+            result += `${str.slice(start, index)}\\`;
+            start = index;
+        }
+        index++;
+    }
+    return `${result}${str.slice(start)}"`;
+}
+/**
+ * Format an object into a `Content-Type` header.
+ */
+function format(obj) {
+    const { type, parameters } = obj;
+    if (!type || !isTypeValid(type)) {
+        throw new TypeError(`Invalid type: ${type}`);
+    }
+    let result = type;
+    if (parameters) {
+        for (const param of Object.keys(parameters)) {
+            if (!isTokenValid(param)) {
+                throw new TypeError(`Invalid parameter name: ${param}`);
+            }
+            result += `; ${param}=${parameterValue(parameters[param])}`;
+        }
+    }
+    return result;
+}
+/**
+ * Parse a `Content-Type` header.
+ */
+function dist_parse(header, options) {
+    const stopFlags = SEMI_FLAG | (options?.comma === true ? COMMA_FLAG : 0);
+    const len = header.length;
+    let valueStart = options?.start ?? 0;
+    while ((CHAR_MAP[header.charCodeAt(valueStart)] & OWS) !== 0) {
+        valueStart++;
+    }
+    let index = valueStart;
+    let typeFlags = 0;
+    let whitespace = -1;
+    let stop = options?.parameters === false ? COMMA_FLAG : 0;
+    while (index < len) {
+        const code = header.charCodeAt(index);
+        const flags = CHAR_MAP[code];
+        if ((flags & stopFlags) !== 0) {
+            stop |= flags & COMMA_FLAG;
+            break;
+        }
+        if ((flags & OWS) !== 0) {
+            if (whitespace === -1)
+                whitespace = index;
+        }
+        else {
+            whitespace = -1;
+        }
+        typeFlags |= (code & NON_ASCII) | flags;
+        index++;
+    }
+    const valueEnd = whitespace === -1 ? index : whitespace;
+    const value = header.slice(valueStart, valueEnd);
+    const type = (typeFlags & CASE_FLAGS) === 0 ? value : value.toLowerCase();
+    if (index === len || stop !== 0) {
+        return { type, index, parameters: new NullObject() };
+    }
+    return parseParameters(header, type, index, len, stopFlags);
+}
+/**
+ * Parses the parameters of a `Content-Type` header starting at the given index.
+ */
+function parseParameters(header, type, index, len, stopFlags) {
+    const parameters = new NullObject();
+    parameter: while (index < len) {
+        index++; // Skip over ;
+        while ((CHAR_MAP[header.charCodeAt(index)] & OWS) !== 0) {
+            index++;
+        }
+        const keyStart = index;
+        let keyFlags = 0;
+        let keyWhitespace = -1;
+        while (index < len) {
+            const code = header.charCodeAt(index);
+            const flags = CHAR_MAP[code];
+            if ((flags & stopFlags) !== 0) {
+                if ((flags & COMMA_FLAG) !== 0)
+                    break parameter;
+                continue parameter;
+            }
+            if (code === EQ) {
+                const keyEnd = keyWhitespace === -1 ? index : keyWhitespace;
+                const value = header.slice(keyStart, keyEnd);
+                const key = (keyFlags & CASE_FLAGS) === 0 ? value : value.toLowerCase();
+                index++;
+                while ((CHAR_MAP[header.charCodeAt(index)] & OWS) !== 0) {
+                    index++;
+                }
+                if (index < len && header.charCodeAt(index) === DQUOTE) {
+                    const quotedStart = ++index;
+                    let escaped = false;
+                    while (index < len) {
+                        const code = header.charCodeAt(index);
+                        if (code === DQUOTE) {
+                            if (parameters[key] === undefined) {
+                                parameters[key] = escaped
+                                    ? unescapeQuotedPairs(header, quotedStart, index)
+                                    : header.slice(quotedStart, index);
+                            }
+                            index++;
+                            let stop = 0;
+                            // Discard characters between quote and delimiter.
+                            while (index < len) {
+                                const code = header.charCodeAt(index);
+                                const flags = CHAR_MAP[code];
+                                if ((flags & stopFlags) !== 0) {
+                                    stop = flags & COMMA_FLAG;
+                                    break;
+                                }
+                                index++;
+                            }
+                            if (stop !== 0)
+                                break parameter;
+                            continue parameter;
+                        }
+                        if (code === BSLASH && index + 1 < len) {
+                            escaped = true;
+                            index += 2;
+                            continue;
+                        }
+                        index++;
+                    }
+                    continue parameter;
+                }
+                const valueStart = index;
+                let stop = 0;
+                let valueWhitespace = -1;
+                while (index < len) {
+                    const code = header.charCodeAt(index);
+                    const flags = CHAR_MAP[code];
+                    if ((flags & stopFlags) !== 0) {
+                        stop = flags & COMMA_FLAG;
+                        break;
+                    }
+                    if ((flags & OWS) !== 0) {
+                        if (valueWhitespace === -1)
+                            valueWhitespace = index;
+                    }
+                    else {
+                        valueWhitespace = -1;
+                    }
+                    index++;
+                }
+                if (parameters[key] === undefined) {
+                    const valueEnd = valueWhitespace === -1 ? index : valueWhitespace;
+                    parameters[key] = header.slice(valueStart, valueEnd);
+                }
+                if (stop !== 0)
+                    break parameter;
+                continue parameter;
+            }
+            if ((flags & OWS) !== 0) {
+                if (keyWhitespace === -1)
+                    keyWhitespace = index;
+            }
+            else {
+                keyWhitespace = -1;
+            }
+            keyFlags |= (code & NON_ASCII) | flags;
+            index++;
+        }
+    }
+    return { type, index, parameters };
+}
+/**
+ * Remove backslashes from quoted pairs in a known-terminated quoted string body.
+ */
+function unescapeQuotedPairs(str, start, end) {
+    let result = "";
+    for (let index = start; index < end; index++) {
+        if (str.charCodeAt(index) === BSLASH) {
+            result += str.slice(start, index);
+            start = ++index;
+        }
+    }
+    return result + str.slice(start, end);
+}
+//# sourceMappingURL=index.js.map
+;// CONCATENATED MODULE: ./node_modules/json-with-bigint/json-with-bigint.js
+const intRegex = /^-?\d+$/;
+const noiseValue = /^-?\d+n+$/; // Noise - strings that match the custom format before being converted to it
+const originalStringify = JSON.stringify;
+const originalParse = JSON.parse;
+const customFormat = /^-?\d+n$/;
+
+const bigIntsStringify = /([\[:])?"(-?\d+)n"($|\s*[,\}\]])/g;
+const noiseStringify = /([\[:])?("-?\d+n+)n("$|"\s*[,\}\]])/g;
+
+/**
+ * @typedef {(this: any, key: string | number | undefined, value: any) => any} Replacer
+ * @typedef {(key: string | number | undefined, value: any, context?: { source: string }) => any} Reviver
+ */
+
+/**
+ * Checks if a value is unstringifiable according to native JSON.stringify rules.
+ *
+ * @param {any} val The value to check.
+ * @returns {boolean} True if the value is undefined, a function, or a symbol.
+ */
+const isUnstringifiable = (val) =>
+  val === undefined || typeof val === "function" || typeof val === "symbol";
+
+/**
+ * Checks if a value is a native JSON.rawJSON object (Node.js 22+).
+ *
+ * @param {any} val The value to check.
+ * @returns {boolean} True if the value is a RawJSON instance.
+ */
+const isRawJSON = (val) =>
+  val !== null &&
+  typeof val === "object" &&
+  val.constructor &&
+  val.constructor.name === "RawJSON";
+
+/**
+ * Iteratively converts a JS value to a JSON string.
+ * Used as a fallback when the native JSON.stringify hits the Maximum Call Stack size.
+ * Fully compliant with JSON formatting (space), replacers, and toJSON behaviors.
+ *
+ * @param {any} rootValue The value to stringify.
+ * @param {Replacer | Array<string | number> | null} [replacer] User's custom replacer function.
+ * @param {string | number} [spaceParam] Indentation for pretty-printing.
+ * @returns {string | undefined} The generated JSON string.
+ */
+const stringifyIteratively = (rootValue, replacer, spaceParam) => {
+  let space = "";
+
+  if (typeof spaceParam === "number") {
+    space = " ".repeat(Math.min(10, Math.max(0, Math.floor(spaceParam))));
+  } else if (typeof spaceParam === "string") {
+    space = spaceParam.slice(0, 10);
+  }
+
+  const isFunctionReplacer = typeof replacer === "function";
+  const propertyList = Array.isArray(replacer)
+    ? new Set(replacer.map(String))
+    : null;
+
+  /**
+   * Prepares a value for stringification by resolving toJSON, handling BigInts,
+   * applying custom replacers, and unwrapping primitive objects.
+   *
+   * @param {object|Array} parent The parent object or array holding the value.
+   * @param {string} key The key associated with the value.
+   * @param {any} val The raw value to process.
+   * @returns {any} The processed value ready for stringification.
+   */
+  const prepareVal = (parent, key, val) => {
+    const isObject = val !== null && typeof val === "object";
+    const hasToJSON = isObject && typeof val.toJSON === "function";
+
+    if (hasToJSON) {
+      val = val.toJSON(key);
+    }
+
+    const isNoise = typeof val === "string" && noiseValue.test(val);
+
+    if (isNoise) return val + "n";
+
+    const isBigInt = typeof val === "bigint";
+
+    if (isBigInt) {
+      const supportsRawJSON = "rawJSON" in JSON;
+
+      if (supportsRawJSON) return JSON.rawJSON(val.toString());
+
+      return val.toString() + "n";
+    }
+
+    if (isFunctionReplacer) {
+      val = replacer.call(parent, key, val);
+    }
+
+    const isPostReplacerObject = val !== null && typeof val === "object";
+
+    if (isPostReplacerObject) {
+      const isPrimitiveWrapper =
+        val instanceof Number ||
+        val instanceof String ||
+        val instanceof Boolean;
+
+      if (isPrimitiveWrapper) {
+        val = val.valueOf();
+      }
+    }
+
+    return val;
+  };
+
+  const rootProcessed = prepareVal({ "": rootValue }, "", rootValue);
+
+  if (isUnstringifiable(rootProcessed)) {
+    return undefined;
+  }
+
+  const isRootPrimitive =
+    rootProcessed === null || typeof rootProcessed !== "object";
+  const isRootNativeRawJSON = isRawJSON(rootProcessed);
+
+  if (isRootPrimitive || isRootNativeRawJSON) {
+    return originalStringify(rootProcessed);
+  }
+
+  const chunks = [];
+  let level = 0;
+
+  const stack = [
+    {
+      parent: { "": rootProcessed },
+      key: "",
+      val: rootProcessed,
+      isArray: Array.isArray(rootProcessed),
+      keys: Array.isArray(rootProcessed) ? null : Object.keys(rootProcessed),
+      index: 0,
+      first: true,
+    },
+  ];
+
+  const visited = new WeakSet([rootProcessed]);
+
+  while (stack.length > 0) {
+    const node = stack[stack.length - 1];
+
+    if (node.index === 0) {
+      chunks.push(node.isArray ? "[" : "{");
+      level++;
+    }
+
+    let isDone = false;
+
+    if (node.isArray) {
+      if (node.index < node.val.length) {
+        if (!node.first) chunks.push(",");
+
+        if (space) chunks.push("\n" + space.repeat(level));
+
+        const childRaw = node.val[node.index];
+        const childVal = prepareVal(node.val, String(node.index), childRaw);
+
+        if (isUnstringifiable(childVal)) {
+          chunks.push("null");
+          node.first = false;
+          node.index++;
+        } else {
+          const isComplexObject =
+            childVal !== null && typeof childVal === "object";
+          const isNativeRaw = isRawJSON(childVal);
+
+          if (isComplexObject && !isNativeRaw) {
+            if (visited.has(childVal)) {
+              throw new TypeError("Converting circular structure to JSON");
+            }
+
+            visited.add(childVal);
+
+            stack.push({
+              parent: node.val,
+              key: String(node.index),
+              val: childVal,
+              isArray: Array.isArray(childVal),
+              keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+              index: 0,
+              first: true,
+            });
+
+            node.first = false;
+            node.index++;
+          } else {
+            chunks.push(originalStringify(childVal));
+            node.first = false;
+            node.index++;
+          }
+        }
+      } else {
+        isDone = true;
+      }
+    } else {
+      while (node.index < node.keys.length) {
+        const k = node.keys[node.index++];
+
+        const isFilteredOutByArray = propertyList && !propertyList.has(k);
+
+        if (isFilteredOutByArray) continue;
+
+        const childRaw = node.val[k];
+        const childVal = prepareVal(node.val, k, childRaw);
+
+        if (isUnstringifiable(childVal)) continue;
+
+        if (!node.first) chunks.push(",");
+
+        if (space) {
+          chunks.push("\n" + space.repeat(level) + originalStringify(k) + ": ");
+        } else {
+          chunks.push(originalStringify(k) + ":");
+        }
+
+        const isComplexObject =
+          childVal !== null && typeof childVal === "object";
+        const isNativeRaw = isRawJSON(childVal);
+
+        if (isComplexObject && !isNativeRaw) {
+          if (visited.has(childVal)) {
+            throw new TypeError("Converting circular structure to JSON");
+          }
+
+          visited.add(childVal);
+
+          stack.push({
+            parent: node.val,
+            key: k,
+            val: childVal,
+            isArray: Array.isArray(childVal),
+            keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+            index: 0,
+            first: true,
+          });
+
+          node.first = false;
+
+          break; // Stop current loop level to process the newly pushed stack node
+        } else {
+          chunks.push(originalStringify(childVal));
+          node.first = false;
+        }
+      }
+
+      const isNodeFullyProcessed =
+        node.index >= node.keys.length && stack[stack.length - 1] === node;
+
+      if (isNodeFullyProcessed) {
+        isDone = true;
+      }
+    }
+
+    if (isDone) {
+      level--;
+
+      if (!node.first && space) chunks.push("\n" + space.repeat(level));
+
+      chunks.push(node.isArray ? "]" : "}");
+      visited.delete(node.val);
+      stack.pop();
+    }
+  }
+
+  return chunks.join("");
+};
+
+/**
+ * Converts a JavaScript value to a JSON string.
+ *
+ * Supports serialization of BigInt values using two strategies:
+ * 1. Custom format "123n" → "123" (universal fallback)
+ * 2. Native JSON.rawJSON() (Node.js 22+, fastest) when available
+ *
+ * All other values are serialized exactly like native JSON.stringify().
+ *
+ * @param {*} value The value to convert to a JSON string.
+ * @param {Replacer | Array<string | number> | null} [replacer]
+ * A function that alters the behavior of the stringification process,
+ * or an array of strings/numbers to indicate properties to exclude.
+ * @param {string | number} [space]
+ * A string or number to specify indentation or pretty-printing.
+ * @returns {string} The JSON string representation.
+ */
+const JSONStringify = (value, replacer, space) => {
+  try {
+    const supportsRawJSON = "rawJSON" in JSON;
+
+    if (supportsRawJSON) {
+      return originalStringify(
+        value,
+        (key, val) => {
+          if (typeof val === "bigint") return JSON.rawJSON(val.toString());
+
+          const hasFunctionReplacer = typeof replacer === "function";
+
+          if (hasFunctionReplacer) return replacer(key, val);
+
+          const isKeyInArrayReplacer =
+            Array.isArray(replacer) && replacer.includes(key);
+
+          if (isKeyInArrayReplacer) return val;
+
+          return val;
+        },
+        space,
+      );
+    }
+
+    if (!value) return originalStringify(value, replacer, space);
+
+    const convertedToCustomJSON = originalStringify(
+      value,
+      (key, val) => {
+        const isNoise = typeof val === "string" && noiseValue.test(val);
+
+        if (isNoise) return val.toString() + "n"; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+
+        if (typeof val === "bigint") return val.toString() + "n";
+
+        const hasFunctionReplacer = typeof replacer === "function";
+
+        if (hasFunctionReplacer) return replacer(key, val);
+
+        const isKeyInArrayReplacer =
+          Array.isArray(replacer) && replacer.includes(key);
+
+        if (isKeyInArrayReplacer) return val;
+
+        return val;
+      },
+      space,
+    );
+
+    const processedJSON = convertedToCustomJSON.replace(
+      bigIntsStringify,
+      "$1$2$3",
+    ); // Delete one "n" off the end of every BigInt value
+
+    const denoisedJSON = processedJSON.replace(noiseStringify, "$1$2$3"); // Remove one "n" off the end of every noisy string
+
+    return denoisedJSON;
+  } catch (error) {
+    if (error instanceof RangeError) {
+      const convertedJSON = stringifyIteratively(value, replacer, space);
+
+      if (convertedJSON === undefined) return undefined;
+
+      const supportsRawJSON = "rawJSON" in JSON;
+
+      if (supportsRawJSON) return convertedJSON;
+
+      const processedJSON = convertedJSON.replace(bigIntsStringify, "$1$2$3");
+
+      return processedJSON.replace(noiseStringify, "$1$2$3");
+    }
+
+    throw error;
+  }
+};
+
+const featureCache = new Map();
+
+/**
+ * Detects if the current JSON.parse implementation supports the context.source feature.
+ *
+ * Uses toString() fingerprinting to cache results and automatically detect runtime
+ * replacements of JSON.parse (polyfills, mocks, etc.).
+ *
+ * @returns {boolean} true if context.source is supported, false otherwise.
+ */
+const isContextSourceSupported = () => {
+  const parseFingerprint = JSON.parse.toString();
+
+  if (featureCache.has(parseFingerprint)) {
+    return featureCache.get(parseFingerprint);
+  }
+
+  try {
+    const result = JSON.parse(
+      "1",
+      (_, __, context) => !!context?.source && context.source === "1",
+    );
+    featureCache.set(parseFingerprint, result);
+
+    return result;
+  } catch {
+    featureCache.set(parseFingerprint, false);
+
+    return false;
+  }
+};
+
+/**
+ * Reviver function that converts custom-format BigInt strings back to BigInt values.
+ * Also handles "noise" strings that accidentally match the BigInt format.
+ *
+ * @param {string | number | undefined} key The object key.
+ * @param {*} value The value being parsed.
+ * @param {object} [context] Parse context (if supported by JSON.parse).
+ * @param {Reviver} [userReviver] User's custom reviver function.
+ * @returns {any} The transformed value.
+ */
+const convertMarkedBigIntsReviver = (key, value, context, userReviver) => {
+  const isCustomFormatBigInt =
+    typeof value === "string" && customFormat.test(value);
+
+  if (isCustomFormatBigInt) return BigInt(value.slice(0, -1));
+
+  const isNoiseValue = typeof value === "string" && noiseValue.test(value);
+  if (isNoiseValue) return value.slice(0, -1);
+
+  const hasUserReviver = typeof userReviver === "function";
+
+  if (!hasUserReviver) return value;
+
+  return userReviver(key, value, context);
+};
+
+/**
+ * Fast JSON.parse implementation (~2x faster than classic fallback).
+ * Uses JSON.parse's context.source feature to detect integers and convert
+ * large numbers directly to BigInt without string manipulation.
+ *
+ * Does not support legacy custom format from v1 of this library.
+ *
+ * @param {string} text JSON string to parse.
+ * @param {Reviver} [reviver] Transform function to apply to each value.
+ * @returns {any} Parsed JavaScript value.
+ */
+const JSONParseV2 = (text, reviver) => {
+  return JSON.parse(text, (key, value, context) => {
+    const isNumber = typeof value === "number";
+    const isOutOfBounds =
+      value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER;
+    const isBigNumber = isNumber && isOutOfBounds;
+    const isInt = context && intRegex.test(context.source);
+    const isBigInt = isBigNumber && isInt;
+
+    if (isBigInt) return BigInt(context.source);
+
+    const hasCustomReviver = typeof reviver === "function";
+
+    if (!hasCustomReviver) return value;
+
+    return reviver(key, value, context);
+  });
+};
+
+const MAX_INT = Number.MAX_SAFE_INTEGER.toString();
+const MAX_DIGITS = MAX_INT.length;
+const stringsOrLargeNumbers =
+  /"(?:[^"\\]|\\.)*"|-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?/g;
+const noiseValueWithQuotes = /^"-?\d+n+"$/; // Noise - strings that match the custom format before being converted to it
+
+/**
+ * Iteratively traverses the parsed object bottom-up (post-order),
+ * emulating the native JSON.parse reviver behavior.
+ * This avoids Call Stack overflows (RangeError) on deeply nested structures.
+ *
+ * @param {any} parsed The natively parsed JSON object.
+ * @param {Reviver} [userReviver] User's custom reviver function.
+ * @returns {any} The fully processed object.
+ */
+const applyReviverIteratively = (parsed, userReviver) => {
+  const rootHolder = { "": parsed };
+  const stack = [{ parent: rootHolder, key: "", visited: false }];
+
+  while (stack.length > 0) {
+    const node = stack[stack.length - 1];
+
+    if (!node.visited) {
+      node.visited = true;
+
+      const value = node.parent[node.key];
+      const isComplexObject = value !== null && typeof value === "object";
+
+      if (isComplexObject) {
+        const keys = Object.keys(value);
+
+        for (let i = keys.length - 1; i >= 0; i--) {
+          stack.push({ parent: value, key: keys[i], visited: false });
+        }
+      }
+    } else {
+      const { parent, key } = node;
+      let value = parent[key];
+
+      if (typeof value === "string") {
+        const isCustomFormatBigInt = customFormat.test(value);
+
+        if (isCustomFormatBigInt) {
+          value = BigInt(value.slice(0, -1));
+        } else {
+          const isNoise = noiseValue.test(value);
+
+          if (isNoise) value = value.slice(0, -1);
+        }
+      }
+
+      const hasUserReviver = typeof userReviver === "function";
+
+      if (hasUserReviver) {
+        value = userReviver.call(parent, key, value);
+      }
+
+      const isDeleted = value === undefined;
+
+      if (isDeleted) {
+        delete parent[key];
+      } else {
+        parent[key] = value;
+      }
+
+      stack.pop();
+    }
+  }
+
+  return rootHolder[""];
+};
+
+/**
+ * Pre-processes the JSON string to mark large numbers with an 'n' suffix.
+ *
+ * @param {string} text The raw JSON string.
+ * @returns {string} The serialized string with marked BigInts.
+ */
+const serializeBigInts = (text) => {
+  return text.replace(
+    stringsOrLargeNumbers,
+    (match, digits, fractional, exponential) => {
+      const isString = match[0] === '"';
+      const isNoise = isString && noiseValueWithQuotes.test(match);
+
+      if (isNoise) return match.substring(0, match.length - 1) + 'n"'; // Mark noise values with additional "n" to offset the deletion of one "n" during the processing
+
+      const hasFractionalOrExponential = fractional || exponential;
+
+      // With a fixed number of digits, we can correctly use lexicographical comparison to do a numeric comparison
+      const isLessThanMaxSafeInt =
+        digits &&
+        (digits.length < MAX_DIGITS ||
+          (digits.length === MAX_DIGITS && digits <= MAX_INT));
+
+      const isStandardValue =
+        isString || hasFractionalOrExponential || isLessThanMaxSafeInt;
+
+      if (isStandardValue) return match;
+
+      return '"' + match + 'n"';
+    },
+  );
+};
+
+/**
+ * Converts a JSON string into a JavaScript value.
+ *
+ * Supports parsing of large integers using two strategies:
+ * 1. Classic fallback: Marks large numbers with "123n" format, then converts to BigInt
+ * 2. Fast path (JSONParseV2): Uses context.source feature (~2x faster) when available
+ *
+ * All other JSON values are parsed exactly like native JSON.parse().
+ *
+ * @param {string} text A valid JSON string.
+ * @param {Reviver} [reviver]
+ * A function that transforms the results. This function is called for each member
+ * of the object. If a member contains nested objects, the nested objects are
+ * transformed before the parent object is.
+ * @returns {any} The parsed JavaScript value.
+ * @throws {SyntaxError} If text is not valid JSON.
+ */
+const JSONParse = (text, reviver) => {
+  if (!text) return originalParse(text, reviver);
+
+  try {
+    if (isContextSourceSupported()) return JSONParseV2(text, reviver); // Shortcut to a faster (2x) and simpler version
+
+    // Find and mark big numbers with "n"
+    const serializedData = serializeBigInts(text);
+
+    return originalParse(serializedData, (key, value, context) =>
+      convertMarkedBigIntsReviver(key, value, context, reviver),
+    );
+  } catch (error) {
+    if (error instanceof RangeError) {
+      const serializedData = serializeBigInts(text);
+      const parsed = originalParse(serializedData);
+
+      return applyReviverIteratively(parsed, reviver);
+    }
+
+    throw error;
+  }
+};
+
+
+
 ;// CONCATENATED MODULE: ./node_modules/@octokit/request-error/dist-src/index.js
 class RequestError extends Error {
   name;
@@ -92675,7 +93393,7 @@ class RequestError extends Error {
 
 
 // pkg/dist-src/version.js
-var dist_bundle_VERSION = "10.0.7";
+var dist_bundle_VERSION = "10.0.16";
 
 // pkg/dist-src/defaults.js
 var defaults_default = {
@@ -92685,6 +93403,7 @@ var defaults_default = {
 };
 
 // pkg/dist-src/fetch-wrapper.js
+
 
 
 // pkg/dist-src/is-plain-object.js
@@ -92709,7 +93428,7 @@ async function fetchWrapper(requestOptions) {
   }
   const log = requestOptions.request?.log || console;
   const parseSuccessResponseBody = requestOptions.request?.parseSuccessResponseBody !== false;
-  const body = dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSON.stringify(requestOptions.body) : requestOptions.body;
+  const body = dist_bundle_isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body) ? JSONStringify(requestOptions.body) : requestOptions.body;
   const requestHeaders = Object.fromEntries(
     Object.entries(requestOptions.headers).map(([name, value]) => [
       name,
@@ -92803,16 +93522,19 @@ async function getResponseData(response) {
   if (!contentType) {
     return response.text().catch(noop);
   }
-  const mimetype = (0,fast_content_type_parse/* safeParse */.xL)(contentType);
+  const mimetype = dist_parse(contentType);
   if (isJSONResponse(mimetype)) {
     let text = "";
     try {
       text = await response.text();
-      return JSON.parse(text);
+      return JSONParse(text);
     } catch (err) {
       return text;
     }
-  } else if (mimetype.type.startsWith("text/") || mimetype.parameters.charset?.toLowerCase() === "utf-8") {
+  } else if (mimetype.type.startsWith("text/") || // `application/octet-stream` is the canonical "arbitrary binary" type
+  // (RFC 2046) and must never be decoded as text, even when the response
+  // carries a (misleading) `charset=utf-8` parameter — see #751.
+  mimetype.parameters.charset?.toLowerCase() === "utf-8" && mimetype.type !== "application/octet-stream") {
     return response.text().catch(noop);
   } else {
     return response.arrayBuffer().catch(
@@ -92831,9 +93553,10 @@ function toErrorMessage(data) {
   if (data instanceof ArrayBuffer) {
     return "Unknown error";
   }
-  if ("message" in data) {
-    const suffix = "documentation_url" in data ? ` - ${data.documentation_url}` : "";
-    return Array.isArray(data.errors) ? `${data.message}: ${data.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${data.message}${suffix}`;
+  if (typeof data === "object" && data !== null && "message" in data) {
+    const objectData = data;
+    const suffix = "documentation_url" in objectData ? ` - ${objectData.documentation_url}` : "";
+    return Array.isArray(objectData.errors) ? `${objectData.message}: ${objectData.errors.map((v) => JSON.stringify(v)).join(", ")}${suffix}` : `${objectData.message}${suffix}`;
   }
   return `Unknown error: ${JSON.stringify(data)}`;
 }
@@ -99377,8 +100100,9 @@ var artifact_twirp_client_awaiter = (undefined && undefined.__awaiter) || functi
 class ArtifactHttpClient {
     constructor(userAgent, maxAttempts, baseRetryIntervalMilliseconds, retryMultiplier) {
         this.maxAttempts = 5;
-        this.baseRetryIntervalMilliseconds = 3000;
+        this.baseRetryIntervalMilliseconds = 8000;
         this.retryMultiplier = 1.5;
+        this.retryTimeoutMilliseconds = 120000;
         const token = getRuntimeToken();
         this.baseUrl = getResultsServiceUrl();
         if (maxAttempts) {
@@ -99417,11 +100141,16 @@ class ArtifactHttpClient {
             let attempt = 0;
             let errorMessage = '';
             let rawBody = '';
+            let totalRetryWaitMilliseconds = 0;
             while (attempt < this.maxAttempts) {
                 let isRetryable = false;
+                let retryAfterSeconds;
                 try {
                     const response = yield operation();
                     const statusCode = response.message.statusCode;
+                    if (statusCode === HttpCodes.TooManyRequests) {
+                        retryAfterSeconds = this.getRetryAfterSeconds(response);
+                    }
                     rawBody = yield response.readBody();
                     core_debug(`[Response] - ${response.message.statusCode}`);
                     core_debug(`Headers: ${JSON.stringify(response.message.headers, null, 2)}`);
@@ -99459,9 +100188,16 @@ class ArtifactHttpClient {
                 if (attempt + 1 === this.maxAttempts) {
                     throw new Error(`Failed to make request after ${this.maxAttempts} attempts: ${errorMessage}`);
                 }
-                const retryTimeMilliseconds = this.getExponentialRetryTimeMilliseconds(attempt);
+                const retryTimeMilliseconds = retryAfterSeconds !== undefined
+                    ? retryAfterSeconds * 1000
+                    : this.getExponentialRetryTimeMilliseconds(attempt);
+                if (totalRetryWaitMilliseconds + retryTimeMilliseconds >
+                    this.retryTimeoutMilliseconds) {
+                    throw new Error(`Retry wait of ${retryTimeMilliseconds} ms would exceed the maximum total retry wait of ${this.retryTimeoutMilliseconds} ms: ${errorMessage}`);
+                }
                 info(`Attempt ${attempt + 1} of ${this.maxAttempts} failed with error: ${errorMessage}. Retrying request in ${retryTimeMilliseconds} ms...`);
                 yield this.sleep(retryTimeMilliseconds);
+                totalRetryWaitMilliseconds += retryTimeMilliseconds;
                 attempt++;
             }
             throw new Error(`Request failed`);
@@ -99483,6 +100219,17 @@ class ArtifactHttpClient {
             HttpCodes.TooManyRequests
         ];
         return retryableStatusCodes.includes(statusCode);
+    }
+    // Only positive integer seconds are supported, not HTTP-date values.
+    getRetryAfterSeconds(response) {
+        var _a;
+        const header = response.message.headers['retry-after'];
+        const value = (_a = (Array.isArray(header) ? header[0] : header)) === null || _a === void 0 ? void 0 : _a.trim();
+        if (value === undefined || !/^\d+$/.test(value)) {
+            return undefined;
+        }
+        const parsed = parseInt(value, 10);
+        return !isNaN(parsed) && parsed > 0 ? parsed : undefined;
     }
     sleep(milliseconds) {
         return artifact_twirp_client_awaiter(this, void 0, void 0, function* () {
@@ -145394,13 +146141,16 @@ requestLog.VERSION = plugin_request_log_dist_src_version_VERSION;
 
 // EXTERNAL MODULE: ./node_modules/bottleneck/light.js
 var light = __nccwpck_require__(63251);
-;// CONCATENATED MODULE: ./node_modules/@actions/artifact/node_modules/@octokit/plugin-retry/dist-bundle/index.js
+;// CONCATENATED MODULE: ./node_modules/@octokit/plugin-retry/dist-bundle/index.js
 // pkg/dist-src/version.js
 var plugin_retry_dist_bundle_VERSION = "0.0.0-development";
 
 // pkg/dist-src/error-request.js
+function isRequestError(error) {
+  return error.request !== void 0;
+}
 async function errorRequest(state, octokit, error, options) {
-  if (!error.request || !error.request.request) {
+  if (!isRequestError(error) || !error?.request.request) {
     throw error;
   }
   if (error.status >= 400 && !state.doNotRetry.includes(error.status)) {
@@ -145417,8 +146167,8 @@ async function errorRequest(state, octokit, error, options) {
 async function wrapRequest(state, octokit, request, options) {
   const limiter = new light();
   limiter.on("failed", function(error, info) {
-    const maxRetries = ~~error.request.request.retries;
-    const after = ~~error.request.request.retryAfter;
+    const maxRetries = ~~error.request.request?.retries;
+    const after = ~~error.request.request?.retryAfter;
     options.request.retryCount = info.retryCount + 1;
     if (maxRetries > info.retryCount) {
       return after * state.retryAfterBaseValue;
@@ -145430,7 +146180,7 @@ async function wrapRequest(state, octokit, request, options) {
   );
 }
 async function requestWithGraphqlErrorHandling(state, octokit, request, options) {
-  const response = await request(request, options);
+  const response = await request(options);
   if (response.data && response.data.errors && response.data.errors.length > 0 && /Something went wrong while executing your query/.test(
     response.data.errors[0].message
   )) {
@@ -145454,11 +146204,7 @@ function retry(octokit, octokitOptions) {
     },
     octokitOptions.retry
   );
-  if (state.enabled) {
-    octokit.hook.error("request", errorRequest.bind(null, state, octokit));
-    octokit.hook.wrap("request", wrapRequest.bind(null, state, octokit));
-  }
-  return {
+  const retryPlugin = {
     retry: {
       retryRequest: (error, retries, retryAfter) => {
         error.request.request = Object.assign({}, error.request.request, {
@@ -145469,6 +146215,11 @@ function retry(octokit, octokitOptions) {
       }
     }
   };
+  if (state.enabled) {
+    octokit.hook.error("request", errorRequest.bind(null, state, retryPlugin));
+    octokit.hook.wrap("request", wrapRequest.bind(null, state, retryPlugin));
+  }
+  return retryPlugin;
 }
 retry.VERSION = plugin_retry_dist_bundle_VERSION;
 
