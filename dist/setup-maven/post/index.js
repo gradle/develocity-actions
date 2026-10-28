@@ -146717,7 +146717,7 @@ function isUnderTest() {
     // Some end-to-end tests are run on the pull_request workflow and requires some special treatment
     return (github.context.eventName === 'pull_request' &&
         github.context.repo.owner === 'gradle' &&
-        github.context.repo.repo === 'github-actions');
+        github.context.repo.repo === 'develocity-actions');
 }
 function getRunActor() {
     return isUnderTest() ? getRunActorForTest() : getRunActorForWorkflowRun();
