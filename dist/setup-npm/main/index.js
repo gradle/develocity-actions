@@ -45100,6 +45100,7 @@ function _unique(values) {
 
 
 
+
 function getDelimiter() {
     return path.delimiter;
 }
@@ -45111,6 +45112,39 @@ function existsSync(fileName) {
 }
 async function io_extractZip(zipFileName, extractDir) {
     return await toolCache.extractZip(zipFileName, extractDir);
+}
+function mkdtempSync(prefix) {
+    return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+}
+function rmSync(dir) {
+    fs.rmSync(dir, { recursive: true, force: true });
+}
+/**
+ * Copy the regular files of sourceDir whose path relative to sourceDir is accepted by isAllowed into destDir.
+ * Symbolic links and other special files are skipped, so the copy cannot write outside destDir.
+ */
+function copyAllowedFilesSync(sourceDir, destDir, isAllowed) {
+    const copied = [];
+    const walk = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const sourcePath = path.join(dir, entry.name);
+            const relativePath = path.relative(sourceDir, sourcePath).split(path.sep).join('/');
+            if (entry.isDirectory()) {
+                walk(sourcePath);
+            }
+            else if (entry.isFile() && isAllowed(relativePath)) {
+                const destPath = path.join(destDir, relativePath);
+                fs.mkdirSync(path.dirname(destPath), { recursive: true });
+                fs.copyFileSync(sourcePath, destPath);
+                copied.push(relativePath);
+            }
+            else {
+                core.warning(`Skipping unexpected artifact entry ${relativePath}`);
+            }
+        }
+    };
+    walk(sourceDir);
+    return copied;
 }
 function mkdirSync(dir) {
     external_fs_default().mkdirSync(dir, { recursive: true });
@@ -48955,7 +48989,9 @@ class PostPublishingBuildTool extends (/* unused pure expression or super */ nul
 }
 function parseScanDumpPath(scanDumpPath) {
     // capture extension version and buildId assuming scan name is ${HOME}/.m2/build-scan-data/<version>/previous/<buildId>/scan.scan
-    const scanDumpPathMatch = scanDumpPath.match(/^.*\/build-scan-data\/(.*)\/previous\/(.*)\/.*$/);
+    // The path comes from an artifact uploaded by an untrusted workflow, and the version is written into extensions.xml:
+    // only accept characters that can appear in a version or build id
+    const scanDumpPathMatch = scanDumpPath.match(/^.*\/build-scan-data\/([0-9A-Za-z._-]+)\/previous\/([0-9A-Za-z_-]+)\/[^/]+$/);
     const version = scanDumpPathMatch?.at(1);
     const buildId = scanDumpPathMatch?.at(2);
     if (!version || !buildId) {
