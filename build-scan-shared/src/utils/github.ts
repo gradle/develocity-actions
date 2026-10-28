@@ -27,7 +27,7 @@ function isUnderTest(): boolean {
     return (
         github.context.eventName === 'pull_request' &&
         github.context.repo.owner === 'gradle' &&
-        github.context.repo.repo === 'github-actions'
+        github.context.repo.repo === 'develocity-actions'
     )
 }
 

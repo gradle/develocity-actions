@@ -128,6 +128,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Package maven-publish-build-scan
+        run: |
+          npm ci
+          npm run package-maven-publish
       - name: Setup Build Scan link capture
         uses: ./setup-maven
       - name: Publish Build Scans
@@ -138,7 +147,8 @@ jobs:
 
   assert-test:
     runs-on: ubuntu-latest
-    if: "github.event_name == 'pull_request'"
+    # Fork PRs get a read-only token, so the publication summary comment can't be posted
+    if: "github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository"
     needs: test-publish
     steps:
       - name: Find PR Comment with publication summary
