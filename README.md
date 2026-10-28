@@ -301,14 +301,17 @@ npm run all
 
 ## Release the action
 
-- Push the new version as a tag:
+Run the `/release` [Claude Code skill](.claude/skills/release/SKILL.md), or manually:
+
+- Fill the release notes in `release/changelog.md` and merge the change
+- Push the new version as a tag, which publishes the GitHub release:
 
 ```bash
-git tag vX.Y
+git tag -a -m "vX.Y" vX.Y
 git push origin vX.Y
 ```
 
-- Empty the release notes in `release/changelog.md` and push the change to prepare for next development iteration
+- Empty the release notes in `release/changelog.md` and merge the change to prepare for next development iteration
 
 ---
 
