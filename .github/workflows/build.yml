@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 env:
-  DV_URL: "https://ge.solutions-team.gradle.com"
-  DV_FAKE_ACCESS_KEY: "ge.solutions-team.gradle.com=foo"
+  DV_URL: "https://solutions.develocity.cloud"
+  DV_FAKE_ACCESS_KEY: "solutions.develocity.cloud=foo"
 
 jobs:
 
