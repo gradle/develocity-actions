@@ -55,6 +55,6 @@ inputs:
     default: 'true'
 
 runs:
-  using: node20
+  using: node24
   main: ../dist/setup-docker/main/index.js
   post: ../dist/setup-docker/post/index.js
