@@ -19,7 +19,7 @@ export function getDevelocityMavenExtensionVersion(): string {
 }
 
 export function getCcudExtensionVersion(): string {
-    return sharedInput.getInput('develocity-ccud-extension-version')
+    return sharedInput.getInput('develocity-ccud-maven-extension-version')
 }
 
 export function getDevelocityMavenRepositoryUrl(): string {
@@ -60,6 +60,16 @@ export function getDevelocityAccessKey(): string {
 
 export function getDevelocityTokenExpiry(): string {
     return sharedInput.getInput('develocity-token-expiry')
+}
+
+export function getWorkloadIdentity(): auth.WorkloadIdentity | undefined {
+    if (!getBooleanInput('develocity-workload-identity')) {
+        return undefined
+    }
+    return {
+        develocityUrl: getDevelocityUrl(),
+        audience: sharedInput.getInput('develocity-workload-identity-audience')
+    }
 }
 
 export function getWorkflowName(): string {

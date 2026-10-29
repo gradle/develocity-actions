@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 
+import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as sharedInput from '../../build-scan-shared/src/input'
 
 const DEFAULT_AGENT_BASE_URL = 'https://develocity-docker-build-agent.gradle.com'
@@ -14,6 +15,16 @@ export function getDevelocityAccessKey(): string {
 
 export function getDevelocityTokenExpiry(): string {
     return sharedInput.getInput('develocity-token-expiry')
+}
+
+export function getWorkloadIdentity(): auth.WorkloadIdentity | undefined {
+    if (!sharedInput.getBooleanInput('develocity-workload-identity')) {
+        return undefined
+    }
+    return {
+        develocityUrl: sharedInput.getInput('develocity-url'),
+        audience: sharedInput.getInput('develocity-workload-identity-audience')
+    }
 }
 
 export function getDevelocityProjectId(): string {

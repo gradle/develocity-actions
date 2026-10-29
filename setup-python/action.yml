@@ -11,6 +11,15 @@ inputs:
   develocity-token-expiry:
     description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
     required: false
+  develocity-workload-identity:
+    description: >-
+      Whether to authenticate with a GitHub OIDC token exchanged for a Develocity access token instead of
+      develocity-access-key. Requires develocity-url and the `id-token: write` job permission
+    required: false
+    default: 'false'
+  develocity-workload-identity-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default develocity-url)'
+    required: false
   develocity-injection-enabled:
     description: 'Whether to enable or not Develocity Python agent injection'
     required: false
