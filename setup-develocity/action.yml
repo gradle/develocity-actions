@@ -1,0 +1,180 @@
+name: Develocity Setup Action
+description: Setup action to capture Build Scans of the build tools detected in the project
+author: Gradle team
+
+inputs:
+  # Common inputs
+  build-tools:
+    description: >-
+      Comma-separated list of build tools to set up (maven, npm, python, docker). When not set, build tools are
+      detected from the files at the root of the project
+    required: false
+  develocity-url:
+    description: 'Develocity server URL. Required by python, docker and workload identity'
+    required: false
+  develocity-access-key:
+    description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
+    required: false
+  develocity-token-expiry:
+    description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
+  develocity-workload-identity:
+    description: >-
+      Whether to authenticate with a GitHub OIDC token exchanged for a Develocity access token instead of
+      develocity-access-key. The job requires the `id-token: write` permission
+    required: false
+    default: 'false'
+  develocity-workload-identity-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default develocity-url)'
+    required: false
+  develocity-injection-enabled:
+    description: 'Whether to enable or not Develocity injection (maven, npm, python)'
+    required: false
+    default: 'true'
+  develocity-allow-untrusted-server:
+    description: 'Whether to allow communicating with untrusted server'
+    required: false
+  github-token:
+    description: 'The token used for Github API requests'
+    default: ${{ github.token }}
+    required: false
+  add-job-summary:
+    description: 'Whether to add or not a job summary to the GitHub workflow (maven, docker)'
+    default: 'true'
+
+  # Maven inputs
+  capture-strategy:
+    description: 'Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)'
+    required: false
+    default: ALWAYS
+  capture-unpublished-build-scans:
+    description: 'Whether to enable or not unpublished Build Scans capture'
+    required: false
+    default: true
+  capture-build-scan-links:
+    description: 'Whether to enable or not Build Scan links capture'
+    required: false
+    default: true
+  job-name:
+    description: 'Job name (used in summary and as artifact suffix)'
+    required: false
+  job-matrix:
+    description: 'Job matrix; this should not be overridden by users (INTERNAL).'
+    required: false
+    default: ${{ toJSON(matrix) }}
+  add-pr-comment:
+    description: 'Whether to comment or not the pull-request with Build Scan links'
+    default: 'true'
+  add-project-id-in-job-summary:
+    description: 'Whether to add or not the project id in the job summary / comment'
+    default: 'false'
+  develocity-maven-extension-version:
+    description: 'Develocity Maven Extension version'
+    required: false
+  develocity-ccud-maven-extension-version:
+    description: 'Common Custom User Data Maven Extension version'
+    required: false
+  develocity-maven-repository-url:
+    description: The URL of the repository to use when resolving the Develocity and CCUD extensions; Maven central (https://repo1.maven.org/maven2) is used by default.
+    required: false
+  develocity-maven-repository-username:
+    description: The username for the repository URL to use when resolving the Develocity and CCUD extensions.
+    required: false
+  develocity-maven-repository-password:
+    description: The password for the repository URL to use when resolving the Develocity and CCUD extensions; Consider using secrets to pass the value to this variable.
+    required: false
+  develocity-enforce-url:
+    description: 'Whether to enforce the URL over any defined locally to the project'
+    required: false
+  develocity-capture-file-fingerprints:
+    description: 'Whether to enable/disable capturing of file fingerprints. This setting is enabled by default.'
+    required: false
+    default: 'true'
+  develocity-custom-develocity-maven-extension-coordinates:
+    description: 'Will not inject the Develocity Maven extension if an extension with provided coordinates is found (value is an artifactId of the extension).'
+    required: false
+  develocity-custom-ccud-extension-coordinates:
+    description: 'Will not inject the CCUD extension if an extension with provided coordinates is found (value is an artifactId of the extension).'
+    required: false
+
+  # npm inputs
+  develocity-npm-agent-url-override:
+    description: 'When set, override the URL of the Develocity npm agent'
+    default: ''
+    required: false
+  develocity-npm-agent-version:
+    description: 'Develocity npm agent version (ignored when `develocity-npm-agent-url-override` is set)'
+    default: 'latest'
+    required: false
+  develocity-npm-agent-install-location:
+    description: 'Develocity npm agent installation location'
+    default: '~/.node_libraries'
+    required: false
+  develocity-pacote-version:
+    description: 'Version of pacote to use to install the Develocity npm build agent'
+    default: '21.0.0'
+    required: false
+
+  # Python inputs
+  develocity-python-agent-version:
+    description: >-
+      Develocity Python agent version (ignored when develocity-python-agent-url-override is set). The default is
+      the version this release of the action was tested with
+    required: false
+    default: '0.10.1'
+  develocity-python-agent-url-override:
+    description: 'Override the URL to use to download the Develocity Python agent wheel'
+    required: false
+  develocity-python-agent-sha256:
+    description: >-
+      Expected SHA-256 of the agent wheel. Known for the default version; set it when changing the version or the URL
+    required: false
+  python-executable:
+    description: 'Python interpreter the agent is installed into. It has to be the one that runs the instrumented tools'
+    required: false
+    default: 'python'
+
+  # Docker inputs
+  develocity-project-id:
+    description: 'Develocity project identifier sent when requesting a scan token for a build that declares none'
+    required: false
+  develocity-docker-agent-version:
+    description: >-
+      Develocity Docker agent version (ignored when develocity-docker-agent-url-override is set). The default is
+      the version this release of the action was tested with. Develocity rejects an agent newer than the server
+      supports
+    required: false
+    default: '0.9.0'
+  develocity-docker-agent-url-override:
+    description: 'Override the URL to use to download the Develocity Docker agent jar'
+    required: false
+  develocity-docker-agent-java-home:
+    description: 'JDK 21 or later used to run the agent. Detected from the runner when not set'
+    required: false
+  develocity-package-scan-enabled:
+    description: 'Whether to catalogue the packages contained in each built image'
+    required: false
+    default: 'true'
+  buildx-builder:
+    description: >-
+      Name of the buildx builder to attach to. The agent attaches to whichever builder is current
+      when it starts, so a job building on another builder has to name it here. The builder has to
+      exist when this step runs
+    required: false
+  drain-timeout:
+    description: 'Seconds to wait for the agent to publish every captured build before stopping it. 0 skips the wait'
+    required: false
+    default: '300'
+  shutdown-timeout:
+    description: 'Seconds the agent may spend on the build in flight once it has been signalled to stop'
+    required: false
+    default: '120'
+
+outputs:
+  build-metadata-file-path:
+    description: 'Path to the summary file build-metadata.json (maven)'
+
+runs:
+  using: node24
+  main: ../dist/setup-develocity/main/index.js
+  post: ../dist/setup-develocity/post/index.js

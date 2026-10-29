@@ -75,6 +75,30 @@ jobs:
           pytest | tee pytest.log
           grep -q "Publishing Build Scan" pytest.log
 
+  test-setup-develocity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Package setup-develocity
+        run: |
+          npm ci
+          npm run package-develocity-setup-main
+          npm run package-develocity-setup-post
+      - name: Setup Develocity for detected build tools
+        uses: ./setup-develocity
+        with:
+          develocity-url: ${{ env.DV_URL }}
+          develocity-access-key: ${{ secrets.DV_SOLUTIONS_ACCESS_KEY }}
+      - name: Assert npm is instrumented
+        run: |
+          which npm | grep -q ".develocity-npm-wrapper/npm"
+
   test-capture:
     runs-on: ubuntu-latest
     if: "github.event_name == 'pull_request'"

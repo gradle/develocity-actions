@@ -10,7 +10,11 @@ import * as npm from '../../build-scan-shared/src/buildTool/npm'
 export async function run(): Promise<void> {
     try {
         // configure authentication
-        const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
+        const accessToken = await auth.getAccessToken(
+            input.getDevelocityAccessKey(),
+            input.getDevelocityTokenExpiry(),
+            input.getWorkloadIdentity()
+        )
 
         await injection.installDevelocity()
 

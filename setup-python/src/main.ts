@@ -5,7 +5,11 @@ import * as input from '../../build-scan-shared/src/setup/input'
 
 export async function main(): Promise<void> {
     try {
-        const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
+        const accessToken = await auth.getAccessToken(
+            input.getDevelocityAccessKey(),
+            input.getDevelocityTokenExpiry(),
+            input.getWorkloadIdentity()
+        )
 
         await injection.installDevelocity(accessToken)
     } catch (error) {
