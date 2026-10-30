@@ -24,7 +24,7 @@ inputs:
       the version this release of the action was tested with. Develocity rejects an agent newer than the server
       supports
     required: false
-    default: '0.9.0'
+    default: '0.9.1'
   develocity-docker-agent-url-override:
     description: 'Override the URL to use to download the Develocity Docker agent jar'
     required: false

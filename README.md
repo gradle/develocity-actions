@@ -421,7 +421,7 @@ compatibility of your server before raising it.
 | `develocity-token-expiry`              | *Optional*: Develocity short-lived access tokens expiry in hours                                                   | `2`     |
 | `develocity-project-id`                | *Optional*: Develocity project identifier sent when requesting a scan token for a build that declares none         |         |
 | `develocity-allow-untrusted-server`    | *Optional*: Whether to allow communicating with untrusted server                                                   |         |
-| `develocity-docker-agent-version`      | *Optional*: Develocity Docker agent version (ignored when `develocity-docker-agent-url-override` is set)           | `0.9.0` |
+| `develocity-docker-agent-version`      | *Optional*: Develocity Docker agent version (ignored when `develocity-docker-agent-url-override` is set)           | `0.9.1` |
 | `develocity-docker-agent-url-override` | *Optional*: Override the URL to use to download the Develocity Docker agent jar                                    |         |
 | `develocity-docker-agent-java-home`    | *Optional*: JDK 21 or later used to run the agent. Detected from the runner when not set                           |         |
 | `develocity-package-scan-enabled`      | *Optional*: Whether to catalogue the packages contained in each built image                                        | `true`  |
