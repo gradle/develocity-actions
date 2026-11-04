@@ -3,6 +3,7 @@ import path from 'path'
 import {fileURLToPath} from 'url'
 
 import * as injection from './injection'
+import * as input from '../../build-scan-shared/src/setup/input'
 import * as maven from '../../build-scan-shared/src/buildTool/maven'
 
 const MAVEN_BUILD_SCAN_CAPTURE_EXTENSION = `maven-build-scan-capture-extension`
@@ -12,7 +13,8 @@ const ENV_KEY_MAVEN_OPTS = 'MAVEN_OPTS'
 const MAVEN_OPTS_EXT_CLASS_PATH = '-Dmaven.ext.class.path'
 
 /**
- * Configure MAVEN_OPTS to inject the capture extension, and the Develocity extensions when injection is enabled
+ * Configure MAVEN_OPTS to inject the capture extension, and the Develocity extensions when injection is enabled, and
+ * export the configuration read by the capture extension
  */
 export async function setup(defaultDevelocityMavenExtensionVersion = ''): Promise<void> {
     const develocityMavenExtensionMavenOpts = await injection.constructDevelocityMavenOpts(
@@ -22,6 +24,7 @@ export async function setup(defaultDevelocityMavenExtensionVersion = ''): Promis
 
     // Configure environment to inject capture extension on Maven builds
     configureEnvironment(develocityMavenExtensionMavenOpts)
+    input.exportBuildScanCaptureVariables(maven.mavenBuildTool)
 }
 
 function configureEnvironment(develocityMavenExtensionMavenOpts: string): void {

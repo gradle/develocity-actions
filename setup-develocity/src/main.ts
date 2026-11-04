@@ -5,7 +5,6 @@ import * as buildTools from './buildTools'
 import * as dockerSetup from '../../setup-docker/src/setup'
 import * as errorHandler from '../../build-scan-shared/src/error'
 import * as input from '../../build-scan-shared/src/setup/input'
-import * as maven from '../../build-scan-shared/src/buildTool/maven'
 import * as mavenSetup from '../../setup-maven/src/setup'
 import * as npmInjection from '../../setup-npm/src/injection'
 import * as pythonInjection from '../../setup-python/src/injection'
@@ -51,9 +50,6 @@ export async function run(): Promise<void> {
         // The Docker agent holds the access token, so it is exported only for the other build tools
         if (setUpBuildTools.some(buildTool => buildTool !== SupportedBuildTool.DOCKER)) {
             input.exportAccessToken(accessToken)
-        }
-        if (setUpBuildTools.includes(SupportedBuildTool.MAVEN)) {
-            input.exportBuildScanCaptureVariables(maven.mavenBuildTool)
         }
     } catch (error) {
         errorHandler.handle(error)
