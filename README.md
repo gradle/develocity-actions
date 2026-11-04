@@ -30,23 +30,7 @@ Set the `build-tools` input to a comma-separated list of build tools to skip the
 Gradle is not supported, use [setup-gradle](https://github.com/gradle/actions/tree/main/setup-gradle) instead.
 
 The action only takes the inputs common to all build tools, and sets up each build tool with the defaults of its
-action. For Maven, it also injects version `2.6.1` of the Develocity Maven extension, unless the project already
-applies it. To customize a build tool, set it up with its own action and leave it out of `build-tools`, so that it is not
-set up twice:
-
-```yaml
-      - name: Setup Develocity for Maven
-        uses: gradle/develocity-actions/setup-maven@v2.7
-        with:
-          develocity-url: 'https://<develocity-server>'
-          develocity-maven-extension-version: '2.6.1'
-          develocity-ccud-maven-extension-version: '2.4.0'
-      - name: Setup Develocity for the other build tools
-        uses: gradle/develocity-actions/setup-develocity@v2.7
-        with:
-          develocity-url: 'https://<develocity-server>'
-          build-tools: npm,docker
-```
+action. To customize a build tool, set it up with its own action.
 
 Use `setup-maven` as well in a job with a matrix: `setup-develocity` names the job after `github.job` only, so the
 legs of the matrix would upload their unpublished Build Scan® data under the same artifact name.
