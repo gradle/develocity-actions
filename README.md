@@ -29,6 +29,27 @@ The build tools are detected from the files at the root of the project:
 Set the `build-tools` input to a comma-separated list of build tools to skip the detection and set up only those.
 Gradle is not supported, use [setup-gradle](https://github.com/gradle/actions/tree/main/setup-gradle) instead.
 
+The action only takes the inputs common to all build tools, and sets up each build tool with the defaults of its
+action. To customize a build tool, set it up with its own action and leave it out of `build-tools`, so that it is not
+set up twice:
+
+```yaml
+      - name: Setup Develocity for Maven
+        uses: gradle/develocity-actions/setup-maven@v2.7
+        with:
+          develocity-url: 'https://<develocity-server>'
+          develocity-maven-extension-version: '2.6.1'
+          develocity-ccud-maven-extension-version: '2.4.0'
+      - name: Setup Develocity for the other build tools
+        uses: gradle/develocity-actions/setup-develocity@v2.7
+        with:
+          develocity-url: 'https://<develocity-server>'
+          build-tools: npm,docker
+```
+
+Use `setup-maven` as well in a job with a matrix: `setup-develocity` names the job after `github.job` only, so the
+legs of the matrix would upload their unpublished Build Scan® data under the same artifact name.
+
 ### Usage
 
 Insert the `Setup Develocity` step once in each job, after the steps setting up the build tools (`actions/setup-python`,
@@ -69,17 +90,17 @@ token and exchanges it for a short-lived Develocity access token. This requires:
 
 ### Action inputs
 
-The action accepts the inputs of `setup-maven`, `setup-npm`, `setup-python` and `setup-docker`, with the same defaults,
-except for the following:
-
-| Name                                    | Description                                                                                                  | Default          |
-|-----------------------------------------|--------------------------------------------------------------------------------------------------------------|------------------|
-| `build-tools`                           | *Optional*: Comma-separated list of build tools to set up (`maven`, `npm`, `python`, `docker`)               | detected         |
-| `develocity-url`                        | *Optional*: Develocity server URL. Required by `python`, `docker` and workload identity                      |                  |
-| `develocity-access-key`                 | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key            |                  |
-| `develocity-workload-identity`          | *Optional*: Whether to authenticate with [workload identity](#workload-identity) instead of `develocity-access-key` | `false`     |
-| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule                 | `develocity-url` |
-| `develocity-injection-enabled`          | *Optional*: Whether to enable or not Develocity injection (`maven`, `npm`, `python`)                         | `true`           |
+| Name                                    | Description                                                                                                         | Default          |
+|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------|------------------|
+| `build-tools`                           | *Optional*: Comma-separated list of build tools to set up (`maven`, `npm`, `python`, `docker`)                      | detected         |
+| `develocity-url`                        | *Optional*: Develocity server URL. Required by `python`, `docker` and workload identity                             |                  |
+| `develocity-access-key`                 | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                   |                  |
+| `develocity-token-expiry`               | *Optional*: Develocity short-lived access tokens expiry in hours                                                    | `2`              |
+| `develocity-workload-identity`          | *Optional*: Whether to authenticate with [workload identity](#workload-identity) instead of `develocity-access-key` | `false`          |
+| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule                        | `develocity-url` |
+| `develocity-injection-enabled`          | *Optional*: Whether to enable or not Develocity injection (`maven`, `npm`, `python`)                                | `true`           |
+| `develocity-allow-untrusted-server`     | *Optional*: Whether to allow communicating with untrusted server                                                    |                  |
+| `github-token`                          | *Optional*: The token used for Github API requests                                                                  | `github.token`   |
 
 ---
 
@@ -190,7 +211,7 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
 
 #### Develocity extensions injection
 
-If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
+If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, and optionally `develocity-maven-extension-version` (`2.6.1` by default) and `develocity-ccud-maven-extension-version` inputs should be set accordingly:
 ```yaml
 name: PR Build
 jobs:
@@ -263,7 +284,7 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 | `add-project-id-in-job-summary`                            | *Optional*: Add project id to the job summary / comment                                                                                                 | `false`                        |
 | `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity/CCUD Maven Extensions injection                                                                         |                                |
 | `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
-| `develocity-maven-extension-version`                       | *Optional*: Develocity Maven Extension version to be injected                                                                                           |                                |
+| `develocity-maven-extension-version`                       | *Optional*: Develocity Maven Extension version to be injected                                                                                           | `2.6.1`                        |
 | `develocity-ccud-maven-extension-version`                  | *Optional*: Common Custom User Data Maven Extension version to be injected                                                                              |                                |
 | `develocity-maven-repository-url`                          | *Optional*: URL of the repository to use when resolving the Develocity and CCUD extensions                                                              | https://repo1.maven.org/maven2 |
 | `develocity-maven-repository-username`                     | *Optional*: Username for the repository URL to use when resolving the Develocity and CCUD extensions                                                    |                                |

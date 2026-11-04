@@ -6,6 +6,9 @@ import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
 import {getBooleanInput} from '../input'
 
+// The version the capture extension is built against
+const DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION = '2.6.1'
+
 export function getDevelocityUrl(): string {
     return sharedInput.getInput('develocity-url')
 }
@@ -15,7 +18,7 @@ export function getDevelocityInjectionEnabled(): boolean {
 }
 
 export function getDevelocityMavenExtensionVersion(): string {
-    return sharedInput.getInput('develocity-maven-extension-version')
+    return sharedInput.getInput('develocity-maven-extension-version') || DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION
 }
 
 export function getCcudExtensionVersion(): string {
@@ -51,7 +54,7 @@ export function getDevelocityEnforceUrl(): boolean {
 }
 
 export function getDevelocityCaptureFileFingerprints(): boolean {
-    return getBooleanInput('develocity-capture-file-fingerprints')
+    return getBooleanInput('develocity-capture-file-fingerprints', true)
 }
 
 export function getDevelocityAccessKey(): string {
@@ -97,23 +100,23 @@ export function getJobName(): string {
 }
 
 function getCaptureStrategy(): string {
-    return sharedInput.getInput('capture-strategy')
+    return sharedInput.getInput('capture-strategy') || 'ALWAYS'
 }
 
 function getCaptureUnpublishedBuildScans(): string {
-    return sharedInput.getInput('capture-unpublished-build-scans')
+    return sharedInput.getInput('capture-unpublished-build-scans') || 'true'
 }
 
 function getCaptureBuildScanLinks(): string {
-    return sharedInput.getInput('capture-build-scan-links')
+    return sharedInput.getInput('capture-build-scan-links') || 'true'
 }
 
 export function isAddPrComment(): boolean {
-    return getBooleanInput('add-pr-comment')
+    return getBooleanInput('add-pr-comment', true)
 }
 
 export function isAddJobSummary(): boolean {
-    return getBooleanInput('add-job-summary')
+    return getBooleanInput('add-job-summary', true)
 }
 
 export function isAddProjectIdInJobSummary(): boolean {

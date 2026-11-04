@@ -30,9 +30,8 @@ inputs:
   develocity-python-agent-version:
     description: >-
       Develocity Python agent version (ignored when develocity-python-agent-url-override is set). The default is
-      the version this release of the action was tested with
+      the version this release of the action was tested with (Default 0.10.1)
     required: false
-    default: '0.10.1'
   develocity-python-agent-url-override:
     description: 'Override the URL to use to download the Develocity Python agent wheel'
     required: false
@@ -41,9 +40,8 @@ inputs:
       Expected SHA-256 of the agent wheel. Known for the default version; set it when changing the version or the URL
     required: false
   python-executable:
-    description: 'Python interpreter the agent is installed into. It has to be the one that runs the instrumented tools'
+    description: 'Python interpreter the agent is installed into. It has to be the one that runs the instrumented tools (Default python)'
     required: false
-    default: 'python'
 runs:
   using: node24
   main: ../dist/setup-python/main/index.js

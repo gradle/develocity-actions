@@ -5,6 +5,9 @@ import * as sharedInput from '../../build-scan-shared/src/input'
 
 const DEFAULT_AGENT_BASE_URL = 'https://develocity-docker-build-agent.gradle.com'
 
+// The version this release of the action was tested with
+const DEFAULT_AGENT_VERSION = '0.9.0'
+
 export function getDevelocityUrl(): string {
     return sharedInput.getInput('develocity-url', {required: true})
 }
@@ -41,7 +44,7 @@ export function getDevelocityAllowUntrustedServer(): boolean | undefined {
 export function getAgentUrl(): string {
     return agentDownloadUrl(
         sharedInput.getInput('develocity-docker-agent-url-override'),
-        sharedInput.getInput('develocity-docker-agent-version')
+        sharedInput.getInput('develocity-docker-agent-version') || DEFAULT_AGENT_VERSION
     )
 }
 
