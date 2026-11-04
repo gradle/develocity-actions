@@ -120,11 +120,17 @@ export function isAddProjectIdInJobSummary(): boolean {
     return getBooleanInput('add-project-id-in-job-summary')
 }
 
-export function exportVariables(accessToken: string, buildTool: commonBuildTool.BuildTool): void {
+export function exportAccessToken(accessToken: string): void {
     if (accessToken) {
         core.setSecret(accessToken)
         core.exportVariable(auth.ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken)
     }
+}
+
+/**
+ * Export the configuration read by the Maven capture extension
+ */
+export function exportBuildScanCaptureVariables(buildTool: commonBuildTool.BuildTool): void {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy())
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans())
     core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks())

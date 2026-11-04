@@ -19,7 +19,8 @@ export async function run(): Promise<void> {
         await setup.setup()
 
         // Propagate environment variables to subsequent steps
-        input.exportVariables(accessToken, maven.mavenBuildTool)
+        input.exportAccessToken(accessToken)
+        input.exportBuildScanCaptureVariables(maven.mavenBuildTool)
     } catch (error) {
         errorHandler.handle(error)
     }

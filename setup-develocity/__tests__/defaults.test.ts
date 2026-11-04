@@ -17,7 +17,7 @@ describe('Build tool defaults without inputs', () => {
 
     it('applies the Maven defaults', () => {
         // when
-        input.exportVariables('', maven.mavenBuildTool)
+        input.exportBuildScanCaptureVariables(maven.mavenBuildTool)
 
         // then
         expect(input.getDevelocityCaptureFileFingerprints()).toBe(true)

@@ -11,7 +11,9 @@ export async function main(): Promise<void> {
             input.getWorkloadIdentity()
         )
 
-        await injection.installDevelocity(accessToken)
+        await injection.installDevelocity()
+
+        input.exportAccessToken(accessToken)
     } catch (error) {
         errorHandler.handle(error)
     }
