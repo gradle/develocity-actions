@@ -99,4 +99,44 @@ describe('auth', () => {
         // then
         expect(accessToken).toBe(fallbackAccessKey)
     })
+
+    it('Masks the short-lived token of each server', async () => {
+        // given
+        const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
+        nock('https://dev1').post('/api/auth/token').reply(200, 'token1')
+        nock('https://dev2').post('/api/auth/token').reply(200, 'token2')
+
+        // when
+        const accessToken = await auth.getAccessToken('dev1=key1;dev2=key2', '')
+
+        // then
+        const masked = write.mock.calls.map(call => String(call[0]).trim()).filter(line => line.startsWith('::add-mask::'))
+        write.mockRestore()
+        expect(accessToken).toBe('dev1=token1;dev2=token2')
+        expect(masked).toEqual(['::add-mask::dev1=token1;dev2=token2', '::add-mask::token1', '::add-mask::token2'])
+    })
+
+    describe('maskAccessKey', () => {
+        it('masks the whole value and every per-host key in it', () => {
+            const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
+
+            auth.maskAccessKey('host1.example.com=key1;host2.example.com=key2')
+
+            const masked = write.mock.calls.map(call => String(call[0]).trim())
+            write.mockRestore()
+            expect(masked).toEqual([
+                '::add-mask::host1.example.com=key1;host2.example.com=key2',
+                '::add-mask::key1',
+                '::add-mask::key2'
+            ])
+        })
+
+        it('masks nothing when there is no key', () => {
+            const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
+
+            auth.maskAccessKey('')
+
+            expect(write).not.toHaveBeenCalled()
+            write.mockRestore()
+        })
 })

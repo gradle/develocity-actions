@@ -15,6 +15,39 @@ export async function getAccessToken(
     develocityTokenExpiryFromInput: string,
     workloadIdentityFromInput?: WorkloadIdentity
 ): Promise<string> {
+    const accessToken = await resolveAccessToken(
+        develocityAccessKeyFromInput,
+        develocityTokenExpiryFromInput,
+        workloadIdentityFromInput
+    )
+    maskAccessKey(accessToken)
+    return accessToken
+}
+
+/**
+ * Registers the access key as a secret, so that it is never printed.
+ *
+ * The runner masks a registered value only where it appears whole. Build tools and agents use the part after
+ * `host=`, so each per-host key is registered as well.
+ */
+export function maskAccessKey(accessKey: string): void {
+    if (!accessKey) {
+        return
+    }
+    core.setSecret(accessKey)
+    for (const entry of accessKey.split(';')) {
+        const key = entry.substring(entry.indexOf('=') + 1).trim()
+        if (key) {
+            core.setSecret(key)
+        }
+    }
+}
+
+async function resolveAccessToken(
+    develocityAccessKeyFromInput: string,
+    develocityTokenExpiryFromInput: string,
+    workloadIdentityFromInput?: WorkloadIdentity
+): Promise<string> {
     let develocityAccessKey = develocityAccessKeyFromInput
     const workloadIdentityAccessKey = workloadIdentityFromInput
         ? await getWorkloadIdentityAccessKey(workloadIdentityFromInput)

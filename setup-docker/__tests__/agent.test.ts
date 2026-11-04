@@ -9,7 +9,6 @@ const {
     agentEnvironment,
     buildOutcomes,
     isZombie,
-    maskAccessKey,
     newBuilds,
     parseBuilderName,
     parseHistoryBaseline,
@@ -150,27 +149,6 @@ describe('Develocity Docker agent', () => {
         })
     })
 
-    describe('maskAccessKey', () => {
-        it('masks the whole value and every per-host key in it', () => {
-            const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
-
-            maskAccessKey('host1.example.com=key1;host2.example.com=key2')
-
-            const masked = write.mock.calls.map(call => String(call[0]).trim())
-            expect(masked).toEqual([
-                '::add-mask::host1.example.com=key1;host2.example.com=key2',
-                '::add-mask::key1',
-                '::add-mask::key2'
-            ])
-        })
-
-        it('masks nothing when there is no key', () => {
-            const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true)
-
-            maskAccessKey('')
-
-            expect(write).not.toHaveBeenCalled()
-        })
     })
 
     describe('agentEnvironment', () => {
