@@ -14,9 +14,10 @@ const MAVEN_OPTS_EXT_CLASS_PATH = '-Dmaven.ext.class.path'
 /**
  * Configure MAVEN_OPTS to inject the capture extension, and the Develocity extensions when injection is enabled
  */
-export async function setup(): Promise<void> {
+export async function setup(defaultDevelocityMavenExtensionVersion = ''): Promise<void> {
     const develocityMavenExtensionMavenOpts = await injection.constructDevelocityMavenOpts(
-        maven.mavenBuildTool.getBuildScanWorkDir()
+        maven.mavenBuildTool.getBuildScanWorkDir(),
+        defaultDevelocityMavenExtensionVersion
     )
 
     // Configure environment to inject capture extension on Maven builds

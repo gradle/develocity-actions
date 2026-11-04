@@ -20,7 +20,6 @@ describe('Build tool defaults without inputs', () => {
         input.exportVariables('', maven.mavenBuildTool)
 
         // then
-        expect(input.getDevelocityMavenExtensionVersion()).toBe('2.6.1')
         expect(input.getDevelocityCaptureFileFingerprints()).toBe(true)
         expect(input.isAddPrComment()).toBe(true)
         expect(input.isAddJobSummary()).toBe(true)

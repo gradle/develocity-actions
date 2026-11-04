@@ -51,7 +51,7 @@ inputs:
     description: 'Develocity server URL'
     required: false
   develocity-maven-extension-version:
-    description: 'Develocity Maven Extension version (Default 2.6.1)'
+    description: 'Develocity Maven Extension version'
     required: false
   develocity-ccud-maven-extension-version:
     description: 'Common Custom User Data Maven Extension version'

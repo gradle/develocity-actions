@@ -11,16 +11,19 @@ export interface WorkloadIdentity {
 }
 
 export async function getAccessToken(
-    develocityAccessKeyFomInput: string,
+    develocityAccessKeyFromInput: string,
     develocityTokenExpiryFromInput: string,
     workloadIdentity?: WorkloadIdentity
 ): Promise<string> {
-    let develocityAccessKey = develocityAccessKeyFomInput
-    if (workloadIdentity) {
+    let develocityAccessKey = develocityAccessKeyFromInput
+    const workloadIdentityAccessKey = workloadIdentity ? await getWorkloadIdentityAccessKey(workloadIdentity) : ''
+    if (workloadIdentityAccessKey) {
         if (develocityAccessKey) {
             core.warning('Ignoring develocity-access-key as workload identity is enabled')
         }
-        develocityAccessKey = await getWorkloadIdentityAccessKey(workloadIdentity)
+        develocityAccessKey = workloadIdentityAccessKey
+    } else if (workloadIdentity && develocityAccessKey) {
+        core.warning('Falling back to develocity-access-key as workload identity is not available')
     }
 
     if (develocityAccessKey) {
@@ -37,7 +40,7 @@ export async function getAccessToken(
             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
         }
 
-        if (workloadIdentity) {
+        if (workloadIdentityAccessKey) {
             core.warning(`Falling back to using the GitHub OIDC token, which expires within minutes`)
         } else {
             core.info(`Falling back to using the access key from the input`)
@@ -70,8 +73,16 @@ async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity):
         core.warning('Workload identity requires develocity-url to be set')
         return ''
     }
+    let host: string
     try {
-        const host = new URL(workloadIdentity.develocityUrl).host
+        host = new URL(workloadIdentity.develocityUrl).host
+    } catch {
+        core.warning(
+            `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
+        )
+        return ''
+    }
+    try {
         const idToken = await core.getIDToken(workloadIdentity.audience || workloadIdentity.develocityUrl)
         core.setSecret(idToken)
         return `${host}=${idToken}`

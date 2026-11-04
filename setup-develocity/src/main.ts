@@ -13,6 +13,9 @@ import * as pythonInjection from '../../setup-python/src/injection'
 import * as setupInput from './input'
 import {SupportedBuildTool} from './buildTools'
 
+// The version the capture extension is built against
+const DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION = '2.6.1'
+
 /**
  * Main entrypoint for the action
  */
@@ -33,8 +36,12 @@ export async function run(): Promise<void> {
             input.getWorkloadIdentity()
         )
 
+        // A build tool is cleaned up by the post step even when its setup fails, as it may be partially set up
+        const startedBuildTools: SupportedBuildTool[] = []
         const setUpBuildTools: SupportedBuildTool[] = []
         for (const buildTool of selectedBuildTools) {
+            startedBuildTools.push(buildTool)
+            core.saveState(buildTools.STATE_BUILD_TOOLS, startedBuildTools.join(','))
             try {
                 await setup(buildTool, accessKey, accessToken)
                 setUpBuildTools.push(buildTool)
@@ -42,7 +49,6 @@ export async function run(): Promise<void> {
                 errorHandler.handle(error)
             }
         }
-        core.saveState(buildTools.STATE_BUILD_TOOLS, setUpBuildTools.join(','))
 
         // Maven and npm export the same variables, which only the Maven capture extension reads
         if (setUpBuildTools.includes(SupportedBuildTool.MAVEN)) {
@@ -59,7 +65,7 @@ async function setup(buildTool: SupportedBuildTool, accessKey: string, accessTok
     core.info(`Setting up Develocity for ${buildTool}`)
     switch (buildTool) {
         case SupportedBuildTool.MAVEN:
-            return await mavenSetup.setup()
+            return await mavenSetup.setup(DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION)
         case SupportedBuildTool.NPM:
             return await npmInjection.installDevelocity()
         case SupportedBuildTool.PYTHON:

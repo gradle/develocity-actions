@@ -30,7 +30,8 @@ Set the `build-tools` input to a comma-separated list of build tools to skip the
 Gradle is not supported, use [setup-gradle](https://github.com/gradle/actions/tree/main/setup-gradle) instead.
 
 The action only takes the inputs common to all build tools, and sets up each build tool with the defaults of its
-action. To customize a build tool, set it up with its own action and leave it out of `build-tools`, so that it is not
+action. For Maven, it also injects version `2.6.1` of the Develocity Maven extension, unless the project already
+applies it. To customize a build tool, set it up with its own action and leave it out of `build-tools`, so that it is not
 set up twice:
 
 ```yaml
@@ -85,7 +86,7 @@ token and exchanges it for a short-lived Develocity access token. This requires:
   with issuer `https://token.actions.githubusercontent.com` and an audience equal to `develocity-url`, or to
   `develocity-workload-identity-audience` when set. The audience has to match exactly, including the trailing slash.
 
-`develocity-access-key` is ignored when workload identity is enabled. The same inputs are available on `setup-maven`,
+`develocity-access-key` is only used when the GitHub OIDC token cannot be obtained. The same inputs are available on `setup-maven`,
 `setup-npm`, `setup-python` and `setup-docker`.
 
 ### Action inputs
@@ -211,7 +212,7 @@ Additionally, the summary details will be accessible in `$RUNNER_TEMP/build-scan
 
 #### Develocity extensions injection
 
-If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, and optionally `develocity-maven-extension-version` (`2.6.1` by default) and `develocity-ccud-maven-extension-version` inputs should be set accordingly:
+If one wants to inject Develocity Maven Extension (and optionally CCUD Maven Extension), the `develocity-injection-enabled` input should be set to `true`. The `develocity-url`, `develocity-maven-extension-version`, and optionally `develocity-ccud-maven-extension-version` inputs should be set accordingly:
 ```yaml
 name: PR Build
 jobs:
@@ -284,7 +285,7 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 | `add-project-id-in-job-summary`                            | *Optional*: Add project id to the job summary / comment                                                                                                 | `false`                        |
 | `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity/CCUD Maven Extensions injection                                                                         |                                |
 | `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
-| `develocity-maven-extension-version`                       | *Optional*: Develocity Maven Extension version to be injected                                                                                           | `2.6.1`                        |
+| `develocity-maven-extension-version`                       | *Optional*: Develocity Maven Extension version to be injected                                                                                           |                                |
 | `develocity-ccud-maven-extension-version`                  | *Optional*: Common Custom User Data Maven Extension version to be injected                                                                              |                                |
 | `develocity-maven-repository-url`                          | *Optional*: URL of the repository to use when resolving the Develocity and CCUD extensions                                                              | https://repo1.maven.org/maven2 |
 | `develocity-maven-repository-username`                     | *Optional*: Username for the repository URL to use when resolving the Develocity and CCUD extensions                                                    |                                |

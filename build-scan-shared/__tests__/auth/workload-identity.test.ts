@@ -86,6 +86,33 @@ describe('auth with workload identity', () => {
         expect(accessToken).toBe('')
     })
 
+    it('Falls back to the access key when the job cannot mint a GitHub OIDC token', async () => {
+        // given
+        mockGetIDToken.mockRejectedValue(new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable'))
+        nock('https://dev').matchHeader('Authorization', 'Bearer key1').post('/api/auth/token').reply(200, 'token1')
+
+        // when
+        const accessToken = await auth.getAccessToken('dev=key1', '', {develocityUrl: 'https://dev', audience: ''})
+
+        // then
+        expect(mockWarning).toHaveBeenCalledWith(
+            'Falling back to develocity-access-key as workload identity is not available'
+        )
+        expect(accessToken).toBe('dev=token1')
+    })
+
+    it('Reports an invalid Develocity URL without requesting a GitHub OIDC token', async () => {
+        // when
+        const accessToken = await auth.getAccessToken('', '', {develocityUrl: 'dev.example.com', audience: ''})
+
+        // then
+        expect(mockGetIDToken).not.toHaveBeenCalled()
+        expect(mockWarning).toHaveBeenCalledWith(
+            "Workload identity requires a valid develocity-url: 'dev.example.com' is not a URL"
+        )
+        expect(accessToken).toBe('')
+    })
+
     it('Uses anonymous access when the Develocity URL is not set', async () => {
         // when
         const accessToken = await auth.getAccessToken('', '', {develocityUrl: '', audience: ''})

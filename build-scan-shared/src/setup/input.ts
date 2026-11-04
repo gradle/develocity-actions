@@ -6,9 +6,6 @@ import * as commonBuildTool from '../buildTool/common'
 import * as sharedInput from '../input'
 import {getBooleanInput} from '../input'
 
-// The version the capture extension is built against
-const DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION = '2.6.1'
-
 export function getDevelocityUrl(): string {
     return sharedInput.getInput('develocity-url')
 }
@@ -18,7 +15,7 @@ export function getDevelocityInjectionEnabled(): boolean {
 }
 
 export function getDevelocityMavenExtensionVersion(): string {
-    return sharedInput.getInput('develocity-maven-extension-version') || DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION
+    return sharedInput.getInput('develocity-maven-extension-version')
 }
 
 export function getCcudExtensionVersion(): string {
