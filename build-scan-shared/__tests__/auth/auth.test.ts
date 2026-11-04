@@ -56,17 +56,29 @@ describe('auth', () => {
         expect(accessToken).toBe('dev=token1')
     })
 
-    it('Fall back to Develocity access key when short-lived token retrieval fails', async () => {
+    it('Does not use the Develocity access key when short-lived token retrieval fails', async () => {
         // given
         const develocityAccessKeyFromInput = 'dev=key1'
         const develocityTokenExpiryFromInput = ''
-        nock('http://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
+        nock('https://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
 
         // when
         const accessToken = await auth.getAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput)
 
         // then
-        expect(accessToken).toBe(develocityAccessKeyFromInput)
+        expect(accessToken).toBe('')
+    })
+
+    it('Uses the access key from the environment when short-lived token retrieval fails', async () => {
+        // given
+        process.env[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY] = 'dev=foo'
+        nock('https://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
+
+        // when
+        const accessToken = await auth.getAccessToken('dev=key1', '')
+
+        // then
+        expect(accessToken).toBe('dev=foo')
     })
 
     it('Fall back to Develocity access key when no access key is provided as input', async () => {

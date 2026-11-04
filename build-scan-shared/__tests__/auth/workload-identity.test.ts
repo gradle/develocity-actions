@@ -63,7 +63,7 @@ describe('auth with workload identity', () => {
         expect(accessToken).toBe('dev:8443=token1')
     })
 
-    it('Fall back to the GitHub OIDC token when short-lived token retrieval fails', async () => {
+    it('Does not use the GitHub OIDC token when short-lived token retrieval fails', async () => {
         // given
         nock('https://dev').post('/api/auth/token').times(3).reply(500, 'Internal error')
 
@@ -71,7 +71,8 @@ describe('auth with workload identity', () => {
         const accessToken = await auth.getAccessToken('', '', {develocityUrl: 'https://dev', audience: ''})
 
         // then
-        expect(accessToken).toBe(`dev=${oidcToken}`)
+        expect(mockWarning).toHaveBeenCalledWith('No short-lived token could be fetched, the access key is not used')
+        expect(accessToken).toBe('')
     })
 
     it('Uses anonymous access when the job cannot mint a GitHub OIDC token', async () => {

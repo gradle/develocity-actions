@@ -75,12 +75,9 @@ async function resolveAccessToken(
             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
         }
 
-        if (workloadIdentityAccessKey) {
-            core.warning(`Falling back to using the GitHub OIDC token, which expires within minutes`)
-        } else {
-            core.warning(`No short-lived token could be fetched, falling back to the long-lived access key`)
-        }
-        return develocityAccessKey
+        // Like setup-gradle, the access key is not exported when it cannot be exchanged: it is either long-lived, or an
+        // OIDC token which expires within minutes
+        core.warning(`No short-lived token could be fetched, the access key is not used`)
     }
 
     const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY]
