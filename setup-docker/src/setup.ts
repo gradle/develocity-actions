@@ -6,11 +6,7 @@ import * as input from './input'
 /**
  * Start the Docker agent, holding the access token obtained from the access key input
  */
-export async function start(accessKey: string, accessToken: string): Promise<void> {
-    if (accessKey && accessToken === accessKey) {
-        core.warning('No short-lived token could be fetched, so the Docker agent holds the long-lived access key')
-    }
-
+export async function start(accessToken: string): Promise<void> {
     await agent.start({
         develocityUrl: input.getDevelocityUrl(),
         accessKey: accessToken,

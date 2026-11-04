@@ -45,7 +45,7 @@ export async function getAccessToken(
         if (workloadIdentityAccessKey) {
             core.warning(`Falling back to using the GitHub OIDC token, which expires within minutes`)
         } else {
-            core.info(`Falling back to using the access key from the input`)
+            core.warning(`No short-lived token could be fetched, falling back to the long-lived access key`)
         }
         return develocityAccessKey
     }

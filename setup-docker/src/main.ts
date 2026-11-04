@@ -9,14 +9,13 @@ import * as setupInput from '../../build-scan-shared/src/setup/input'
  */
 export async function run(): Promise<void> {
     try {
-        const accessKey = input.getDevelocityAccessKey()
         const accessToken = await auth.getAccessToken(
-            accessKey,
+            input.getDevelocityAccessKey(),
             input.getDevelocityTokenExpiry(),
             setupInput.getWorkloadIdentity()
         )
 
-        await setup.start(accessKey, accessToken)
+        await setup.start(accessToken)
     } catch (error) {
         errorHandler.handle(error)
     }

@@ -29,9 +29,8 @@ export async function run(): Promise<void> {
         core.info(`Build tools to set up: ${selectedBuildTools.join(', ')}`)
 
         // configure authentication once for all build tools
-        const accessKey = input.getDevelocityAccessKey()
         const accessToken = await auth.getAccessToken(
-            accessKey,
+            input.getDevelocityAccessKey(),
             input.getDevelocityTokenExpiry(),
             input.getWorkloadIdentity()
         )
@@ -43,7 +42,7 @@ export async function run(): Promise<void> {
             startedBuildTools.push(buildTool)
             core.saveState(buildTools.STATE_BUILD_TOOLS, startedBuildTools.join(','))
             try {
-                await setup(buildTool, accessKey, accessToken)
+                await setup(buildTool, accessToken)
                 setUpBuildTools.push(buildTool)
             } catch (error) {
                 errorHandler.handle(error)
@@ -61,7 +60,7 @@ export async function run(): Promise<void> {
     }
 }
 
-async function setup(buildTool: SupportedBuildTool, accessKey: string, accessToken: string): Promise<void> {
+async function setup(buildTool: SupportedBuildTool, accessToken: string): Promise<void> {
     core.info(`Setting up Develocity for ${buildTool}`)
     switch (buildTool) {
         case SupportedBuildTool.MAVEN:
@@ -71,7 +70,7 @@ async function setup(buildTool: SupportedBuildTool, accessKey: string, accessTok
         case SupportedBuildTool.PYTHON:
             return await pythonInjection.installDevelocity(accessToken)
         case SupportedBuildTool.DOCKER:
-            return await dockerSetup.start(accessKey, accessToken)
+            return await dockerSetup.start(accessToken)
     }
 }
 
