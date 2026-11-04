@@ -75,8 +75,8 @@ async function resolveAccessToken(
             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
         }
 
-        // Like setup-gradle, the access key is not exported when it cannot be exchanged: it is either long-lived, or an
-        // OIDC token which expires within minutes
+        // The access key is not exported when it cannot be exchanged: it is either long-lived, or an OIDC token which
+        // expires within minutes
         core.warning(`No short-lived token could be fetched, the access key is not used`)
     }
 
