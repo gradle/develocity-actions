@@ -13,16 +13,18 @@ export interface WorkloadIdentity {
 export async function getAccessToken(
     develocityAccessKeyFromInput: string,
     develocityTokenExpiryFromInput: string,
-    workloadIdentity?: WorkloadIdentity
+    workloadIdentityFromInput?: WorkloadIdentity
 ): Promise<string> {
     let develocityAccessKey = develocityAccessKeyFromInput
-    const workloadIdentityAccessKey = workloadIdentity ? await getWorkloadIdentityAccessKey(workloadIdentity) : ''
+    const workloadIdentityAccessKey = workloadIdentityFromInput
+        ? await getWorkloadIdentityAccessKey(workloadIdentityFromInput)
+        : ''
     if (workloadIdentityAccessKey) {
         if (develocityAccessKey) {
             core.warning('Ignoring develocity-access-key as workload identity is enabled')
         }
         develocityAccessKey = workloadIdentityAccessKey
-    } else if (workloadIdentity && develocityAccessKey) {
+    } else if (workloadIdentityFromInput && develocityAccessKey) {
         core.warning('Falling back to develocity-access-key as workload identity is not available')
     }
 
