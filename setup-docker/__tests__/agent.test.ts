@@ -149,8 +149,6 @@ describe('Develocity Docker agent', () => {
         })
     })
 
-    })
-
     describe('agentEnvironment', () => {
         it('leaves out the step inputs and the credentials only JavaScript actions get', () => {
             const environment = agentEnvironment(

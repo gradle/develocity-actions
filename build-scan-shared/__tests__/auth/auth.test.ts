@@ -122,7 +122,9 @@ describe('auth', () => {
         const accessToken = await auth.getAccessToken('dev1=key1;dev2=key2', '')
 
         // then
-        const masked = write.mock.calls.map(call => String(call[0]).trim()).filter(line => line.startsWith('::add-mask::'))
+        const masked = write.mock.calls
+            .map(call => String(call[0]).trim())
+            .filter(line => line.startsWith('::add-mask::'))
         write.mockRestore()
         expect(accessToken).toBe('dev1=token1;dev2=token2')
         expect(masked).toEqual(['::add-mask::dev1=token1;dev2=token2', '::add-mask::token1', '::add-mask::token2'])
@@ -151,4 +153,5 @@ describe('auth', () => {
             expect(write).not.toHaveBeenCalled()
             write.mockRestore()
         })
+    })
 })
