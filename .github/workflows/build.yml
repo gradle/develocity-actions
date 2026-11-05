@@ -31,6 +31,11 @@ jobs:
         with:
           java-version: 8
           distribution: "zulu"
+      # The committed dist is only updated once merged, so setup-npm is packaged from the sources under test
+      - name: Package setup-npm
+        run: |
+          npm ci
+          npm run package-npm-setup-main
       - name: Setup Develocity for npm
         uses: ./setup-npm
         with:
