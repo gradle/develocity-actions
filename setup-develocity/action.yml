@@ -1,0 +1,48 @@
+name: Develocity Setup Action
+description: Setup action to capture Build Scans of the build tools detected in the project
+author: Gradle team
+
+inputs:
+  build-tools:
+    description: >-
+      Comma-separated list of build tools to set up (maven, npm, python, docker). When not set, build tools are
+      detected from the files at the root of the project
+    required: false
+  develocity-url:
+    description: 'Develocity server URL. Required by python, docker and workload identity'
+    required: false
+  develocity-access-key:
+    description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
+    required: false
+  develocity-token-expiry:
+    description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
+  develocity-workload-identity:
+    description: >-
+      Whether to authenticate with a GitHub OIDC token exchanged for a Develocity access token instead of
+      develocity-access-key. The job requires the `id-token: write` permission
+    required: false
+    default: 'false'
+  develocity-workload-identity-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default develocity-url)'
+    required: false
+  develocity-injection-enabled:
+    description: 'Whether to enable or not Develocity injection (maven, npm, python)'
+    required: false
+    default: 'true'
+  develocity-allow-untrusted-server:
+    description: 'Whether to allow communicating with untrusted server'
+    required: false
+  github-token:
+    description: 'The token used for Github API requests'
+    default: ${{ github.token }}
+    required: false
+
+outputs:
+  build-metadata-file-path:
+    description: 'Path to the summary file build-metadata.json (maven)'
+
+runs:
+  using: node24
+  main: ../dist/setup-develocity/main/index.js
+  post: ../dist/setup-develocity/post/index.js

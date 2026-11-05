@@ -2,7 +2,6 @@ import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
 import * as injection from './injection'
 import * as input from '../../build-scan-shared/src/setup/input'
-import * as npm from '../../build-scan-shared/src/buildTool/npm'
 
 /**
  * Main entrypoint for the action
@@ -10,12 +9,16 @@ import * as npm from '../../build-scan-shared/src/buildTool/npm'
 export async function run(): Promise<void> {
     try {
         // configure authentication
-        const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
+        const accessToken = await auth.getAccessToken(
+            input.getDevelocityAccessKey(),
+            input.getDevelocityTokenExpiry(),
+            input.getWorkloadIdentity()
+        )
 
         await injection.installDevelocity()
 
         // Propagate environment variables to subsequent steps
-        input.exportVariables(accessToken, npm.npmBuildTool)
+        input.exportAccessToken(accessToken)
     } catch (error) {
         errorHandler.handle(error)
     }

@@ -5,14 +5,66 @@ import {getToken} from './short-lived-token'
 export const ENV_KEY_DEVELOCITY_ACCESS_KEY = 'DEVELOCITY_ACCESS_KEY'
 export const ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY = 'GRADLE_ENTERPRISE_ACCESS_KEY'
 
+export interface WorkloadIdentity {
+    develocityUrl: string
+    audience: string
+}
+
 export async function getAccessToken(
-    develocityAccessKeyFomInput: string,
-    develocityTokenExpiryFromInput: string
+    develocityAccessKeyFromInput: string,
+    develocityTokenExpiryFromInput: string,
+    workloadIdentityFromInput?: WorkloadIdentity
 ): Promise<string> {
-    if (develocityAccessKeyFomInput) {
+    const accessToken = await resolveAccessToken(
+        develocityAccessKeyFromInput,
+        develocityTokenExpiryFromInput,
+        workloadIdentityFromInput
+    )
+    maskAccessKey(accessToken)
+    return accessToken
+}
+
+/**
+ * Registers the access key as a secret, so that it is never printed.
+ *
+ * The runner masks a registered value only where it appears whole. Build tools and agents use the part after
+ * `host=`, so each per-host key is registered as well.
+ */
+export function maskAccessKey(accessKey: string): void {
+    if (!accessKey) {
+        return
+    }
+    core.setSecret(accessKey)
+    for (const entry of accessKey.split(';')) {
+        const key = entry.substring(entry.indexOf('=') + 1).trim()
+        if (key) {
+            core.setSecret(key)
+        }
+    }
+}
+
+async function resolveAccessToken(
+    develocityAccessKeyFromInput: string,
+    develocityTokenExpiryFromInput: string,
+    workloadIdentityFromInput?: WorkloadIdentity
+): Promise<string> {
+    let develocityAccessKey = develocityAccessKeyFromInput
+    const workloadIdentityAccessKey = workloadIdentityFromInput
+        ? await getWorkloadIdentityAccessKey(workloadIdentityFromInput)
+        : ''
+    if (workloadIdentityAccessKey) {
+        if (develocityAccessKey) {
+            core.warning('Ignoring develocity-access-key as workload identity is enabled')
+        }
+        develocityAccessKey = workloadIdentityAccessKey
+    } else if (workloadIdentityFromInput && develocityAccessKey) {
+        core.warning('Falling back to develocity-access-key as workload identity is not available')
+    }
+
+    if (develocityAccessKey) {
         try {
             core.debug('Fetching short-lived token...')
-            const tokens = await getToken(develocityAccessKeyFomInput, develocityTokenExpiryFromInput)
+            const tokens = await getToken(develocityAccessKey, develocityTokenExpiryFromInput)
             if (tokens != null && !tokens.isEmpty()) {
                 core.debug(`Got token(s), setting the access key env vars`)
                 return tokens.raw()
@@ -23,8 +75,9 @@ export async function getAccessToken(
             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
         }
 
-        core.info(`Falling back to using the access key from the input`)
-        return develocityAccessKeyFomInput
+        // The access key is not exported when it cannot be exchanged: it is either long-lived, or an OIDC token which
+        // expires within minutes
+        core.warning(`No short-lived token could be fetched, the access key is not used`)
     }
 
     const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY]
@@ -40,4 +93,35 @@ export async function getAccessToken(
 
     core.debug('Using anonymous access')
     return ''
+}
+
+/**
+ * Mint a GitHub OIDC token for the Develocity server, in the `host=token` access key format. Develocity exchanges it
+ * for an access token when a workload identity rule matches its claims. The token audience has to match the audience
+ * of that rule exactly.
+ */
+async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity): Promise<string> {
+    if (!workloadIdentity.develocityUrl) {
+        core.warning('Workload identity requires develocity-url to be set')
+        return ''
+    }
+    let host: string
+    try {
+        host = new URL(workloadIdentity.develocityUrl).host
+    } catch {
+        core.warning(
+            `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
+        )
+        return ''
+    }
+    try {
+        const idToken = await core.getIDToken(workloadIdentity.audience || workloadIdentity.develocityUrl)
+        core.setSecret(idToken)
+        return `${host}=${idToken}`
+    } catch (e) {
+        core.warning(
+            `Failed to get a GitHub OIDC token for workload identity, the job requires the 'id-token: write' permission: ${e}`
+        )
+        return ''
+    }
 }

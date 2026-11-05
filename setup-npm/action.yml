@@ -9,6 +9,15 @@ inputs:
   develocity-token-expiry:
     description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
     required: false
+  develocity-workload-identity:
+    description: >-
+      Whether to authenticate with a GitHub OIDC token exchanged for a Develocity access token instead of
+      develocity-access-key. Requires develocity-url and the `id-token: write` job permission
+    required: false
+    default: 'false'
+  develocity-workload-identity-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default develocity-url)'
+    required: false
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}
@@ -21,22 +30,18 @@ inputs:
     required: false
   develocity-npm-agent-url-override:
     description: 'When set, override the URL of the Develocity npm agent'
-    default: ''
     required: false
   develocity-npm-agent-version:
-    description: 'Develocity npm agent version (ignored when `develocity-npm-agent-url-override` is set)'
-    default: 'latest'
+    description: 'Develocity npm agent version (ignored when `develocity-npm-agent-url-override` is set) (Default latest)'
     required: false
   develocity-npm-agent-install-location:
-    description: 'Develocity npm agent installation location'
-    default: '~/.node_libraries'
+    description: 'Develocity npm agent installation location (Default ~/.node_libraries)'
     required: false
   develocity-allow-untrusted-server:
     description: 'Whether to allow communicating with untrusted server'
     required: false
   develocity-pacote-version:
-    description: 'Version of pacote to use to install the Develocity npm build agent'
-    default: '21.0.0'
+    description: 'Version of pacote to use to install the Develocity npm build agent (Default 21.0.0)'
     required: false
 
 runs:

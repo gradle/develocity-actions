@@ -19,7 +19,7 @@ export function getDevelocityMavenExtensionVersion(): string {
 }
 
 export function getCcudExtensionVersion(): string {
-    return sharedInput.getInput('develocity-ccud-extension-version')
+    return sharedInput.getInput('develocity-ccud-maven-extension-version')
 }
 
 export function getDevelocityMavenRepositoryUrl(): string {
@@ -51,7 +51,7 @@ export function getDevelocityEnforceUrl(): boolean {
 }
 
 export function getDevelocityCaptureFileFingerprints(): boolean {
-    return getBooleanInput('develocity-capture-file-fingerprints')
+    return getBooleanInput('develocity-capture-file-fingerprints', true)
 }
 
 export function getDevelocityAccessKey(): string {
@@ -60,6 +60,16 @@ export function getDevelocityAccessKey(): string {
 
 export function getDevelocityTokenExpiry(): string {
     return sharedInput.getInput('develocity-token-expiry')
+}
+
+export function getWorkloadIdentity(): auth.WorkloadIdentity | undefined {
+    if (!getBooleanInput('develocity-workload-identity')) {
+        return undefined
+    }
+    return {
+        develocityUrl: getDevelocityUrl(),
+        audience: sharedInput.getInput('develocity-workload-identity-audience')
+    }
 }
 
 export function getWorkflowName(): string {
@@ -87,34 +97,40 @@ export function getJobName(): string {
 }
 
 function getCaptureStrategy(): string {
-    return sharedInput.getInput('capture-strategy')
+    return sharedInput.getInput('capture-strategy') || 'ALWAYS'
 }
 
 function getCaptureUnpublishedBuildScans(): string {
-    return sharedInput.getInput('capture-unpublished-build-scans')
+    return sharedInput.getInput('capture-unpublished-build-scans') || 'true'
 }
 
 function getCaptureBuildScanLinks(): string {
-    return sharedInput.getInput('capture-build-scan-links')
+    return sharedInput.getInput('capture-build-scan-links') || 'true'
 }
 
 export function isAddPrComment(): boolean {
-    return getBooleanInput('add-pr-comment')
+    return getBooleanInput('add-pr-comment', true)
 }
 
 export function isAddJobSummary(): boolean {
-    return getBooleanInput('add-job-summary')
+    return getBooleanInput('add-job-summary', true)
 }
 
 export function isAddProjectIdInJobSummary(): boolean {
     return getBooleanInput('add-project-id-in-job-summary')
 }
 
-export function exportVariables(accessToken: string, buildTool: commonBuildTool.BuildTool): void {
+export function exportAccessToken(accessToken: string): void {
     if (accessToken) {
         core.setSecret(accessToken)
         core.exportVariable(auth.ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken)
     }
+}
+
+/**
+ * Export the configuration read by the Maven capture extension
+ */
+export function exportBuildScanCaptureVariables(buildTool: commonBuildTool.BuildTool): void {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy())
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans())
     core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks())

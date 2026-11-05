@@ -10,7 +10,7 @@ import * as pythonInput from './input'
  * equivalent of NODE_PATH that would load the agent into any interpreter, so it only instruments the tools run by
  * that interpreter and its environment.
  */
-export async function installDevelocity(accessToken: string): Promise<void> {
+export async function installDevelocity(): Promise<void> {
     if (!input.getDevelocityInjectionEnabled()) {
         return
     }
@@ -24,7 +24,7 @@ export async function installDevelocity(accessToken: string): Promise<void> {
     core.info(`Installing the Develocity Python agent into ${python}: ${requirement}`)
     await exec.exec(...(await installCommand(python, requirement)))
 
-    configureEnvironment(accessToken)
+    configureEnvironment()
 }
 
 /**
@@ -44,12 +44,8 @@ async function installCommand(python: string, requirement: string): Promise<[str
     )
 }
 
-function configureEnvironment(accessToken: string): void {
+function configureEnvironment(): void {
     core.exportVariable('DEVELOCITY_URL', pythonInput.getDevelocityUrl())
-    if (accessToken) {
-        core.setSecret(accessToken)
-        core.exportVariable('DEVELOCITY_ACCESS_KEY', accessToken)
-    }
     // The Python agent's equivalent of DEVELOCITY_ALLOW_UNTRUSTED_SERVER
     const allowUntrustedServer = input.getDevelocityAllowUntrustedServer()
     if (allowUntrustedServer) {

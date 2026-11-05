@@ -105,25 +105,11 @@ function configureEnvironment(wrappersDir: string): void {
     // Add wrapper directory to PATH
     core.addPath(wrappersDir)
 
-    // Set environment variables if server URL and access key are provided
+    // Set environment variables if server URL is provided
     const develocityUrl = input.getDevelocityUrl()
     if (develocityUrl) {
         core.exportVariable('DEVELOCITY_URL', develocityUrl)
         core.info(`Set DEVELOCITY_URL=${develocityUrl}`)
-    }
-
-    const develocityAccessKey = input.getDevelocityAccessKey()
-    if (develocityAccessKey) {
-        if (!develocityUrl) {
-            core.warning(
-                'develocity-access-key was provided but develocity-server-url was not. The access key will not be set.'
-            )
-        } else {
-            core.exportVariable('DEVELOCITY_ACCESS_KEY', develocityAccessKey)
-
-            // Mask the access key to prevent it from being logged
-            core.setSecret(develocityAccessKey)
-        }
     }
 
     const allowUntrustedServer = input.getDevelocityAllowUntrustedServer()
