@@ -63,7 +63,13 @@ export function getDevelocityTokenExpiry(): string {
 }
 
 export function getWorkloadIdentity(): auth.WorkloadIdentity | undefined {
-    if (!getBooleanInput('develocity-workload-identity')) {
+    const develocityAuth = sharedInput.getInput('develocity-auth')
+    if (develocityAuth !== 'workload-identity') {
+        if (develocityAuth && develocityAuth !== 'access-key') {
+            throw new Error(
+                `Unsupported develocity-auth '${develocityAuth}'. Valid values are: [access-key, workload-identity]`
+            )
+        }
         return undefined
     }
     return {

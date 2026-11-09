@@ -11,12 +11,11 @@ inputs:
   develocity-token-expiry:
     description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
     required: false
-  develocity-workload-identity:
+  develocity-auth:
     description: >-
-      Whether to authenticate with a GitHub OIDC token exchanged for a Develocity access token instead of
-      develocity-access-key. Requires develocity-url and the `id-token: write` job permission
+      How to authenticate with Develocity: access-key uses develocity-access-key, workload-identity exchanges a
+      GitHub OIDC token instead and requires develocity-url and the `id-token: write` job permission (Default access-key)
     required: false
-    default: 'false'
   develocity-workload-identity-audience:
     description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default develocity-url)'
     required: false

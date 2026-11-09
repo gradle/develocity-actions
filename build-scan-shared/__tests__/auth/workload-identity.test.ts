@@ -5,12 +5,13 @@ const oidcToken = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJyZXBvOmZvby9iYXIifQ.c2lnbmF0d
 
 const mockGetIDToken = jest.fn<(audience?: string) => Promise<string>>()
 const mockWarning = jest.fn()
+const mockInfo = jest.fn()
 
 jest.unstable_mockModule('@actions/core', () => ({
     getIDToken: mockGetIDToken,
     setSecret: jest.fn(),
     warning: mockWarning,
-    info: jest.fn(),
+    info: mockInfo,
     debug: jest.fn()
 }))
 
@@ -59,7 +60,9 @@ describe('auth with workload identity', () => {
 
         // then
         expect(mockGetIDToken).toHaveBeenCalledWith('https://dev:8443/')
-        expect(mockWarning).toHaveBeenCalledWith('Ignoring develocity-access-key as workload identity is enabled')
+        expect(mockWarning).toHaveBeenCalledWith(
+            'Ignoring develocity-access-key as develocity-auth is workload-identity'
+        )
         expect(accessToken).toBe('dev:8443=token1')
     })
 
@@ -71,13 +74,16 @@ describe('auth with workload identity', () => {
         const accessToken = await auth.getAccessToken('', '', {develocityUrl: 'https://dev', audience: ''})
 
         // then
-        expect(mockWarning).toHaveBeenCalledWith('No short-lived token could be fetched, the access key is not used')
+        expect(mockWarning).toHaveBeenCalledWith(
+            'No short-lived token could be obtained, running without Develocity authentication'
+        )
         expect(accessToken).toBe('')
     })
 
-    it('Uses anonymous access when the job cannot mint a GitHub OIDC token', async () => {
+    it('Runs without authentication when the job cannot mint a GitHub OIDC token', async () => {
         // given
         mockGetIDToken.mockRejectedValue(new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable'))
+        process.env[auth.ENV_KEY_DEVELOCITY_ACCESS_KEY] = 'dev=foo'
 
         // when
         const accessToken = await auth.getAccessToken('', '', {develocityUrl: 'https://dev', audience: ''})
@@ -87,19 +93,29 @@ describe('auth with workload identity', () => {
         expect(accessToken).toBe('')
     })
 
-    it('Falls back to the access key when the job cannot mint a GitHub OIDC token', async () => {
+    it('Does not fall back to the access key when the job cannot mint a GitHub OIDC token', async () => {
         // given
         mockGetIDToken.mockRejectedValue(new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable'))
-        nock('https://dev').matchHeader('Authorization', 'Bearer key1').post('/api/auth/token').reply(200, 'token1')
 
         // when
         const accessToken = await auth.getAccessToken('dev=key1', '', {develocityUrl: 'https://dev', audience: ''})
 
         // then
         expect(mockWarning).toHaveBeenCalledWith(
-            'Falling back to develocity-access-key as workload identity is not available'
+            'No short-lived token could be obtained, running without Develocity authentication'
         )
-        expect(accessToken).toBe('dev=token1')
+        expect(accessToken).toBe('')
+    })
+
+    it('Logs the selected credential', async () => {
+        // given
+        nock('https://dev').post('/api/auth/token').reply(200, 'token1')
+
+        // when
+        await auth.getAccessToken('', '', {develocityUrl: 'https://dev', audience: ''})
+
+        // then
+        expect(mockInfo).toHaveBeenCalledWith('Authenticating with workload identity')
     })
 
     it('Reports an invalid Develocity URL without requesting a GitHub OIDC token', async () => {

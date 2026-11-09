@@ -43,22 +43,28 @@ export function maskAccessKey(accessKey: string): void {
     }
 }
 
+/**
+ * Use the credential selected by the inputs: the GitHub OIDC token when develocity-auth is workload-identity, the access
+ * key otherwise. It is never replaced by another credential: when it cannot be exchanged for a short-lived token, the
+ * build runs without authentication.
+ */
 async function resolveAccessToken(
     develocityAccessKeyFromInput: string,
     develocityTokenExpiryFromInput: string,
     workloadIdentityFromInput?: WorkloadIdentity
 ): Promise<string> {
-    let develocityAccessKey = develocityAccessKeyFromInput
-    const workloadIdentityAccessKey = workloadIdentityFromInput
-        ? await getWorkloadIdentityAccessKey(workloadIdentityFromInput)
-        : ''
-    if (workloadIdentityAccessKey) {
-        if (develocityAccessKey) {
-            core.warning('Ignoring develocity-access-key as workload identity is enabled')
+    let develocityAccessKey: string
+    if (workloadIdentityFromInput) {
+        core.info('Authenticating with workload identity')
+        if (develocityAccessKeyFromInput) {
+            core.warning('Ignoring develocity-access-key as develocity-auth is workload-identity')
         }
-        develocityAccessKey = workloadIdentityAccessKey
-    } else if (workloadIdentityFromInput && develocityAccessKey) {
-        core.warning('Falling back to develocity-access-key as workload identity is not available')
+        develocityAccessKey = await getWorkloadIdentityAccessKey(workloadIdentityFromInput)
+    } else if (develocityAccessKeyFromInput) {
+        core.info('Authenticating with develocity-access-key')
+        develocityAccessKey = develocityAccessKeyFromInput
+    } else {
+        return getAccessKeyFromEnv()
     }
 
     if (develocityAccessKey) {
@@ -74,12 +80,13 @@ async function resolveAccessToken(
         } catch (e) {
             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
         }
-
-        // The access key is not exported when it cannot be exchanged: it is either long-lived, or an OIDC token which
-        // expires within minutes
-        core.warning(`No short-lived token could be fetched, the access key is not used`)
     }
 
+    core.warning('No short-lived token could be obtained, running without Develocity authentication')
+    return ''
+}
+
+function getAccessKeyFromEnv(): string {
     const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY]
     if (develocityAccessKeyFromEnv) {
         core.warning(`The ${ENV_KEY_DEVELOCITY_ACCESS_KEY} env var should be mapped to a short-lived token`)
