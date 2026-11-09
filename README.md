@@ -67,7 +67,8 @@ token and exchanges it for a short-lived Develocity access token. This requires:
 - the `id-token: write` permission on the job,
 - the `develocity-url` input,
 - a [workload identity rule](https://docs.develocity.ai/current/administration/access-control/workload-identity/) in Develocity
-  with issuer `https://token.actions.githubusercontent.com` and an audience equal to the origin of `develocity-url`
+  with issuer `https://token.actions.githubusercontent.com` (`https://HOSTNAME/_services/token/actions` on GitHub Enterprise
+  Server) and an audience equal to the origin of `develocity-url`
   (for example `https://develocity.example.com`, without path or trailing slash), or to `develocity-oidc-audience` when
   set. The default audience is the same as the one of the Develocity Artifact Cache action, so a single rule covers both.
   To give this action its own rule and roles, set a distinct `develocity-oidc-audience`.

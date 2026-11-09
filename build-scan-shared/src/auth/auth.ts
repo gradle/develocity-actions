@@ -53,34 +53,35 @@ async function resolveAccessToken(
     develocityTokenExpiryFromInput: string,
     workloadIdentityFromInput?: WorkloadIdentity
 ): Promise<string> {
-    let develocityAccessKey: string
     if (workloadIdentityFromInput) {
-        core.info('Authenticating with workload identity')
         if (develocityAccessKeyFromInput) {
             core.warning('Ignoring develocity-access-key as develocity-auth is workload-identity')
         }
-        develocityAccessKey = await getWorkloadIdentityAccessKey(workloadIdentityFromInput)
-    } else if (develocityAccessKeyFromInput) {
+        return getWorkloadIdentityAccessToken(workloadIdentityFromInput, develocityTokenExpiryFromInput)
+    }
+    if (develocityAccessKeyFromInput) {
         core.info('Authenticating with develocity-access-key')
-        develocityAccessKey = develocityAccessKeyFromInput
-    } else {
-        return getAccessKeyFromEnv()
+        return exchangeForShortLivedToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput)
     }
+    return getAccessKeyFromEnv()
+}
 
+async function exchangeForShortLivedToken(accessKey: string, expiry: string, hint = ''): Promise<string> {
     let reason = ''
-    if (develocityAccessKey) {
-        try {
-            core.debug('Fetching short-lived token...')
-            const tokens = await getToken(develocityAccessKey, develocityTokenExpiryFromInput)
-            if (tokens != null && !tokens.isEmpty()) {
-                core.debug('Got short-lived token(s)')
-                return tokens.raw()
-            }
-        } catch (e) {
-            reason = `, reason: ${e}`
+    try {
+        core.debug('Fetching short-lived token...')
+        const tokens = await getToken(accessKey, expiry)
+        if (tokens != null && !tokens.isEmpty()) {
+            core.debug('Got short-lived token(s)')
+            return tokens.raw()
         }
+    } catch (e) {
+        reason = `, reason: ${e}`
     }
+    return runWithoutAuthentication(`${reason}${hint}`)
+}
 
+function runWithoutAuthentication(reason = ''): string {
     core.warning(`No short-lived token could be obtained, running without Develocity authentication${reason}`)
     return ''
 }
@@ -102,11 +103,11 @@ function getAccessKeyFromEnv(): string {
 }
 
 /**
- * Mint a GitHub OIDC token for the Develocity server, in the `host=token` access key format. Develocity exchanges it
- * for an access token when a workload identity rule matches its claims. The token audience has to match the audience
- * of that rule exactly, which defaults to the origin of the Develocity URL.
+ * Mint a GitHub OIDC token for the Develocity server, and exchange it for a short-lived token. Develocity accepts it
+ * when a workload identity rule matches its issuer, audience and claims. The audience defaults to the origin of the
+ * Develocity URL.
  */
-async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity): Promise<string> {
+async function getWorkloadIdentityAccessToken(workloadIdentity: WorkloadIdentity, expiry: string): Promise<string> {
     let url: URL
     try {
         url = new URL(workloadIdentity.develocityUrl)
@@ -116,16 +117,40 @@ async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity):
                 ? `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
                 : 'Workload identity requires develocity-url to be set'
         )
-        return ''
+        return runWithoutAuthentication()
     }
-    try {
-        const idToken = await core.getIDToken(workloadIdentity.audience || url.origin)
-        core.setSecret(idToken)
-        return `${url.host}=${idToken}`
-    } catch (e) {
+    // The origin of a URL that is not http(s) is the string 'null'
+    const audience = workloadIdentity.audience || (url.origin === 'null' ? '' : url.origin)
+    if (!audience) {
         core.warning(
-            `Failed to get a GitHub OIDC token for workload identity, the job requires the 'id-token: write' permission: ${e}`
+            `Workload identity requires an audience: '${workloadIdentity.develocityUrl}' has no origin, set develocity-oidc-audience or use an http(s) develocity-url`
         )
-        return ''
+        return runWithoutAuthentication()
     }
+
+    core.info(`Authenticating with workload identity, with a GitHub OIDC token for audience '${audience}'`)
+    if (!process.env['ACTIONS_ID_TOKEN_REQUEST_URL']) {
+        core.warning(
+            "No GitHub OIDC token is available to this job: grant the job the 'id-token: write' permission. GitHub provides " +
+                'no OIDC token to pull requests from forks. To use an access key instead, remove develocity-auth: ' +
+                'workload-identity and set develocity-access-key.'
+        )
+        return runWithoutAuthentication()
+    }
+    let idToken: string
+    try {
+        idToken = await core.getIDToken(audience)
+        core.setSecret(idToken)
+    } catch (e) {
+        core.warning(`Failed to get a GitHub OIDC token for audience '${audience}': ${e}`)
+        return runWithoutAuthentication()
+    }
+
+    return exchangeForShortLivedToken(
+        `${url.host}=${idToken}`,
+        expiry,
+        `. Check that a workload identity rule matches the job's issuer (https://token.actions.githubusercontent.com, or ` +
+            `https://HOSTNAME/_services/token/actions on GitHub Enterprise Server), the audience '${audience}' and the ` +
+            `workflow's claims`
+    )
 }
