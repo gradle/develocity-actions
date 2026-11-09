@@ -9,18 +9,23 @@ inputs:
   develocity-token-expiry:
     description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
     required: false
+  develocity-auth:
+    description: >-
+      How to authenticate with Develocity: access-key uses develocity-access-key, workload-identity exchanges a
+      GitHub OIDC token instead and requires develocity-url and the `id-token: write` job permission (Default access-key)
+    required: false
+  develocity-oidc-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default origin of develocity-url)'
+    required: false
   capture-strategy:
-    description: 'Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)'
+    description: 'Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND) (Default ALWAYS)'
     required: false
-    default: ALWAYS
   capture-unpublished-build-scans:
-    description: 'Whether to enable or not unpublished Build Scans capture'
+    description: 'Whether to enable or not unpublished Build Scans capture (Default true)'
     required: false
-    default: true
   capture-build-scan-links:
-    description: 'Whether to enable or not Build Scan links capture'
+    description: 'Whether to enable or not Build Scan links capture (Default true)'
     required: false
-    default: true
   job-name:
     description: 'Job name (used in summary and as artifact suffix)'
     required: false
@@ -29,14 +34,11 @@ inputs:
     required: false
     default: ${{ toJSON(matrix) }}
   add-pr-comment:
-    description: 'Whether to comment or not the pull-request with Build Scan links'
-    default: 'true'
+    description: 'Whether to comment or not the pull-request with Build Scan links (Default true)'
   add-job-summary:
-    description: 'Whether to add or not a job summary to the GitHub workflow'
-    default: 'true'
+    description: 'Whether to add or not a job summary to the GitHub workflow (Default true)'
   add-project-id-in-job-summary:
-    description: 'Whether to add or not the project id in the job summary / comment'
-    default: 'false'
+    description: 'Whether to add or not the project id in the job summary / comment (Default false)'
   github-token:
     description: 'The token used for Github API requests'
     default: ${{ github.token }}
@@ -69,9 +71,8 @@ inputs:
     description: 'Whether to enforce the URL over any defined locally to the project'
     required: false
   develocity-capture-file-fingerprints:
-    description: 'Whether to enable/disable capturing of file fingerprints. This setting is enabled by default.'
+    description: 'Whether to enable/disable capturing of file fingerprints (Default true)'
     required: false
-    default: 'true'
   develocity-custom-develocity-maven-extension-coordinates:
     description: 'Will not inject the Develocity Maven extension if an extension with provided coordinates is found (value is an artifactId of the extension).'
     required: false

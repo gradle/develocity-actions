@@ -8,9 +8,17 @@ inputs:
     required: true
   develocity-access-key:
     description: 'Develocity access key. Should be set to a secret containing the Develocity Access key'
-    required: true
+    required: false
   develocity-token-expiry:
     description: 'Develocity short-lived access tokens expiry in hours (Default 2 hours)'
+    required: false
+  develocity-auth:
+    description: >-
+      How to authenticate with Develocity: access-key uses develocity-access-key, workload-identity exchanges a
+      GitHub OIDC token instead and requires develocity-url and the `id-token: write` job permission (Default access-key)
+    required: false
+  develocity-oidc-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default origin of develocity-url)'
     required: false
   develocity-project-id:
     description: 'Develocity project identifier sent when requesting a scan token for a build that declares none'
@@ -22,9 +30,8 @@ inputs:
     description: >-
       Develocity Docker agent version (ignored when develocity-docker-agent-url-override is set). The default is
       the version this release of the action was tested with. Develocity rejects an agent newer than the server
-      supports
+      supports (Default 0.9.0)
     required: false
-    default: '0.9.0'
   develocity-docker-agent-url-override:
     description: 'Override the URL to use to download the Develocity Docker agent jar'
     required: false
@@ -32,9 +39,8 @@ inputs:
     description: 'JDK 21 or later used to run the agent. Detected from the runner when not set'
     required: false
   develocity-package-scan-enabled:
-    description: 'Whether to catalogue the packages contained in each built image'
+    description: 'Whether to catalogue the packages contained in each built image (Default true)'
     required: false
-    default: 'true'
   buildx-builder:
     description: >-
       Name of the buildx builder to attach to. The agent attaches to whichever builder is current
@@ -42,17 +48,14 @@ inputs:
       exist when this step runs
     required: false
   drain-timeout:
-    description: 'Seconds to wait for the agent to publish every captured build before stopping it. 0 skips the wait'
+    description: 'Seconds to wait for the agent to publish every captured build before stopping it. 0 skips the wait (Default 300)'
     required: false
-    default: '300'
   shutdown-timeout:
-    description: 'Seconds the agent may spend on the build in flight once it has been signalled to stop'
+    description: 'Seconds the agent may spend on the build in flight once it has been signalled to stop (Default 120)'
     required: false
-    default: '120'
   add-job-summary:
-    description: 'Whether to add or not a job summary listing the published Build Scans'
+    description: 'Whether to add or not a job summary listing the published Build Scans (Default true)'
     required: false
-    default: 'true'
 
 runs:
   using: node24
