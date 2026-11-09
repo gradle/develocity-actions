@@ -1,4 +1,3 @@
-import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
 import * as input from '../../build-scan-shared/src/setup/input'
 import * as setup from './setup'
@@ -9,11 +8,7 @@ import * as setup from './setup'
 export async function run(): Promise<void> {
     try {
         // configure authentication
-        const accessToken = await auth.getAccessToken(
-            input.getDevelocityAccessKey(),
-            input.getDevelocityTokenExpiry(),
-            input.getWorkloadIdentity()
-        )
+        const accessToken = await input.getAccessToken()
 
         await setup.setup()
 

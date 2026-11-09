@@ -64,18 +64,27 @@ export function getDevelocityTokenExpiry(): string {
 
 export function getWorkloadIdentity(): auth.WorkloadIdentity | undefined {
     const develocityAuth = sharedInput.getInput('develocity-auth')
-    if (develocityAuth !== 'workload-identity') {
-        if (develocityAuth && develocityAuth !== 'access-key') {
+    switch (develocityAuth) {
+        case '':
+        case 'access-key':
+            return undefined
+        case 'workload-identity':
+            return {
+                develocityUrl: getDevelocityUrl(),
+                audience: sharedInput.getInput('develocity-oidc-audience')
+            }
+        default:
             throw new Error(
                 `Unsupported develocity-auth '${develocityAuth}'. Valid values are: [access-key, workload-identity]`
             )
-        }
-        return undefined
     }
-    return {
-        develocityUrl: getDevelocityUrl(),
-        audience: sharedInput.getInput('develocity-oidc-audience')
-    }
+}
+
+/**
+ * Get the short-lived access token for the credential selected by the authentication inputs
+ */
+export async function getAccessToken(): Promise<string> {
+    return auth.getAccessToken(getDevelocityAccessKey(), getDevelocityTokenExpiry(), getWorkloadIdentity())
 }
 
 export function getWorkflowName(): string {

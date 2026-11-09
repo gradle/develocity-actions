@@ -11,14 +11,6 @@ export function getDevelocityUrl(): string {
     return sharedInput.getInput('develocity-url', {required: true})
 }
 
-export function getDevelocityAccessKey(): string {
-    return sharedInput.getInput('develocity-access-key')
-}
-
-export function getDevelocityTokenExpiry(): string {
-    return sharedInput.getInput('develocity-token-expiry')
-}
-
 export function getDevelocityProjectId(): string {
     return sharedInput.getInput('develocity-project-id')
 }

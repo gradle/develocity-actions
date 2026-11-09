@@ -1,6 +1,5 @@
 import * as core from '@actions/core'
 
-import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as buildTools from './buildTools'
 import * as dockerSetup from '../../setup-docker/src/setup'
 import * as errorHandler from '../../build-scan-shared/src/error'
@@ -27,11 +26,7 @@ export async function run(): Promise<void> {
         core.info(`Build tools to set up: ${selectedBuildTools.join(', ')}`)
 
         // configure authentication once for all build tools
-        const accessToken = await auth.getAccessToken(
-            input.getDevelocityAccessKey(),
-            input.getDevelocityTokenExpiry(),
-            input.getWorkloadIdentity()
-        )
+        const accessToken = await input.getAccessToken()
 
         // A build tool is cleaned up by the post step even when its setup fails, as it may be partially set up
         const startedBuildTools: SupportedBuildTool[] = []

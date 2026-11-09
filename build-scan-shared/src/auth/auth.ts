@@ -67,22 +67,21 @@ async function resolveAccessToken(
         return getAccessKeyFromEnv()
     }
 
+    let reason = ''
     if (develocityAccessKey) {
         try {
             core.debug('Fetching short-lived token...')
             const tokens = await getToken(develocityAccessKey, develocityTokenExpiryFromInput)
             if (tokens != null && !tokens.isEmpty()) {
-                core.debug(`Got token(s), setting the access key env vars`)
+                core.debug('Got short-lived token(s)')
                 return tokens.raw()
-            } else {
-                core.warning(`Failed to fetch short-lived token`)
             }
         } catch (e) {
-            core.warning(`Failed to fetch short-lived token, reason: ${e}`)
+            reason = `, reason: ${e}`
         }
     }
 
-    core.warning('No short-lived token could be obtained, running without Develocity authentication')
+    core.warning(`No short-lived token could be obtained, running without Develocity authentication${reason}`)
     return ''
 }
 
@@ -108,16 +107,14 @@ function getAccessKeyFromEnv(): string {
  * of that rule exactly, which defaults to the origin of the Develocity URL.
  */
 async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity): Promise<string> {
-    if (!workloadIdentity.develocityUrl) {
-        core.warning('Workload identity requires develocity-url to be set')
-        return ''
-    }
     let url: URL
     try {
         url = new URL(workloadIdentity.develocityUrl)
     } catch {
         core.warning(
-            `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
+            workloadIdentity.develocityUrl
+                ? `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
+                : 'Workload identity requires develocity-url to be set'
         )
         return ''
     }

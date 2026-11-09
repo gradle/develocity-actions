@@ -1,6 +1,4 @@
-import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
-import * as input from './input'
 import * as setup from './setup'
 import * as setupInput from '../../build-scan-shared/src/setup/input'
 
@@ -9,11 +7,7 @@ import * as setupInput from '../../build-scan-shared/src/setup/input'
  */
 export async function run(): Promise<void> {
     try {
-        const accessToken = await auth.getAccessToken(
-            input.getDevelocityAccessKey(),
-            input.getDevelocityTokenExpiry(),
-            setupInput.getWorkloadIdentity()
-        )
+        const accessToken = await setupInput.getAccessToken()
 
         await setup.start(accessToken)
     } catch (error) {
