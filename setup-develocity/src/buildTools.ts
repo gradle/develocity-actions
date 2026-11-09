@@ -21,14 +21,7 @@ const MARKER_FILES: Record<SupportedBuildTool, string[]> = {
     [SupportedBuildTool.MAVEN]: ['pom.xml'],
     [SupportedBuildTool.NPM]: ['package.json'],
     [SupportedBuildTool.PYTHON]: ['pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg', 'Pipfile'],
-    [SupportedBuildTool.DOCKER]: [
-        'Dockerfile',
-        'Containerfile',
-        'compose.yaml',
-        'compose.yml',
-        'docker-compose.yaml',
-        'docker-compose.yml'
-    ]
+    [SupportedBuildTool.DOCKER]: ['Dockerfile']
 }
 
 /**

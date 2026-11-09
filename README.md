@@ -19,12 +19,12 @@ Sets up Develocity for every build tool of the project, by running the same setu
 
 The build tools are detected from the files at the root of the project:
 
-| Build tool | Files                                                                                                     |
-|------------|-----------------------------------------------------------------------------------------------------------|
-| `maven`    | `pom.xml`                                                                                                 |
-| `npm`      | `package.json`                                                                                            |
-| `python`   | `pyproject.toml`, `requirements.txt`, `setup.py`, `setup.cfg`, `Pipfile`                                  |
-| `docker`   | `Dockerfile`, `Containerfile`, `compose.yaml`, `compose.yml`, `docker-compose.yaml`, `docker-compose.yml` |
+| Build tool | Files                                                                    |
+|------------|--------------------------------------------------------------------------|
+| `maven`    | `pom.xml`                                                                |
+| `npm`      | `package.json`                                                           |
+| `python`   | `pyproject.toml`, `requirements.txt`, `setup.py`, `setup.cfg`, `Pipfile` |
+| `docker`   | `Dockerfile`                                                             |
 
 Set the `build-tools` input to a comma-separated list of build tools to skip the detection and set up only those.
 Gradle is not supported, use [setup-gradle](https://github.com/gradle/actions/tree/main/setup-gradle) instead.

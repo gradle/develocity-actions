@@ -42,12 +42,7 @@ describe('Build tools', () => {
 
     it.each([
         ['setup.cfg', SupportedBuildTool.PYTHON],
-        ['Pipfile', SupportedBuildTool.PYTHON],
-        ['Containerfile', SupportedBuildTool.DOCKER],
-        ['compose.yaml', SupportedBuildTool.DOCKER],
-        ['compose.yml', SupportedBuildTool.DOCKER],
-        ['docker-compose.yaml', SupportedBuildTool.DOCKER],
-        ['docker-compose.yml', SupportedBuildTool.DOCKER]
+        ['Pipfile', SupportedBuildTool.PYTHON]
     ])('detects %s as %s', (markerFile, buildTool) => {
         // given
         writeFile(markerFile)
