@@ -136,8 +136,8 @@ export function isAddProjectIdInJobSummary(): boolean {
 }
 
 export function exportAccessToken(accessToken: string): void {
+    // getAccessToken already masked the token
     if (accessToken) {
-        core.setSecret(accessToken)
         core.exportVariable(auth.ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken)
     }
 }

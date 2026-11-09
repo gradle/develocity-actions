@@ -40,6 +40,41 @@ describe('Build tools', () => {
         ])
     })
 
+    it.each([
+        ['setup.cfg', SupportedBuildTool.PYTHON],
+        ['Pipfile', SupportedBuildTool.PYTHON],
+        ['Containerfile', SupportedBuildTool.DOCKER],
+        ['compose.yaml', SupportedBuildTool.DOCKER],
+        ['compose.yml', SupportedBuildTool.DOCKER],
+        ['docker-compose.yaml', SupportedBuildTool.DOCKER],
+        ['docker-compose.yml', SupportedBuildTool.DOCKER]
+    ])('detects %s as %s', (markerFile, buildTool) => {
+        // given
+        writeFile(markerFile)
+
+        // when
+        const detected = buildTools.getBuildTools('', rootDir)
+
+        // then
+        expect(detected).toEqual([buildTool])
+    })
+
+    it('injects the Develocity Maven extension version the capture extension is built against', () => {
+        // given
+        const pom = fs.readFileSync(
+            new URL('../../maven-build-scan-capture-extension/pom.xml', import.meta.url),
+            'utf8'
+        )
+
+        // when
+        const version = /<artifactId>develocity-maven-extension<\/artifactId>\s*<version>([^<]+)<\/version>/.exec(
+            pom
+        )?.[1]
+
+        // then
+        expect(buildTools.DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION).toBe(version)
+    })
+
     it('ignores the files in subdirectories', () => {
         // given
         writeFile('frontend/package.json')

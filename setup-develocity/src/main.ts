@@ -10,9 +10,6 @@ import * as pythonInjection from '../../setup-python/src/injection'
 import * as setupInput from './input'
 import {SupportedBuildTool} from './buildTools'
 
-// The version the capture extension is built against
-const DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION = '2.6.1'
-
 /**
  * Main entrypoint for the action
  */
@@ -55,7 +52,7 @@ async function setup(buildTool: SupportedBuildTool, accessToken: string): Promis
     core.info(`Setting up Develocity for ${buildTool}`)
     switch (buildTool) {
         case SupportedBuildTool.MAVEN:
-            return await mavenSetup.setup(DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION)
+            return await mavenSetup.setup(buildTools.DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION)
         case SupportedBuildTool.NPM:
             return await npmInjection.installDevelocity()
         case SupportedBuildTool.PYTHON:

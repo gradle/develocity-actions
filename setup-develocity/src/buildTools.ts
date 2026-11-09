@@ -4,6 +4,9 @@ import * as io from '../../build-scan-shared/src/utils/io'
 
 export const STATE_BUILD_TOOLS = 'develocity-build-tools'
 
+// The version the capture extension is built against, see maven-build-scan-capture-extension/pom.xml
+export const DEFAULT_DEVELOCITY_MAVEN_EXTENSION_VERSION = '2.6.1'
+
 export enum SupportedBuildTool {
     MAVEN = 'maven',
     NPM = 'npm',
@@ -17,8 +20,15 @@ export enum SupportedBuildTool {
 const MARKER_FILES: Record<SupportedBuildTool, string[]> = {
     [SupportedBuildTool.MAVEN]: ['pom.xml'],
     [SupportedBuildTool.NPM]: ['package.json'],
-    [SupportedBuildTool.PYTHON]: ['pyproject.toml', 'requirements.txt', 'setup.py'],
-    [SupportedBuildTool.DOCKER]: ['Dockerfile']
+    [SupportedBuildTool.PYTHON]: ['pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg', 'Pipfile'],
+    [SupportedBuildTool.DOCKER]: [
+        'Dockerfile',
+        'Containerfile',
+        'compose.yaml',
+        'compose.yml',
+        'docker-compose.yaml',
+        'docker-compose.yml'
+    ]
 }
 
 /**
