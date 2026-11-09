@@ -45,6 +45,21 @@ describe('auth with workload identity', () => {
         expect(accessToken).toBe('dev=token1')
     })
 
+    it('Requests the GitHub OIDC token for the origin of the Develocity URL by default', async () => {
+        // given
+        nock('https://dev:8443').post('/api/auth/token').reply(200, 'token1')
+
+        // when
+        const accessToken = await auth.getAccessToken('', '', {
+            develocityUrl: 'https://dev:8443/develocity/',
+            audience: ''
+        })
+
+        // then
+        expect(mockGetIDToken).toHaveBeenCalledWith('https://dev:8443')
+        expect(accessToken).toBe('dev:8443=token1')
+    })
+
     it('Requests the GitHub OIDC token for the configured audience and ignores the access key', async () => {
         // given
         nock('https://dev:8443')

@@ -67,8 +67,10 @@ token and exchanges it for a short-lived Develocity access token. This requires:
 - the `id-token: write` permission on the job,
 - the `develocity-url` input,
 - a [workload identity rule](https://docs.develocity.ai/current/administration/access-control/workload-identity/) in Develocity
-  with issuer `https://token.actions.githubusercontent.com` and an audience equal to `develocity-url`, or to
-  `develocity-workload-identity-audience` when set. The audience has to match exactly, including the trailing slash.
+  with issuer `https://token.actions.githubusercontent.com` and an audience equal to the origin of `develocity-url`
+  (for example `https://develocity.example.com`, without path or trailing slash), or to `develocity-oidc-audience` when
+  set. The default audience is the same as the one of the Develocity Artifact Cache action, so a single rule covers both.
+  To give this action its own rule and roles, set a distinct `develocity-oidc-audience`.
 
 The action logs the credential it uses, and never replaces it with another one. With `develocity-auth: workload-identity`,
 `develocity-access-key` is ignored. When the selected credential cannot be exchanged for a short-lived Develocity access
@@ -86,7 +88,7 @@ The same inputs are available on `setup-maven`, `setup-npm`, `setup-python` and 
 | `develocity-access-key`                 | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                   |                  |
 | `develocity-token-expiry`               | *Optional*: Develocity short-lived access tokens expiry in hours                                                    | `2`              |
 | `develocity-auth`                       | *Optional*: `access-key`, or `workload-identity` to authenticate with [workload identity](#workload-identity)       | `access-key`     |
-| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule                        | `develocity-url` |
+| `develocity-oidc-audience`              | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule                        | origin of `develocity-url` |
 | `develocity-injection-enabled`          | *Optional*: Whether to enable or not Develocity injection (`maven`, `npm`, `python`)                                | `true`           |
 | `develocity-allow-untrusted-server`     | *Optional*: Whether to allow communicating with untrusted server                                                    |                  |
 | `github-token`                          | *Optional*: The token used for Github API requests                                                                  | `github.token`   |
@@ -263,7 +265,7 @@ The output name is `build-scan-url` and can be used in subsequent steps of the w
 | `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``                             |
 | `develocity-token-expiry`                                  | *Optional*: Develocity short-lived access tokens expiry in hours                                                                                        | `2`                            |
 | `develocity-auth` | *Optional*: `access-key`, or `workload-identity` to authenticate with [workload identity](#workload-identity) | `access-key` |
-| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | `develocity-url` |
+| `develocity-oidc-audience`              | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | origin of `develocity-url` |
 | `capture-strategy`                                         | *Optional*: Build Scan capture strategy (ALWAYS, ON_FAILURE, ON_DEMAND)                                                                                 | `ALWAYS`                       |
 | `capture-unpublished-build-scans`                          | *Optional*: Enable unpublished Build Scans capture                                                                                                      | `true`                         |
 | `capture-build-scan-links`                                 | *Optional*: Enable Build Scan links capture                                                                                                             | `true`                         |
@@ -425,7 +427,7 @@ jobs:
 | `develocity-access-key`                                    | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                                                       | ``                             |
 | `develocity-token-expiry`                                  | *Optional*: Develocity short-lived access tokens expiry in hours                                                                                        | `2`                            |
 | `develocity-auth` | *Optional*: `access-key`, or `workload-identity` to authenticate with [workload identity](#workload-identity) | `access-key` |
-| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | `develocity-url` |
+| `develocity-oidc-audience`              | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | origin of `develocity-url` |
 | `develocity-injection-enabled`                             | *Optional*: Whether to enable or not Develocity npm agent injection                                                                                     |                                |
 | `develocity-url`                                           | *Optional*: Develocity server URL                                                                                                                       |                                |
 | `develocity-npm-agent-version`                             | *Optional*: Develocity npm agent version to be injected (ignored when `develocity-npm-agent-url-override` is set)                                       | `latest`                       |
@@ -508,7 +510,7 @@ compatibility of your server before raising it.
 | `develocity-access-key`                | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                  | ``      |
 | `develocity-token-expiry`              | *Optional*: Develocity short-lived access tokens expiry in hours                                                   | `2`     |
 | `develocity-auth` | *Optional*: `access-key`, or `workload-identity` to authenticate with [workload identity](#workload-identity) | `access-key` |
-| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | `develocity-url` |
+| `develocity-oidc-audience`              | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | origin of `develocity-url` |
 | `develocity-project-id`                | *Optional*: Develocity project identifier sent when requesting a scan token for a build that declares none         |         |
 | `develocity-allow-untrusted-server`    | *Optional*: Whether to allow communicating with untrusted server                                                   |         |
 | `develocity-docker-agent-version`      | *Optional*: Develocity Docker agent version (ignored when `develocity-docker-agent-url-override` is set)           | `0.9.0` |
@@ -576,7 +578,7 @@ so a different name needs `configuration.project_name` in a `.develocity.py`.
 | `develocity-access-key`                | *Optional*: Develocity access key. Should be set to a secret containing the Develocity Access key                   |          |
 | `develocity-token-expiry`              | *Optional*: Develocity short-lived access tokens expiry in hours                                                    | `2`      |
 | `develocity-auth` | *Optional*: `access-key`, or `workload-identity` to authenticate with [workload identity](#workload-identity) | `access-key` |
-| `develocity-workload-identity-audience` | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | `develocity-url` |
+| `develocity-oidc-audience`              | *Optional*: Audience of the GitHub OIDC token, which has to match the workload identity rule | origin of `develocity-url` |
 | `develocity-injection-enabled`         | *Optional*: Whether to enable or not Develocity Python agent injection                                              | `true`   |
 | `develocity-allow-untrusted-server`    | *Optional*: Whether to allow communicating with untrusted server (sets `DEVELOCITY_ALLOW_INSECURE_PROTOCOL`)        |          |
 | `develocity-python-agent-version`      | *Optional*: Develocity Python agent version (ignored when `develocity-python-agent-url-override` is set)            | `0.10.1` |

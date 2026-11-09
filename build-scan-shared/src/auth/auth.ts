@@ -105,16 +105,16 @@ function getAccessKeyFromEnv(): string {
 /**
  * Mint a GitHub OIDC token for the Develocity server, in the `host=token` access key format. Develocity exchanges it
  * for an access token when a workload identity rule matches its claims. The token audience has to match the audience
- * of that rule exactly.
+ * of that rule exactly, which defaults to the origin of the Develocity URL.
  */
 async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity): Promise<string> {
     if (!workloadIdentity.develocityUrl) {
         core.warning('Workload identity requires develocity-url to be set')
         return ''
     }
-    let host: string
+    let url: URL
     try {
-        host = new URL(workloadIdentity.develocityUrl).host
+        url = new URL(workloadIdentity.develocityUrl)
     } catch {
         core.warning(
             `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
@@ -122,9 +122,9 @@ async function getWorkloadIdentityAccessKey(workloadIdentity: WorkloadIdentity):
         return ''
     }
     try {
-        const idToken = await core.getIDToken(workloadIdentity.audience || workloadIdentity.develocityUrl)
+        const idToken = await core.getIDToken(workloadIdentity.audience || url.origin)
         core.setSecret(idToken)
-        return `${host}=${idToken}`
+        return `${url.host}=${idToken}`
     } catch (e) {
         core.warning(
             `Failed to get a GitHub OIDC token for workload identity, the job requires the 'id-token: write' permission: ${e}`

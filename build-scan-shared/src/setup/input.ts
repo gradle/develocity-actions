@@ -74,7 +74,7 @@ export function getWorkloadIdentity(): auth.WorkloadIdentity | undefined {
     }
     return {
         develocityUrl: getDevelocityUrl(),
-        audience: sharedInput.getInput('develocity-workload-identity-audience')
+        audience: sharedInput.getInput('develocity-oidc-audience')
     }
 }
 

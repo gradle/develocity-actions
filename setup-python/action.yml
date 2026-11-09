@@ -16,8 +16,8 @@ inputs:
       How to authenticate with Develocity: access-key uses develocity-access-key, workload-identity exchanges a
       GitHub OIDC token instead and requires develocity-url and the `id-token: write` job permission (Default access-key)
     required: false
-  develocity-workload-identity-audience:
-    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default develocity-url)'
+  develocity-oidc-audience:
+    description: 'Audience of the GitHub OIDC token, which has to match the workload identity rule (Default origin of develocity-url)'
     required: false
   develocity-injection-enabled:
     description: 'Whether to enable or not Develocity Python agent injection'
