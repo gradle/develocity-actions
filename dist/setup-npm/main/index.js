@@ -2421,7 +2421,8 @@ var percentTwenties = /%20/g;
 
 var Format = {
     RFC1738: 'RFC1738',
-    RFC3986: 'RFC3986'
+    RFC3986: 'RFC3986',
+    WHATWG: 'WHATWG'
 };
 
 module.exports = {
@@ -2432,10 +2433,14 @@ module.exports = {
         },
         RFC3986: function (value) {
             return String(value);
+        },
+        WHATWG: function (value) {
+            return replace.call(value, percentTwenties, '+');
         }
     },
     RFC1738: Format.RFC1738,
-    RFC3986: Format.RFC3986
+    RFC3986: Format.RFC3986,
+    WHATWG: Format.WHATWG
 };
 
 
@@ -2464,10 +2469,62 @@ module.exports = {
 
 
 
+var getSideChannel = __nccwpck_require__(4753);
 var utils = __nccwpck_require__(5225);
 
 var has = Object.prototype.hasOwnProperty;
 var isArray = Array.isArray;
+var getPrototypeOf = Object.getPrototypeOf;
+var fromCharCode = String.fromCharCode;
+
+var isPlainContainer = function isPlainContainer(value) {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    if (isArray(value)) {
+        return true;
+    }
+    var proto = getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
+};
+
+var emptyCopyOf = function emptyCopyOf(value) {
+    if (isArray(value)) {
+        var arr = [];
+        arr.length = value.length;
+        return arr;
+    }
+    return getPrototypeOf(value) === null ? { __proto__: null } : {};
+};
+
+// `merge` and `compact` modify the containers they are given, so copy the caller's arrays and plain objects first
+var copyInput = function copyInput(input) {
+    var copies = getSideChannel();
+    var result = {};
+    var queue = [{ source: input, target: result }];
+
+    for (var i = 0; i < queue.length; ++i) {
+        var source = queue[i].source;
+        var target = queue[i].target;
+        var keys = Object.keys(source);
+        for (var j = 0; j < keys.length; ++j) {
+            var value = source[keys[j]];
+            // `target[key] =` would invoke the `__proto__` setter. `setProperty` stores that key as data.
+            if (isPlainContainer(value)) {
+                if (!copies.has(value)) {
+                    var copy = emptyCopyOf(value);
+                    copies.set(value, copy);
+                    queue[queue.length] = { source: value, target: copy };
+                }
+                utils.setProperty(target, keys[j], copies.get(value));
+            } else {
+                utils.setProperty(target, keys[j], value);
+            }
+        }
+    }
+
+    return result;
+};
 
 var defaults = {
     allowDots: false,
@@ -2496,7 +2553,13 @@ var defaults = {
 
 var interpretNumericEntities = function (str) {
     return str.replace(/&#(\d+);/g, function ($0, numberStr) {
-        return String.fromCharCode(parseInt(numberStr, 10));
+        var c = parseInt(numberStr, 10);
+        if (c > 0xFFFF && c <= 0x10FFFF) {
+            // `String.fromCodePoint` is not available in every supported engine, so build the surrogate pair by hand
+            c -= 0x10000;
+            return fromCharCode(0xD800 | (c >> 10), 0xDC00 | (c & 0x3FF));
+        }
+        return fromCharCode(c);
     });
 };
 
@@ -2516,7 +2579,11 @@ var parseArrayValue = function (val, options, currentArrayLength) {
         return val.split(',');
     }
 
-    if (options.throwOnLimitExceeded && currentArrayLength >= options.arrayLimit) {
+    if (
+        options.throwOnLimitExceeded
+        && currentArrayLength >= options.arrayLimit
+        && currentArrayLength > 0
+    ) {
         throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
     }
 
@@ -2576,6 +2643,9 @@ var parseValues = function parseQueryStringValues(str, options) {
         var bracketEqualsPos = part.indexOf(']=');
         var pos = bracketEqualsPos === -1 ? part.indexOf('=') : bracketEqualsPos + 1;
 
+        // `[]` belongs to the key, so look for it at the split point, not anywhere in the part
+        var isEmptyBracketKey = pos > 1 && part.slice(pos - 2, pos) === '[]';
+
         var key;
         var val;
         if (pos === -1) {
@@ -2589,7 +2659,7 @@ var parseValues = function parseQueryStringValues(str, options) {
                     parseArrayValue(
                         part.slice(pos + 1),
                         options,
-                        isArray(obj[key]) ? obj[key].length : 0
+                        isArray(obj[key]) && (options.duplicates === 'combine' || isEmptyBracketKey) ? obj[key].length : 0
                     ),
                     function (encodedVal) {
                         return options.decoder(encodedVal, defaults.decoder, charset, 'value');
@@ -2599,10 +2669,12 @@ var parseValues = function parseQueryStringValues(str, options) {
         }
 
         if (val && options.interpretNumericEntities && charset === 'iso-8859-1') {
-            val = interpretNumericEntities(String(val));
+            val = utils.maybeMap(val, function (value) {
+                return value ? interpretNumericEntities(String(value)) : value;
+            });
         }
 
-        if (part.indexOf('[]=') > -1) {
+        if (isEmptyBracketKey) {
             val = isArray(val) ? [val] : val;
         }
 
@@ -2612,7 +2684,7 @@ var parseValues = function parseQueryStringValues(str, options) {
 
         if (key !== null) {
             var existing = has.call(obj, key);
-            if (existing && (options.duplicates === 'combine' || part.indexOf('[]=') > -1)) {
+            if (existing && (options.duplicates === 'combine' || isEmptyBracketKey)) {
                 obj[key] = utils.combine(
                     obj[key],
                     val,
@@ -2627,6 +2699,10 @@ var parseValues = function parseQueryStringValues(str, options) {
     }
 
     return obj;
+};
+
+var stripWrappingBrackets = function stripWrappingBrackets(key) {
+    return key.charAt(0) === '[' && key.charAt(key.length - 1) === ']' ? key.slice(1, -1) : key;
 };
 
 var parseObject = function (chain, val, options, valuesParsed) {
@@ -2659,8 +2735,8 @@ var parseObject = function (chain, val, options, valuesParsed) {
             }
         } else {
             obj = options.plainObjects ? { __proto__: null } : {};
-            var cleanRoot = root.charAt(0) === '[' && root.charAt(root.length - 1) === ']' ? root.slice(1, -1) : root;
-            var decodedRoot = options.decodeDotInKeys ? cleanRoot.replace(/%2E/g, '.') : cleanRoot;
+            var cleanRoot = stripWrappingBrackets(root);
+            var decodedRoot = options.decodeDotInKeys ? cleanRoot.replace(/%2E/gi, '.') : cleanRoot;
             var index = parseInt(decodedRoot, 10);
             var isValidArrayIndex = !isNaN(index)
                 && root !== decodedRoot
@@ -2668,7 +2744,7 @@ var parseObject = function (chain, val, options, valuesParsed) {
                 && index >= 0
                 && options.parseArrays;
             if (!options.parseArrays && decodedRoot === '') {
-                obj = { 0: leaf };
+                obj[0] = leaf;
             } else if (isValidArrayIndex && index < options.arrayLimit) {
                 obj = [];
                 obj[index] = leaf;
@@ -2688,14 +2764,52 @@ var parseObject = function (chain, val, options, valuesParsed) {
     return leaf;
 };
 
+// Behaves like `key.replace(/\.([^.[]+)/g, '[$1]')`, but only rewrites a dot
+// that sits at bracket depth 0. A literal dot already inside a `[...]` segment
+// is left untouched instead of corrupting the key (e.g. "outer[a.b]"). (#617)
+var topLevelDotsToBrackets = function topLevelDotsToBrackets(key) {
+    var result = '';
+    var depth = 0;
+    for (var i = 0; i < key.length; i += 1) {
+        var cu = key.charCodeAt(i);
+        if (cu === 0x5B) { // '['
+            depth += 1;
+            result += '[';
+        } else if (cu === 0x5D) { // ']'
+            if (depth > 0) {
+                depth -= 1;
+            }
+            result += ']';
+        } else if (
+            cu === 0x2E // '.'
+            && depth === 0
+            && i + 1 < key.length
+            && key.charCodeAt(i + 1) !== 0x2E // not another '.'
+            && key.charCodeAt(i + 1) !== 0x5B // not '['
+        ) {
+            var start = i + 1;
+            var j = start;
+            while (j < key.length && key.charCodeAt(j) !== 0x2E && key.charCodeAt(j) !== 0x5B) {
+                j += 1;
+            }
+            result += '[' + key.slice(start, j) + ']';
+            i = j - 1;
+        } else {
+            result += key.charAt(i);
+        }
+    }
+    return result;
+};
+
 // Split a key like "a[b][c[]]" into ['a', '[b]', '[c[]]'] while preserving
 // qs parse semantics for depth/prototype guards.
 var splitKeyIntoSegments = function splitKeyIntoSegments(originalKey, options) {
-    var key = options.allowDots ? originalKey.replace(/\.([^.[]+)/g, '[$1]') : originalKey;
+    var key = options.allowDots ? topLevelDotsToBrackets(originalKey) : originalKey;
 
     // depth <= 0 keeps the whole key as one segment
     if (options.depth <= 0) {
-        if (!options.plainObjects && has.call(Object.prototype, key)) {
+        // `parseObject` strips one wrapping bracket pair, so guard the key it will store ("[toString]" -> "toString")
+        if (!options.plainObjects && has.call(Object.prototype, stripWrappingBrackets(key))) {
             if (!options.allowPrototypes) {
                 return;
             }
@@ -2857,7 +2971,7 @@ module.exports = function (str, opts) {
         return options.plainObjects ? { __proto__: null } : {};
     }
 
-    var tempObj = typeof str === 'string' ? parseValues(str, options) : str;
+    var tempObj = typeof str === 'string' ? parseValues(str, options) : copyInput(str);
     var obj = options.plainObjects ? { __proto__: null } : {};
 
     // Iterate over the keys and setup the new object
@@ -3034,10 +3148,10 @@ var stringify = function stringify(
         // we need to join elements in
         if (encodeValuesOnly && encoder) {
             obj = utils.maybeMap(obj, function (v) {
-                return v == null ? v : encoder(v);
+                return v == null ? v : encoder(v, defaults.encoder, charset, 'value', format);
             });
         }
-        objKeys = [{ value: obj.length > 0 ? obj.join(',') || null : void undefined }];
+        objKeys = [{ value: obj.length > 0 ? utils.toCoercible(obj).join(',') || null : void undefined }];
     } else if (isArray(filter)) {
         objKeys = filter;
     } else {
@@ -3045,12 +3159,12 @@ var stringify = function stringify(
         objKeys = sort ? keys.sort(sort) : keys;
     }
 
-    var encodedPrefix = encodeDotInKeys ? String(prefix).replace(/\./g, '%2E') : String(prefix);
+    var encodedPrefix = String(prefix);
 
     var adjustedPrefix = commaRoundTrip && isArray(obj) && obj.length === 1 ? encodedPrefix + '[]' : encodedPrefix;
 
     if (allowEmptyArrays && isArray(obj) && obj.length === 0 && Object.keys(obj).length === 0) {
-        return adjustedPrefix + '[]';
+        return formatter(encoder && !encodeValuesOnly ? encoder(adjustedPrefix, defaults.encoder, charset, 'key', format) : adjustedPrefix) + '[]';
     }
 
     for (var j = 0; j < objKeys.length; ++j) {
@@ -3135,7 +3249,7 @@ var normalizeStringifyOptions = function normalizeStringifyOptions(opts) {
     }
 
     var arrayFormat;
-    if (opts.arrayFormat in arrayPrefixGenerators) {
+    if (has.call(arrayPrefixGenerators, opts.arrayFormat)) {
         arrayFormat = opts.arrayFormat;
     } else if ('indices' in opts) {
         arrayFormat = opts.indices ? 'indices' : 'repeat';
@@ -3184,7 +3298,9 @@ module.exports = function (object, opts) {
         filter = options.filter;
         obj = filter('', obj);
     } else if (isArray(options.filter)) {
-        filter = options.filter;
+        // a copy: `sort` below must not reorder the caller's array, and nested
+        // levels take their key order from the sorted copy
+        filter = options.filter.slice();
         objKeys = filter;
     }
 
@@ -3231,7 +3347,7 @@ module.exports = function (object, opts) {
             options.skipNulls,
             options.encodeDotInKeys,
             options.encode ? options.encoder : null,
-            options.filter,
+            filter,
             options.sort,
             options.allowDots,
             options.serializeDate,
@@ -3297,6 +3413,23 @@ var setMaxIndex = function setMaxIndex(obj, maxIndex) {
     overflowChannel.set(obj, maxIndex);
 };
 
+// Track containers produced by a `strictMerge` conflict wrap, and their current max numeric index,
+// so repeated conflicts on one path append instead of nesting a new wrapper each time
+var conflictChannel = getSideChannel();
+
+var markConflict = function markConflict(obj, maxIndex) {
+    conflictChannel.set(obj, maxIndex);
+    return obj;
+};
+
+var isConflict = function isConflict(obj) {
+    return conflictChannel.has(obj);
+};
+
+var getConflictIndex = function getConflictIndex(obj) {
+    return conflictChannel.get(obj);
+};
+
 var hexTable = (function () {
     var array = [];
     for (var i = 0; i < 256; ++i) {
@@ -3349,6 +3482,41 @@ var setProperty = function setProperty(obj, key, value) {
     }
 };
 
+var maxNumericIndex = function maxNumericIndex(obj, min) {
+    var max = min;
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; ++i) {
+        var num = parseInt(keys[i], 10);
+        if (String(num) === keys[i] && num > max) {
+            max = num;
+        }
+    }
+
+    return max;
+};
+
+// parsed arrays stay sparse until `compact`, so `length` would count the holes left by indices like `a[19]`
+var countElements = function countElements(arr) {
+    var count = 0;
+    for (var i = 0; i < arr.length; ++i) {
+        if (has.call(arr, i)) {
+            count += 1;
+        }
+    }
+    return count;
+};
+
+var limitedPair = function limitedPair(first, second, options) {
+    var pair = [first, second];
+    if (options && typeof options.arrayLimit === 'number' && pair.length > options.arrayLimit) {
+        if (options.throwOnLimitExceeded) {
+            throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
+        }
+        return markOverflow(arrayToObject(pair, options), 1);
+    }
+    return pair;
+};
+
 var merge = function merge(target, source, options) {
     /* eslint no-param-reassign: 0 */
     if (!source) {
@@ -3358,7 +3526,7 @@ var merge = function merge(target, source, options) {
     if (typeof source !== 'object' && typeof source !== 'function') {
         if (isArray(target)) {
             var nextIndex = target.length;
-            if (options && typeof options.arrayLimit === 'number' && nextIndex >= options.arrayLimit) {
+            if (options && typeof options.arrayLimit === 'number' && countElements(target) >= options.arrayLimit) {
                 if (options.throwOnLimitExceeded) {
                     throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
                 }
@@ -3371,8 +3539,20 @@ var merge = function merge(target, source, options) {
                 var newIndex = getMaxIndex(target) + 1;
                 target[newIndex] = source;
                 setMaxIndex(target, newIndex);
+            } else if (options && options.strictMerge && isConflict(target)) {
+                var nextConflict = getConflictIndex(target) + 1;
+                if (
+                    options.throwOnLimitExceeded
+                    && typeof options.arrayLimit === 'number'
+                    && nextConflict >= options.arrayLimit
+                ) {
+                    throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
+                }
+                target[nextConflict] = source;
+                markConflict(target, nextConflict);
             } else if (options && options.strictMerge) {
-                return [target, source];
+                var conflict = limitedPair(target, source, options);
+                return isArray(conflict) ? markConflict(conflict, 1) : conflict;
             } else if (
                 (options && (options.plainObjects || options.allowPrototypes))
                 || !has.call(Object.prototype, source)
@@ -3380,7 +3560,7 @@ var merge = function merge(target, source, options) {
                 target[source] = true;
             }
         } else {
-            return [target, source];
+            return limitedPair(target, source, options);
         }
 
         return target;
@@ -3412,6 +3592,10 @@ var merge = function merge(target, source, options) {
     var mergeTarget = target;
     if (isArray(target) && !isArray(source)) {
         mergeTarget = arrayToObject(target, options);
+        if (isConflict(target)) {
+            // the array may have grown past its last conflict, so continue after its last index
+            markConflict(mergeTarget, target.length - 1);
+        }
     }
 
     if (isArray(target) && isArray(source)) {
@@ -3427,7 +3611,7 @@ var merge = function merge(target, source, options) {
                 target[i] = item;
             }
         });
-        if (options && typeof options.arrayLimit === 'number' && target.length > options.arrayLimit) {
+        if (options && typeof options.arrayLimit === 'number' && countElements(target) > options.arrayLimit) {
             if (options.throwOnLimitExceeded) {
                 throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
             }
@@ -3446,12 +3630,18 @@ var merge = function merge(target, source, options) {
         }
 
         if (isOverflow(source) && !isOverflow(acc)) {
-            markOverflow(acc, getMaxIndex(source));
+            markOverflow(acc, maxNumericIndex(acc, getMaxIndex(source)));
         }
         if (isOverflow(acc)) {
             var keyNum = parseInt(key, 10);
             if (String(keyNum) === key && keyNum >= 0 && keyNum > getMaxIndex(acc)) {
                 setMaxIndex(acc, keyNum);
+            }
+        }
+        if (isConflict(acc)) {
+            var conflictKey = parseInt(key, 10);
+            if (String(conflictKey) === key && conflictKey > getConflictIndex(acc)) {
+                markConflict(acc, conflictKey);
             }
         }
 
@@ -3467,6 +3657,13 @@ var assign = function assignSingleSource(target, source) {
 };
 
 var decode = function (str, defaultDecoder, charset) {
+    // With no `%` there is no escape to expand, in either charset: `unescape` has
+    // nothing to match, and `decodeURIComponent` is the identity on such a string
+    // (and cannot throw). So only `+` -> ' ' remains, and often not even that.
+    if (typeof str === 'string' && str.indexOf('%') === -1) {
+        return str.indexOf('+') === -1 ? str : str.replace(/\+/g, ' ');
+    }
+
     var strWithoutPlus = str.replace(/\+/g, ' ');
     if (charset === 'iso-8859-1') {
         // unescape never throws, no try...catch needed:
@@ -3478,6 +3675,57 @@ var decode = function (str, defaultDecoder, charset) {
     } catch (e) {
         return strWithoutPlus;
     }
+};
+
+var hasToPrimitive = typeof Symbol === 'function' && typeof Symbol.toPrimitive === 'symbol';
+var arrayJoin = Array.prototype.join;
+var arrayToString = Array.prototype.toString;
+var objectToString = Object.prototype.toString;
+
+// an object with no callable toString (eg, from JSON, or null-prototype) would make String() or join() throw,
+// so it becomes its primitive valueOf or else Object.prototype.toString; arrays are walked like join walks them,
+// copied only once an element changes, with an array already being joined becoming '' as engines do for cycles
+var toCoercible = function toCoercible(value, joining) {
+    if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+        return value;
+    }
+    if (hasToPrimitive && value[Symbol.toPrimitive] != null) {
+        return value;
+    }
+    if (isArray(value) && value.toString === arrayToString && value.join === arrayJoin) {
+        var ancestors = joining || getSideChannel();
+        if (ancestors.has(value)) {
+            return '';
+        }
+        ancestors.set(value, true);
+        var copy;
+        for (var i = 0; i < value.length; i += 1) {
+            var item = value[i];
+            var coerced = toCoercible(item, ancestors);
+            if (!copy && coerced !== item) {
+                copy = [];
+                for (var j = 0; j < i; j += 1) {
+                    copy[j] = value[j];
+                }
+            }
+            if (copy) {
+                copy[i] = coerced;
+            }
+        }
+        ancestors['delete'](value);
+        return copy || value;
+    }
+    if (typeof value.toString === 'function') {
+        return value;
+    }
+    var valueOf = value.valueOf;
+    if (typeof valueOf === 'function') {
+        var primitive = valueOf.call(value);
+        if (!primitive || (typeof primitive !== 'object' && typeof primitive !== 'function')) {
+            return String(primitive);
+        }
+    }
+    return objectToString.call(value);
 };
 
 var limit = 1024;
@@ -3495,13 +3743,15 @@ var encode = function encode(str, defaultEncoder, charset, kind, format) {
     if (typeof str === 'symbol') {
         string = Symbol.prototype.toString.call(str);
     } else if (typeof str !== 'string') {
-        string = String(str);
+        string = String(toCoercible(str));
     }
 
     if (charset === 'iso-8859-1') {
+        // `escape` leaves `+` untouched, but a literal `+` is decoded back to a space,
+        // so it must be percent-encoded to round-trip (the utf-8 path already does this).
         return escape(string).replace(/%u[0-9a-f]{4}/gi, function ($0) {
             return '%26%23' + parseInt($0.slice(2), 16) + '%3B';
-        });
+        }).replace(/\+/g, '%2B');
     }
 
     var out = '';
@@ -3522,11 +3772,12 @@ var encode = function encode(str, defaultEncoder, charset, kind, format) {
                 c === 0x2D // -
                 || c === 0x2E // .
                 || c === 0x5F // _
-                || c === 0x7E // ~
+                || (c === 0x7E && format !== formats.WHATWG) // ~
                 || (c >= 0x30 && c <= 0x39) // 0-9
                 || (c >= 0x41 && c <= 0x5A) // a-z
                 || (c >= 0x61 && c <= 0x7A) // A-Z
                 || (format === formats.RFC1738 && (c === 0x28 || c === 0x29)) // ( )
+                || (format === formats.WHATWG && c === 0x2A) // *
             ) {
                 arr[arr.length] = segment.charAt(i);
                 continue;
@@ -3550,13 +3801,19 @@ var encode = function encode(str, defaultEncoder, charset, kind, format) {
                 continue;
             }
 
-            i += 1;
-            c = 0x10000 + (((c & 0x3FF) << 10) | (segment.charCodeAt(i) & 0x3FF));
+            var next = segment.charCodeAt(i + 1);
+            if (c <= 0xDBFF && next >= 0xDC00 && next <= 0xDFFF) {
+                i += 1;
+                c = 0x10000 + (((c & 0x3FF) << 10) | (next & 0x3FF));
 
-            arr[arr.length] = hexTable[0xF0 | (c >> 18)]
-                + hexTable[0x80 | ((c >> 12) & 0x3F)]
-                + hexTable[0x80 | ((c >> 6) & 0x3F)]
-                + hexTable[0x80 | (c & 0x3F)];
+                arr[arr.length] = hexTable[0xF0 | (c >> 18)]
+                    + hexTable[0x80 | ((c >> 12) & 0x3F)]
+                    + hexTable[0x80 | ((c >> 6) & 0x3F)]
+                    + hexTable[0x80 | (c & 0x3F)];
+            } else {
+                // a lone surrogate has no UTF-8 encoding; like `URLSearchParams` and `TextEncoder`, emit U+FFFD
+                arr[arr.length] = '%EF%BF%BD';
+            }
         }
 
         out += arr.join('');
@@ -3653,7 +3910,9 @@ module.exports = {
     isRegExp: isRegExp,
     markOverflow: markOverflow,
     maybeMap: maybeMap,
-    merge: merge
+    merge: merge,
+    setProperty: setProperty,
+    toCoercible: toCoercible
 };
 
 
@@ -11882,7 +12141,7 @@ function defaultFactory (origin, opts) {
 }
 
 class Agent extends DispatcherBase {
-  constructor ({ factory = defaultFactory, maxRedirections = 0, connect, ...options } = {}) {
+  constructor ({ factory = defaultFactory, maxRedirections = 0, connect, tls, ...options } = {}) {
     if (typeof factory !== 'function') {
       throw new InvalidArgumentError('factory must be a function.')
     }
@@ -11901,11 +12160,15 @@ class Agent extends DispatcherBase {
       connect = { ...connect }
     }
 
+    if (tls && typeof tls !== 'function') {
+      tls = { ...tls }
+    }
+
     this[kInterceptors] = options.interceptors?.Agent && Array.isArray(options.interceptors.Agent)
       ? options.interceptors.Agent
       : [createRedirectInterceptor({ maxRedirections })]
 
-    this[kOptions] = { ...util.deepClone(options), connect }
+    this[kOptions] = { ...util.deepClone(options), connect, tls }
     this[kOptions].interceptors = options.interceptors
       ? { ...options.interceptors }
       : undefined
@@ -12938,8 +13201,6 @@ async function connectH1 (client, socket) {
   socket[kParser] = new Parser(client, socket, llhttpInstance)
 
   addListener(socket, 'error', function (err) {
-    assert(err.code !== 'ERR_TLS_CERT_ALTNAME_INVALID')
-
     const parser = this[kParser]
 
     // On Mac OS, we get an ECONNRESET even if there is a full body to be forwarded
@@ -13869,8 +14130,6 @@ async function connectH2 (client, socket) {
   socket[kHTTP2Session] = session
 
   util.addListener(socket, 'error', function (err) {
-    assert(err.code !== 'ERR_TLS_CERT_ALTNAME_INVALID')
-
     this[kError] = err
 
     this[kClient][kOnError](err)
@@ -13944,8 +14203,6 @@ function resumeH2 (client) {
 }
 
 function onHttp2SessionError (err) {
-  assert(err.code !== 'ERR_TLS_CERT_ALTNAME_INVALID')
-
   this[kSocket][kError] = err
   this[kClient][kOnError](err)
 }
@@ -14643,9 +14900,10 @@ class Client extends DispatcherBase {
     // h2
     maxConcurrentStreams,
     allowH2,
-    webSocket
+    webSocket,
+    eventSource
   } = {}) {
-    super({ webSocket })
+    super({ webSocket, eventSource })
 
     if (keepAlive !== undefined) {
       throw new InvalidArgumentError('unsupported keepAlive, use pipelining=0 instead')
@@ -15166,6 +15424,7 @@ module.exports = Client
 
 
 
+const buffer = __nccwpck_require__(4573)
 const Dispatcher = __nccwpck_require__(883)
 const {
   ClientDestroyedError,
@@ -15178,6 +15437,7 @@ const kOnDestroyed = Symbol('onDestroyed')
 const kOnClosed = Symbol('onClosed')
 const kInterceptedDispatch = Symbol('Intercepted Dispatch')
 const kWebSocketOptions = Symbol('webSocketOptions')
+const kEventSourceOptions = Symbol('eventSourceOptions')
 
 class DispatcherBase extends Dispatcher {
   constructor (opts) {
@@ -15188,12 +15448,19 @@ class DispatcherBase extends Dispatcher {
     this[kClosed] = false
     this[kOnClosed] = []
     this[kWebSocketOptions] = opts?.webSocket ?? {}
+    this[kEventSourceOptions] = opts?.eventSource ?? {}
   }
 
   get webSocketOptions () {
     return {
       maxFragments: this[kWebSocketOptions].maxFragments ?? 131072,
       maxPayloadSize: this[kWebSocketOptions].maxPayloadSize ?? 128 * 1024 * 1024
+    }
+  }
+
+  get eventSourceOptions () {
+    return {
+      maxEventSize: this[kEventSourceOptions].maxEventSize ?? buffer.kStringMaxLength
     }
   }
 
@@ -21555,6 +21822,7 @@ module.exports = {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 
+const buffer = __nccwpck_require__(4573)
 const { Transform } = __nccwpck_require__(7075)
 const { isASCIINumber, isValidLastEventId } = __nccwpck_require__(4811)
 
@@ -21579,10 +21847,18 @@ const COLON = 0x3A
  */
 const SPACE = 0x20
 
+const defaultMaxEventSize = buffer.kStringMaxLength
+
 const DATA = Buffer.from('data')
 const EVENT = Buffer.from('event')
 const ID = Buffer.from('id')
 const RETRY = Buffer.from('retry')
+
+// Each data field creates a string node, and each unconsumed input chunk keeps
+// a Buffer wrapper. The absolute ceiling protects the large default byte limit.
+const minParserItems = 1024
+const maxParserItems = 131072
+const bytesPerParserItem = 128
 
 function isASCIINumberBytes (buffer, start) {
   if (start >= buffer.length) {
@@ -21620,6 +21896,12 @@ function isFieldName (line, length, field) {
   }
 
   return true
+}
+
+function createMaxEventSizeExceededError () {
+  const error = new Error('EventSource message size exceeded')
+  error.aborted = false
+  return error
 }
 
 /**
@@ -21670,6 +21952,13 @@ class EventSourceStream extends Transform {
   pos = 0
   lineChunkIndex = 0
   linePos = 0
+  lineLength = 0
+  eventSize = 0
+  eventFieldSizes = { data: 0, event: 0, id: 0, retry: 0 }
+  dataLineCount = 0
+  maxEventSize
+  maxDataLines
+  maxBufferedChunks
 
   event = {
     data: undefined,
@@ -21680,6 +21969,7 @@ class EventSourceStream extends Transform {
 
   /**
    * @param {object} options
+   * @param {number} [options.maxEventSize]
    * @param {eventSourceSettings} options.eventSourceSettings
    * @param {Function} [options.push]
    */
@@ -21691,6 +21981,12 @@ class EventSourceStream extends Transform {
     super(options)
 
     this.state = options.eventSourceSettings || {}
+    this.maxEventSize = options.maxEventSize ?? defaultMaxEventSize
+    const parserItemLimit = this.maxEventSize > 0
+      ? Math.min(maxParserItems, Math.max(minParserItems, Math.floor(this.maxEventSize / bytesPerParserItem)))
+      : 0
+    this.maxDataLines = parserItemLimit
+    this.maxBufferedChunks = parserItemLimit
     if (options.push) {
       this.push = options.push
     }
@@ -21708,6 +22004,14 @@ class EventSourceStream extends Transform {
       return
     }
 
+    // A leading line ending can immediately release the currently buffered
+    // line, even when it uses the final allowed chunk slot.
+    if (this.maxEventSize > 0 &&
+        this.chunks.length >= this.maxBufferedChunks &&
+        chunk[0] !== LF && chunk[0] !== CR) {
+      callback(createMaxEventSizeExceededError())
+      return
+    }
     this.chunks.push(chunk)
 
     // Strip leading byte-order-mark if we opened the stream and started
@@ -21786,7 +22090,12 @@ class EventSourceStream extends Transform {
 
         // In any case, we can process the line as we reached an
         // end-of-line character
-        this.parseLine(this.readLine(), this.event)
+        try {
+          this.parseLine(this.readLine(), this.event)
+        } catch (error) {
+          callback(error)
+          return
+        }
         this.consumeCurrentByte()
         // A line was processed and this could be the end of the event. We need
         // to check if the next line is empty to determine if the event is
@@ -21795,15 +22104,28 @@ class EventSourceStream extends Transform {
         continue
       }
 
+      // readLine() is only called after CR or LF. Reject an unfinished line
+      // before it can retain an unbounded number of decoded chunks. The seven
+      // extra bytes allow the longest field prefix ("event: " or "retry: ").
+      if (this.maxEventSize > 0 && ++this.lineLength > this.maxEventSize + 7) {
+        callback(createMaxEventSizeExceededError())
+        return
+      }
       this.advanceCursor()
     }
 
     callback()
   }
 
+  _destroy (error, callback) {
+    this.chunks.length = 0
+    this.clearEvent()
+    super._destroy(error, callback)
+  }
+
   /**
    * @param {Buffer} line
-   * @param {EventStreamEvent} event
+   * @param {EventSourceStreamEvent} event
    */
   parseLine (line, event) {
     // If the line is empty (a blank line)
@@ -21837,6 +22159,13 @@ class EventSourceStream extends Transform {
     }
 
     if (isFieldName(line, fieldLength, DATA)) {
+      if (this.maxEventSize > 0 && this.dataLineCount >= this.maxDataLines) {
+        throw createMaxEventSizeExceededError()
+      }
+      const valueBytes = line.length - valueStart
+      const dataSize = this.eventFieldSizes.data + (event.data === undefined ? 0 : 1) + valueBytes
+      this.setEventFieldSize('data', dataSize)
+
       const value = line.toString('utf8', valueStart)
 
       if (event.data === undefined) {
@@ -21844,11 +22173,13 @@ class EventSourceStream extends Transform {
       } else {
         event.data += `\n${value}`
       }
+      this.dataLineCount++
       return
     }
 
     if (isFieldName(line, fieldLength, RETRY)) {
       if (isASCIINumberBytes(line, valueStart)) {
+        this.setEventFieldSize('retry', line.length - valueStart)
         event.retry = line.toString('utf8', valueStart)
       }
       return
@@ -21856,18 +22187,27 @@ class EventSourceStream extends Transform {
 
     if (isFieldName(line, fieldLength, ID)) {
       if (isValidLastEventIdBytes(line, valueStart)) {
+        this.setEventFieldSize('id', line.length - valueStart)
         event.id = line.toString('utf8', valueStart)
       }
       return
     }
 
     if (isFieldName(line, fieldLength, EVENT)) {
-      const value = line.toString('utf8', valueStart)
-
-      if (value.length > 0) {
-        event.event = value
+      if (valueStart < line.length) {
+        this.setEventFieldSize('event', line.length - valueStart)
+        event.event = line.toString('utf8', valueStart)
       }
     }
+  }
+
+  setEventFieldSize (field, size) {
+    const eventSize = this.eventSize - this.eventFieldSizes[field] + size
+    if (this.maxEventSize > 0 && eventSize > this.maxEventSize) {
+      throw createMaxEventSizeExceededError()
+    }
+    this.eventSize = eventSize
+    this.eventFieldSizes[field] = size
   }
 
   /**
@@ -21900,6 +22240,12 @@ class EventSourceStream extends Transform {
     this.event.event = undefined
     this.event.id = undefined
     this.event.retry = undefined
+    this.eventSize = 0
+    this.dataLineCount = 0
+    this.eventFieldSizes.data = 0
+    this.eventFieldSizes.event = 0
+    this.eventFieldSizes.id = 0
+    this.eventFieldSizes.retry = 0
   }
 
   hasPendingEvent () {
@@ -21935,14 +22281,16 @@ class EventSourceStream extends Transform {
   syncLineStartToCursor () {
     this.lineChunkIndex = this.chunkIndex
     this.linePos = this.pos
+    this.lineLength = 0
     this.dropConsumedChunks()
   }
 
   dropConsumedChunks () {
-    while (this.lineChunkIndex > 0) {
-      this.chunks.shift()
-      this.lineChunkIndex--
-      this.chunkIndex--
+    if (this.lineChunkIndex > 0) {
+      const consumed = this.lineChunkIndex
+      this.chunks.splice(0, consumed)
+      this.lineChunkIndex = 0
+      this.chunkIndex -= consumed
     }
 
     if (this.chunkIndex === this.chunks.length) {
@@ -22067,6 +22415,7 @@ const { isNetworkError } = __nccwpck_require__(9051)
 const { delay } = __nccwpck_require__(4811)
 const { kEnumerableProperty } = __nccwpck_require__(3440)
 const { environmentSettingsObject } = __nccwpck_require__(3168)
+const { getGlobalDispatcher } = __nccwpck_require__(2581)
 
 let experimentalWarned = false
 
@@ -22348,6 +22697,7 @@ class EventSource extends EventTarget {
 
       const eventSourceStream = new EventSourceStream({
         eventSourceSettings: this.#state,
+        maxEventSize: this.#dispatcher.eventSourceOptions?.maxEventSize,
         push: (event) => {
           this.dispatchEvent(createFastMessageEvent(
             event.type,
@@ -22526,7 +22876,8 @@ webidl.converters.EventSourceInitDict = webidl.dictionaryConverter([
   },
   {
     key: 'dispatcher', // undici only
-    converter: webidl.converters.any
+    converter: webidl.converters.any,
+    defaultValue: () => getGlobalDispatcher()
   }
 ])
 
@@ -27622,8 +27973,10 @@ async function httpNetworkFetch (
   // 19. Run these steps in parallel:
 
   //    1. Run these steps, but abort when fetchParams is canceled:
-  fetchParams.controller.onAborted = onAborted
-  fetchParams.controller.on('terminated', onAborted)
+  if (!fetchParams.controller.resume) {
+    fetchParams.controller.on('terminated', onAborted)
+  }
+
   fetchParams.controller.resume = async () => {
     // 1. While true
     while (true) {
@@ -27792,8 +28145,6 @@ async function httpNetworkFetch (
           }
           location = headersList.get('location', true)
 
-          this.body = new Readable({ read: resume })
-
           const decoders = []
 
           const willFollow = location && request.redirect === 'follow' &&
@@ -27811,7 +28162,7 @@ async function httpNetworkFetch (
             // CVE fix similar to urllib3 (GHSA-gm62-xv2j-4w53) and curl (CVE-2022-32206).
             const maxContentEncodings = 5
             if (codings.length > maxContentEncodings) {
-              reject(new Error(`too many content-encodings in response: ${codings.length}, maximum allowed is ${maxContentEncodings}`))
+              this.abort(new Error(`too many content-encodings in response: ${codings.length}, maximum allowed is ${maxContentEncodings}`))
               return true
             }
 
@@ -27843,6 +28194,8 @@ async function httpNetworkFetch (
               }
             }
           }
+
+          this.body = new Readable({ read: resume })
 
           const onError = this.onError.bind(this)
 
@@ -27888,10 +28241,6 @@ async function httpNetworkFetch (
         onComplete () {
           if (this.abort) {
             fetchParams.controller.off('terminated', this.abort)
-          }
-
-          if (fetchParams.controller.onAborted) {
-            fetchParams.controller.off('terminated', fetchParams.controller.onAborted)
           }
 
           fetchParams.controller.ended = true
@@ -34368,6 +34717,20 @@ class ByteParser extends Writable {
         if (isControlFrame(this.#info.opcode)) {
           this.#loop = this.parseControlFrame(body)
           this.#state = parserStates.INFO
+
+          // If the automatic PONG/CLOSE reply filled the socket's write buffer,
+          // stop parsing and resume on drain so a PING flood cannot grow the
+          // outbound queue without bound.
+          const socket = this.ws[kResponse].socket
+          if (this.#loop && socket.writableNeedDrain) {
+            this.#loop = false
+            socket.once('drain', () => {
+              if (this.destroyed) return
+              this.#loop = true
+              this.run(callback)
+            })
+            return
+          }
         } else {
           if (!this.#info.compressed) {
             if (!this.writeFragments(body)) {
