@@ -1,13 +1,14 @@
-import * as auth from '../../build-scan-shared/src/auth/auth'
 import * as errorHandler from '../../build-scan-shared/src/error'
 import * as injection from './injection'
 import * as input from '../../build-scan-shared/src/setup/input'
 
 export async function main(): Promise<void> {
     try {
-        const accessToken = await auth.getAccessToken(input.getDevelocityAccessKey(), input.getDevelocityTokenExpiry())
+        const accessToken = await input.getAccessToken()
 
-        await injection.installDevelocity(accessToken)
+        await injection.installDevelocity()
+
+        input.exportAccessToken(accessToken)
     } catch (error) {
         errorHandler.handle(error)
     }

@@ -2,6 +2,9 @@ import * as sharedInput from '../../build-scan-shared/src/input'
 
 const DEFAULT_AGENT_BASE_URL = 'https://develocity-python-pkgs.gradle.com'
 
+// The version this release of the action was tested with
+const DEFAULT_AGENT_VERSION = '0.10.1'
+
 /**
  * Checksums of the agent versions this action was tested with, so the default install is verified without
  * further input.
@@ -21,7 +24,7 @@ export function getPythonExecutable(): string {
 export function getAgentRequirement(): string {
     return agentRequirement(
         sharedInput.getInput('develocity-python-agent-url-override'),
-        sharedInput.getInput('develocity-python-agent-version'),
+        sharedInput.getInput('develocity-python-agent-version') || DEFAULT_AGENT_VERSION,
         sharedInput.getInput('develocity-python-agent-sha256')
     )
 }

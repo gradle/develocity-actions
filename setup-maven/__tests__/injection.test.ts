@@ -3,6 +3,7 @@ import {jest} from '@jest/globals'
 const mockGetDevelocityInjectionEnabled = jest.fn()
 const mockGetDevelocityUrl = jest.fn()
 const mockGetDevelocityCustomMavenExtensionCoordinates = jest.fn()
+const mockGetDevelocityMavenExtensionVersion = jest.fn().mockReturnValue('42.0')
 
 jest.unstable_mockModule('../../build-scan-shared/src/setup/input', () => ({
     getDevelocityInjectionEnabled: mockGetDevelocityInjectionEnabled,
@@ -13,7 +14,7 @@ jest.unstable_mockModule('../../build-scan-shared/src/setup/input', () => ({
     getDevelocityMavenRepositoryPassword: jest.fn().mockReturnValue('passwd'),
     getCcudExtensionVersion: jest.fn().mockReturnValue('42.0'),
     getDevelocityCustomMavenExtensionCoordinates: mockGetDevelocityCustomMavenExtensionCoordinates,
-    getDevelocityMavenExtensionVersion: jest.fn().mockReturnValue('42.0'),
+    getDevelocityMavenExtensionVersion: mockGetDevelocityMavenExtensionVersion,
     getDevelocityAllowUntrustedServer: jest.fn().mockReturnValue('true'),
     getDevelocityCaptureFileFingerprints: jest.fn().mockReturnValue('true'),
     getDevelocityCustomCcudExtensionCoordinates: jest.fn()
@@ -123,5 +124,43 @@ describe('Injection', () => {
             {username: 'user', password: 'passwd'}
         )
         expect(result).toContain('common-custom-user-data-maven-extension-42.0.jar')
+    })
+
+    it('injects the default Develocity Maven extension version when none is configured', async () => {
+        // given
+        mockGetDevelocityInjectionEnabled.mockReturnValue(true)
+        mockGetDevelocityUrl.mockReturnValue('http://example.com')
+        mockGetDevelocityMavenExtensionVersion.mockReturnValueOnce('')
+        mockExistsSync.mockReturnValue(false)
+        mockDownloadFile.mockReturnValue('develocity-maven-extension-2.6.1.jar')
+
+        // when
+        const result = await constructDevelocityMavenOpts(DOWNLOAD_FOLDER, '2.6.1')
+
+        // then
+        expect(mockDownloadFile).toHaveBeenCalledWith(
+            'https://some/repo/com/gradle/develocity-maven-extension/2.6.1/develocity-maven-extension-2.6.1.jar',
+            'foo',
+            {username: 'user', password: 'passwd'}
+        )
+        expect(result).toContain(':develocity-maven-extension-2.6.1.jar')
+    })
+
+    it('injects the configured Develocity Maven extension version over the default one', async () => {
+        // given
+        mockGetDevelocityInjectionEnabled.mockReturnValue(true)
+        mockGetDevelocityUrl.mockReturnValue('http://example.com')
+        mockExistsSync.mockReturnValue(false)
+        mockDownloadFile.mockReturnValue('develocity-maven-extension-42.0.jar')
+
+        // when
+        await constructDevelocityMavenOpts(DOWNLOAD_FOLDER, '2.6.1')
+
+        // then
+        expect(mockDownloadFile).toHaveBeenCalledWith(
+            'https://some/repo/com/gradle/develocity-maven-extension/42.0/develocity-maven-extension-42.0.jar',
+            'foo',
+            {username: 'user', password: 'passwd'}
+        )
     })
 })

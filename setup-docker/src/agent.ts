@@ -4,6 +4,8 @@ import fs from 'fs'
 import path from 'path'
 import {ChildProcess, execFileSync, spawn, spawnSync} from 'child_process'
 
+import * as auth from '../../build-scan-shared/src/auth/auth'
+
 const AGENT_JAR_NAME = 'develocity-docker-agent.jar'
 const AGENT_LOG_NAME = 'develocity-docker-agent.log'
 const SUBSCRIBED_MARKER = 'waiting for builds'
@@ -63,7 +65,7 @@ export interface HistoryRecord {
  * returning early would race the first build of the job.
  */
 export async function start(configuration: AgentConfiguration): Promise<void> {
-    maskAccessKey(configuration.accessKey)
+    auth.maskAccessKey(configuration.accessKey)
 
     // Each step gets its own directory, so a second setup in the same job reads and counts only its own agent
     const workDirectory = fs.mkdtempSync(path.join(runnerTemp(), 'develocity-docker-agent-'))
@@ -214,25 +216,6 @@ export function readLog(logFile: string): string {
     } catch (error) {
         core.debug(`Could not read the agent log: ${error}`)
         return ''
-    }
-}
-
-/**
- * Registers the access key as a secret, so that printing the agent log never shows it.
- *
- * The runner masks a registered value only where it appears whole. The agent holds the part after
- * `host=`, so each per-host key is registered as well.
- */
-export function maskAccessKey(accessKey: string): void {
-    if (!accessKey) {
-        return
-    }
-    core.setSecret(accessKey)
-    for (const entry of accessKey.split(';')) {
-        const key = entry.substring(entry.indexOf('=') + 1).trim()
-        if (key) {
-            core.setSecret(key)
-        }
     }
 }
 

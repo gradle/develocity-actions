@@ -4,8 +4,13 @@ import {XMLParser} from 'fast-xml-parser'
 import * as input from '../../build-scan-shared/src/setup/input'
 import * as io from '../../build-scan-shared/src/utils/io'
 
-export async function constructDevelocityMavenOpts(downloadFolder: string): Promise<string> {
+export async function constructDevelocityMavenOpts(
+    downloadFolder: string,
+    defaultDevelocityMavenExtensionVersion = ''
+): Promise<string> {
     let develocityMavenExtensionMavenOpts = ''
+    const develocityMavenExtensionVersion =
+        input.getDevelocityMavenExtensionVersion() || defaultDevelocityMavenExtensionVersion
 
     function ensureSlash(url: string): string {
         return url.endsWith('/') ? url : `${url}/`
@@ -30,9 +35,9 @@ export async function constructDevelocityMavenOpts(downloadFolder: string): Prom
             const password = input.getDevelocityMavenRepositoryPassword()
             const credentials: io.Credentials | undefined = username && password ? {username, password} : undefined
 
-            if (input.getDevelocityMavenExtensionVersion()) {
+            if (develocityMavenExtensionVersion) {
                 const develocityMavenExtensionJar = await io.downloadFile(
-                    `${repository}com/gradle/develocity-maven-extension/${input.getDevelocityMavenExtensionVersion()}/develocity-maven-extension-${input.getDevelocityMavenExtensionVersion()}.jar`,
+                    `${repository}com/gradle/develocity-maven-extension/${develocityMavenExtensionVersion}/develocity-maven-extension-${develocityMavenExtensionVersion}.jar`,
                     downloadFolder,
                     credentials
                 )
