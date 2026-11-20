@@ -77859,7 +77859,7 @@ function isHttps(requestUrl) {
     const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
-class lib_HttpClient {
+class HttpClient {
     constructor(userAgent, handlers, requestOptions) {
         this._ignoreSslError = false;
         this._allowRedirects = true;
@@ -78466,7 +78466,7 @@ class BasicCredentialHandler {
         });
     }
 }
-class auth_BearerCredentialHandler {
+class BearerCredentialHandler {
     constructor(token) {
         this.token = token;
     }
@@ -78524,13 +78524,13 @@ var oidc_utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
-class oidc_utils_OidcClient {
+class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
         const requestOptions = {
             allowRetries: allowRetry,
             maxRetries: maxRetry
         };
-        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(oidc_utils_OidcClient.getRequestToken())], requestOptions);
+        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
     }
     static getRequestToken() {
         const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
@@ -78549,7 +78549,7 @@ class oidc_utils_OidcClient {
     static getCall(id_token_url) {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             var _a;
-            const httpclient = oidc_utils_OidcClient.createHttpClient();
+            const httpclient = OidcClient.createHttpClient();
             const res = yield httpclient
                 .getJson(id_token_url)
                 .catch(error => {
@@ -78568,13 +78568,13 @@ class oidc_utils_OidcClient {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             try {
                 // New ID Token is requested from action service
-                let id_token_url = oidc_utils_OidcClient.getIDTokenUrl();
+                let id_token_url = OidcClient.getIDTokenUrl();
                 if (audience) {
                     const encodedAudience = encodeURIComponent(audience);
                     id_token_url = `${id_token_url}&audience=${encodedAudience}`;
                 }
-                debug(`ID token url is ${id_token_url}`);
-                const id_token = yield oidc_utils_OidcClient.getCall(id_token_url);
+                core_debug(`ID token url is ${id_token_url}`);
+                const id_token = yield OidcClient.getCall(id_token_url);
                 setSecret(id_token);
                 return id_token;
             }
@@ -80172,7 +80172,7 @@ function exportVariable(name, val) {
  * console.log(`Using token: ${apiToken}`); // Outputs: "Using token: ***"
  * ```
  */
-function core_setSecret(secret) {
+function setSecret(secret) {
     command_issueCommand('add-mask', {}, secret);
 }
 /**
@@ -84134,25 +84134,67 @@ class DevelocityAccessCredentials {
 
 const ENV_KEY_DEVELOCITY_ACCESS_KEY = 'DEVELOCITY_ACCESS_KEY';
 const ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY = 'GRADLE_ENTERPRISE_ACCESS_KEY';
-async function getAccessToken(develocityAccessKeyFomInput, develocityTokenExpiryFromInput) {
-    if (develocityAccessKeyFomInput) {
-        try {
-            core_debug('Fetching short-lived token...');
-            const tokens = await getToken(develocityAccessKeyFomInput, develocityTokenExpiryFromInput);
-            if (tokens != null && !tokens.isEmpty()) {
-                core_debug(`Got token(s), setting the access key env vars`);
-                return tokens.raw();
-            }
-            else {
-                warning(`Failed to fetch short-lived token`);
-            }
-        }
-        catch (e) {
-            warning(`Failed to fetch short-lived token, reason: ${e}`);
-        }
-        info(`Falling back to using the access key from the input`);
-        return develocityAccessKeyFomInput;
+async function getAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput, workloadIdentityFromInput) {
+    const accessToken = await resolveAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput, workloadIdentityFromInput);
+    maskAccessKey(accessToken);
+    return accessToken;
+}
+/**
+ * Registers the access key as a secret, so that it is never printed.
+ *
+ * The runner masks a registered value only where it appears whole. Build tools and agents use the part after
+ * `host=`, so each per-host key is registered as well.
+ */
+function maskAccessKey(accessKey) {
+    if (!accessKey) {
+        return;
     }
+    setSecret(accessKey);
+    for (const entry of accessKey.split(';')) {
+        const key = entry.substring(entry.indexOf('=') + 1).trim();
+        if (key) {
+            setSecret(key);
+        }
+    }
+}
+/**
+ * Use the credential selected by the inputs: the GitHub OIDC token when develocity-auth is workload-identity, the access
+ * key otherwise. It is never replaced by another credential: when it cannot be exchanged for a short-lived token, the
+ * build runs without authentication.
+ */
+async function resolveAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput, workloadIdentityFromInput) {
+    if (workloadIdentityFromInput) {
+        if (develocityAccessKeyFromInput) {
+            warning('Ignoring develocity-access-key as develocity-auth is workload-identity');
+        }
+        return getWorkloadIdentityAccessToken(workloadIdentityFromInput, develocityTokenExpiryFromInput);
+    }
+    if (develocityAccessKeyFromInput) {
+        info('Authenticating with develocity-access-key');
+        return exchangeForShortLivedToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput);
+    }
+    return getAccessKeyFromEnv();
+}
+async function exchangeForShortLivedToken(accessKey, expiry, hint = '') {
+    let reason = '';
+    try {
+        core_debug('Fetching short-lived token...');
+        const tokens = await getToken(accessKey, expiry);
+        if (tokens != null && !tokens.isEmpty()) {
+            core_debug('Got short-lived token(s)');
+            return tokens.raw();
+        }
+    }
+    catch (e) {
+        reason = `, reason: ${e}`;
+    }
+    return runWithoutAuthentication(`${reason}${hint}`);
+}
+function runWithoutAuthentication(reason = '') {
+    warning(`No short-lived token could be obtained, running without Develocity authentication${reason}`);
+    return '';
+}
+function getAccessKeyFromEnv() {
     const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY];
     if (develocityAccessKeyFromEnv) {
         warning(`The ${ENV_KEY_DEVELOCITY_ACCESS_KEY} env var should be mapped to a short-lived token`);
@@ -84165,6 +84207,48 @@ async function getAccessToken(develocityAccessKeyFomInput, develocityTokenExpiry
     }
     core_debug('Using anonymous access');
     return '';
+}
+/**
+ * Mint a GitHub OIDC token for the Develocity server, and exchange it for a short-lived token. Develocity accepts it
+ * when a workload identity rule matches its issuer, audience and claims. The audience defaults to the origin of the
+ * Develocity URL.
+ */
+async function getWorkloadIdentityAccessToken(workloadIdentity, expiry) {
+    let url;
+    try {
+        url = new URL(workloadIdentity.develocityUrl);
+    }
+    catch {
+        warning(workloadIdentity.develocityUrl
+            ? `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
+            : 'Workload identity requires develocity-url to be set');
+        return runWithoutAuthentication();
+    }
+    // The origin of a URL that is not http(s) is the string 'null'
+    const audience = workloadIdentity.audience || (url.origin === 'null' ? '' : url.origin);
+    if (!audience) {
+        warning(`Workload identity requires an audience: '${workloadIdentity.develocityUrl}' has no origin, set develocity-oidc-audience or use an http(s) develocity-url`);
+        return runWithoutAuthentication();
+    }
+    info(`Authenticating with workload identity, with a GitHub OIDC token for audience '${audience}'`);
+    if (!process.env['ACTIONS_ID_TOKEN_REQUEST_URL']) {
+        warning("No GitHub OIDC token is available to this job: grant the job the 'id-token: write' permission. GitHub provides " +
+            'no OIDC token to pull requests from forks. To use an access key instead, remove develocity-auth: ' +
+            'workload-identity and set develocity-access-key.');
+        return runWithoutAuthentication();
+    }
+    let idToken;
+    try {
+        idToken = await getIDToken(audience);
+        setSecret(idToken);
+    }
+    catch (e) {
+        warning(`Failed to get a GitHub OIDC token for audience '${audience}': ${e}`);
+        return runWithoutAuthentication();
+    }
+    return exchangeForShortLivedToken(`${url.host}=${idToken}`, expiry, `. Check that a workload identity rule matches the job's issuer (https://token.actions.githubusercontent.com, or ` +
+        `https://HOSTNAME/_services/token/actions on GitHub Enterprise Server), the audience '${audience}' and the ` +
+        `workflow's claims`);
 }
 
 ;// CONCATENATED MODULE: ./node_modules/@actions/github/lib/context.js
@@ -89199,7 +89283,7 @@ function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
 }
 function getCcudExtensionVersion() {
-    return sharedInput.getInput('develocity-ccud-extension-version');
+    return sharedInput.getInput('develocity-ccud-maven-extension-version');
 }
 function getDevelocityMavenRepositoryUrl() {
     return sharedInput.getInput('develocity-maven-repository-url');
@@ -89223,13 +89307,34 @@ function getDevelocityEnforceUrl() {
     return getBooleanInput('develocity-enforce-url');
 }
 function getDevelocityCaptureFileFingerprints() {
-    return getBooleanInput('develocity-capture-file-fingerprints');
+    return getBooleanInput('develocity-capture-file-fingerprints', true);
 }
 function getDevelocityAccessKey() {
     return input_getInput('develocity-access-key');
 }
 function getDevelocityTokenExpiry() {
     return input_getInput('develocity-token-expiry');
+}
+function getWorkloadIdentity() {
+    const develocityAuth = sharedInput.getInput('develocity-auth');
+    switch (develocityAuth) {
+        case '':
+        case 'access-key':
+            return undefined;
+        case 'workload-identity':
+            return {
+                develocityUrl: getDevelocityUrl(),
+                audience: sharedInput.getInput('develocity-oidc-audience')
+            };
+        default:
+            throw new Error(`Unsupported develocity-auth '${develocityAuth}'. Valid values are: [access-key, workload-identity]`);
+    }
+}
+/**
+ * Get the short-lived access token for the credential selected by the authentication inputs
+ */
+async function input_getAccessToken() {
+    return auth.getAccessToken(getDevelocityAccessKey(), getDevelocityTokenExpiry(), getWorkloadIdentity());
 }
 function getWorkflowName() {
     // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
@@ -89255,28 +89360,33 @@ function getJobName() {
     }
 }
 function getCaptureStrategy() {
-    return sharedInput.getInput('capture-strategy');
+    return sharedInput.getInput('capture-strategy') || 'ALWAYS';
 }
 function getCaptureUnpublishedBuildScans() {
-    return sharedInput.getInput('capture-unpublished-build-scans');
+    return sharedInput.getInput('capture-unpublished-build-scans') || 'true';
 }
 function getCaptureBuildScanLinks() {
-    return sharedInput.getInput('capture-build-scan-links');
+    return sharedInput.getInput('capture-build-scan-links') || 'true';
 }
 function isAddPrComment() {
-    return input_getBooleanInput('add-pr-comment');
+    return input_getBooleanInput('add-pr-comment', true);
 }
 function isAddJobSummary() {
-    return input_getBooleanInput('add-job-summary');
+    return input_getBooleanInput('add-job-summary', true);
 }
 function isAddProjectIdInJobSummary() {
     return input_getBooleanInput('add-project-id-in-job-summary');
 }
-function exportVariables(accessToken, buildTool) {
+function exportAccessToken(accessToken) {
+    // getAccessToken already masked the token
     if (accessToken) {
-        core.setSecret(accessToken);
         core.exportVariable(auth.ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken);
     }
+}
+/**
+ * Export the configuration read by the Maven capture extension
+ */
+function exportBuildScanCaptureVariables(buildTool) {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy());
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans());
     core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks());
@@ -92402,8 +92512,8 @@ function maskSigUrl(url) {
         const parsedUrl = new URL(url);
         const signature = parsedUrl.searchParams.get('sig');
         if (signature) {
-            core_setSecret(signature);
-            core_setSecret(encodeURIComponent(signature));
+            setSecret(signature);
+            setSecret(encodeURIComponent(signature));
         }
     }
     catch (error) {
@@ -92480,8 +92590,8 @@ class ArtifactHttpClient {
         if (retryMultiplier) {
             this.retryMultiplier = retryMultiplier;
         }
-        this.httpClient = new lib_HttpClient(userAgent, [
-            new auth_BearerCredentialHandler(token)
+        this.httpClient = new HttpClient(userAgent, [
+            new BearerCredentialHandler(token)
         ]);
     }
     // This function satisfies the Rpc interface. It is compatible with the JSON
@@ -138147,7 +138257,7 @@ function streamExtract(url, directory, skipDecompress) {
 function streamExtractExternal(url_1, directory_1) {
     return download_artifact_awaiter(this, arguments, void 0, function* (url, directory, opts = {}) {
         const { timeout = 30 * 1000, skipDecompress = false } = opts;
-        const client = new lib_HttpClient(getUserAgentString());
+        const client = new HttpClient(getUserAgentString());
         const response = yield client.get(url);
         if (response.message.statusCode !== 200) {
             throw new Error(`Unexpected HTTP response from blob storage: ${response.message.statusCode} ${response.message.statusMessage}`);

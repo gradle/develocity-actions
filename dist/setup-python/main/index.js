@@ -33540,6 +33540,36 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("zlib");
 /******/ /* webpack/runtime/asset-relocator-loader */
 /******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = decodeURIComponent(new URL('.', import.meta.url).pathname).slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
 /******/ 
+/******/ /* webpack/runtime/create fake namespace object */
+/******/ (() => {
+/******/ 	var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+/******/ 	var leafPrototypes;
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 16: return value when it's Promise-like
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__nccwpck_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = this(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if(typeof value === 'object' && value) {
+/******/ 			if((mode & 4) && value.__esModule) return value;
+/******/ 			if((mode & 16) && typeof value.then === 'function') return value;
+/******/ 		}
+/******/ 		var ns = Object.create(null);
+/******/ 		__nccwpck_require__.r(ns);
+/******/ 		var def = {};
+/******/ 		leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+/******/ 		for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+/******/ 			Object.getOwnPropertyNames(current).forEach((key) => (def[key] = () => (value[key])));
+/******/ 		}
+/******/ 		def['default'] = () => (value);
+/******/ 		__nccwpck_require__.d(ns, def);
+/******/ 		return ns;
+/******/ 	};
+/******/ })();
+/******/ 
 /******/ /* webpack/runtime/define property getters */
 /******/ (() => {
 /******/ 	// define getter functions for harmony exports
@@ -33555,6 +33585,17 @@ module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("zlib");
 /******/ /* webpack/runtime/hasOwnProperty shorthand */
 /******/ (() => {
 /******/ 	__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/make namespace object */
+/******/ (() => {
+/******/ 	// define __esModule on exports
+/******/ 	__nccwpck_require__.r = (exports) => {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
 /******/ })();
 /******/ 
 /************************************************************************/
@@ -33738,8 +33779,10 @@ function file_command_prepareKeyValueMessage(key, value) {
 const external_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
 // EXTERNAL MODULE: external "http"
 var external_http_ = __nccwpck_require__(8611);
+var external_http_namespaceObject = /*#__PURE__*/__nccwpck_require__.t(external_http_, 2);
 // EXTERNAL MODULE: external "https"
 var external_https_ = __nccwpck_require__(5692);
+var external_https_namespaceObject = /*#__PURE__*/__nccwpck_require__.t(external_https_, 2);
 ;// CONCATENATED MODULE: ./node_modules/@actions/http-client/lib/proxy.js
 function getProxyUrl(reqUrl) {
     const usingSsl = reqUrl.protocol === 'https:';
@@ -33832,7 +33875,7 @@ class DecodedURL extends URL {
 }
 //# sourceMappingURL=proxy.js.map
 // EXTERNAL MODULE: ./node_modules/tunnel/index.js
-var node_modules_tunnel = __nccwpck_require__(770);
+var tunnel = __nccwpck_require__(770);
 // EXTERNAL MODULE: ./node_modules/undici/index.js
 var undici = __nccwpck_require__(6752);
 ;// CONCATENATED MODULE: ./node_modules/@actions/http-client/lib/index.js
@@ -33910,7 +33953,7 @@ const HttpResponseRetryCodes = [
     HttpCodes.ServiceUnavailable,
     HttpCodes.GatewayTimeout
 ];
-const RetryableHttpVerbs = (/* unused pure expression or super */ null && (['OPTIONS', 'GET', 'DELETE', 'HEAD']));
+const RetryableHttpVerbs = ['OPTIONS', 'GET', 'DELETE', 'HEAD'];
 const ExponentialBackoffCeiling = 10;
 const ExponentialBackoffTimeSlice = 5;
 class HttpClientError extends Error {
@@ -33956,7 +33999,7 @@ function isHttps(requestUrl) {
     const parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
-class lib_HttpClient {
+class HttpClient {
     constructor(userAgent, handlers, requestOptions) {
         this._ignoreSslError = false;
         this._allowRedirects = true;
@@ -34259,7 +34302,7 @@ class lib_HttpClient {
     }
     getAgentDispatcher(serverUrl) {
         const parsedUrl = new URL(serverUrl);
-        const proxyUrl = pm.getProxyUrl(parsedUrl);
+        const proxyUrl = getProxyUrl(parsedUrl);
         const useProxy = proxyUrl && proxyUrl.hostname;
         if (!useProxy) {
             return;
@@ -34270,7 +34313,7 @@ class lib_HttpClient {
         const info = {};
         info.parsedUrl = requestUrl;
         const usingSsl = info.parsedUrl.protocol === 'https:';
-        info.httpModule = usingSsl ? https : http;
+        info.httpModule = usingSsl ? external_https_namespaceObject : external_http_namespaceObject;
         const defaultPort = usingSsl ? 443 : 80;
         info.options = {};
         info.options.host = info.parsedUrl.hostname;
@@ -34369,7 +34412,7 @@ class lib_HttpClient {
     }
     _getAgent(parsedUrl) {
         let agent;
-        const proxyUrl = pm.getProxyUrl(parsedUrl);
+        const proxyUrl = getProxyUrl(parsedUrl);
         const useProxy = proxyUrl && proxyUrl.hostname;
         if (this._keepAlive && useProxy) {
             agent = this._proxyAgent;
@@ -34384,7 +34427,7 @@ class lib_HttpClient {
         const usingSsl = parsedUrl.protocol === 'https:';
         let maxSockets = 100;
         if (this.requestOptions) {
-            maxSockets = this.requestOptions.maxSockets || http.globalAgent.maxSockets;
+            maxSockets = this.requestOptions.maxSockets || external_http_.globalAgent.maxSockets;
         }
         // This is `useProxy` again, but we need to check `proxyURl` directly for TypeScripts's flow analysis.
         if (proxyUrl && proxyUrl.hostname) {
@@ -34409,7 +34452,7 @@ class lib_HttpClient {
         // if tunneling agent isn't assigned create a new agent
         if (!agent) {
             const options = { keepAlive: this._keepAlive, maxSockets };
-            agent = usingSsl ? new https.Agent(options) : new http.Agent(options);
+            agent = usingSsl ? new external_https_.Agent(options) : new external_http_.Agent(options);
             this._agent = agent;
         }
         if (usingSsl && this._ignoreSslError) {
@@ -34432,7 +34475,7 @@ class lib_HttpClient {
             return proxyAgent;
         }
         const usingSsl = parsedUrl.protocol === 'https:';
-        proxyAgent = new ProxyAgent(Object.assign({ uri: proxyUrl.href, pipelining: !this._keepAlive ? 0 : 1 }, ((proxyUrl.username || proxyUrl.password) && {
+        proxyAgent = new undici.ProxyAgent(Object.assign({ uri: proxyUrl.href, pipelining: !this._keepAlive ? 0 : 1 }, ((proxyUrl.username || proxyUrl.password) && {
             token: `Basic ${Buffer.from(`${proxyUrl.username}:${proxyUrl.password}`).toString('base64')}`
         })));
         this._proxyAgentDispatcher = proxyAgent;
@@ -34563,7 +34606,7 @@ class BasicCredentialHandler {
         });
     }
 }
-class auth_BearerCredentialHandler {
+class BearerCredentialHandler {
     constructor(token) {
         this.token = token;
     }
@@ -34621,13 +34664,13 @@ var oidc_utils_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
-class oidc_utils_OidcClient {
+class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
         const requestOptions = {
             allowRetries: allowRetry,
             maxRetries: maxRetry
         };
-        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(oidc_utils_OidcClient.getRequestToken())], requestOptions);
+        return new HttpClient('actions/oidc-client', [new BearerCredentialHandler(OidcClient.getRequestToken())], requestOptions);
     }
     static getRequestToken() {
         const token = process.env['ACTIONS_ID_TOKEN_REQUEST_TOKEN'];
@@ -34646,7 +34689,7 @@ class oidc_utils_OidcClient {
     static getCall(id_token_url) {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             var _a;
-            const httpclient = oidc_utils_OidcClient.createHttpClient();
+            const httpclient = OidcClient.createHttpClient();
             const res = yield httpclient
                 .getJson(id_token_url)
                 .catch(error => {
@@ -34665,13 +34708,13 @@ class oidc_utils_OidcClient {
         return oidc_utils_awaiter(this, void 0, void 0, function* () {
             try {
                 // New ID Token is requested from action service
-                let id_token_url = oidc_utils_OidcClient.getIDTokenUrl();
+                let id_token_url = OidcClient.getIDTokenUrl();
                 if (audience) {
                     const encodedAudience = encodeURIComponent(audience);
                     id_token_url = `${id_token_url}&audience=${encodedAudience}`;
                 }
                 debug(`ID token url is ${id_token_url}`);
-                const id_token = yield oidc_utils_OidcClient.getCall(id_token_url);
+                const id_token = yield OidcClient.getCall(id_token_url);
                 setSecret(id_token);
                 return id_token;
             }
@@ -36269,7 +36312,7 @@ function exportVariable(name, val) {
  * console.log(`Using token: ${apiToken}`); // Outputs: "Using token: ***"
  * ```
  */
-function core_setSecret(secret) {
+function setSecret(secret) {
     command_issueCommand('add-mask', {}, secret);
 }
 /**
@@ -36391,7 +36434,7 @@ function isDebug() {
  * Writes debug message to user log
  * @param message debug message
  */
-function core_debug(message) {
+function debug(message) {
     command_issueCommand('debug', {}, message);
 }
 /**
@@ -36510,229 +36553,6 @@ function getIDToken(aud) {
  */
 
 //# sourceMappingURL=core.js.map
-// EXTERNAL MODULE: ./node_modules/typed-rest-client/HttpClient.js
-var typed_rest_client_HttpClient = __nccwpck_require__(6184);
-;// CONCATENATED MODULE: ./build-scan-shared/src/auth/short-lived-token.ts
-
-
-// MODIFICATIONS START HERE
-// This file is copied from https://github.com/gradle/actions/blob/main/sources/src/develocity/short-lived-token.ts
-// and trimmed to fit the needs of this project
-//
-// import {BuildScanConfig} from '../configuration'
-// import {recordDeprecation} from '../deprecation-collector'
-// export async function setupToken(develocityAccessKey: string, develocityTokenExpiry: string): Promise<void> {
-//     if (develocityAccessKey) {
-//         try {
-//             core.debug('Fetching short-lived token...')
-//             const tokens = await getToken(develocityAccessKey, develocityTokenExpiry)
-//             if (tokens != null && !tokens.isEmpty()) {
-//                 core.debug(`Got token(s), setting the access key env vars`)
-//                 const token = tokens.raw()
-//                 core.setSecret(token)
-//                 exportAccessKeyEnvVars(token)
-//             } else {
-//                 handleMissingAccessToken()
-//             }
-//         } catch (e) {
-//             handleMissingAccessToken()
-//             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
-//         }
-//     }
-// }
-//
-// function exportAccessKeyEnvVars(value: string): void {
-//     ;[BuildScanConfig.DevelocityAccessKeyEnvVar, BuildScanConfig.GradleEnterpriseAccessKeyEnvVar].forEach(key =>
-//         core.exportVariable(key, value)
-//     )
-// }
-//
-// function handleMissingAccessToken(): void {
-//     core.warning(`Failed to fetch short-lived token for Develocity`)
-//
-//     if (process.env[BuildScanConfig.GradleEnterpriseAccessKeyEnvVar]) {
-//         // We do not clear the GRADLE_ENTERPRISE_ACCESS_KEY env var in v3, to let the users upgrade to DV 2024.1
-//         recordDeprecation(`The ${BuildScanConfig.GradleEnterpriseAccessKeyEnvVar} env var is deprecated`)
-//     }
-//     if (process.env[BuildScanConfig.DevelocityAccessKeyEnvVar]) {
-//         core.warning(`The ${BuildScanConfig.DevelocityAccessKeyEnvVar} env var should be mapped to a short-lived token`)
-//     }
-// }
-// MODIFICATIONS END HERE
-async function getToken(accessKey, expiry) {
-    const empty = new Promise(r => r(null));
-    const develocityAccessKey = DevelocityAccessCredentials.parse(accessKey);
-    const shortLivedTokenClient = new ShortLivedTokenClient();
-    if (develocityAccessKey == null) {
-        return empty;
-    }
-    const tokens = new Array();
-    for (const k of develocityAccessKey.keys) {
-        try {
-            info(`Requesting short-lived Develocity access token for ${k.hostname}`);
-            const token = await shortLivedTokenClient.fetchToken(`https://${k.hostname}`, k, expiry);
-            tokens.push(token);
-        }
-        catch (e) {
-            // Ignore failure to obtain token
-            info(`Failed to obtain short-lived Develocity access token for ${k.hostname}: ${e}`);
-        }
-    }
-    if (tokens.length > 0) {
-        return DevelocityAccessCredentials.of(tokens);
-    }
-    return empty;
-}
-class ShortLivedTokenClient {
-    httpc = new typed_rest_client_HttpClient.HttpClient('gradle/actions/setup-gradle');
-    maxRetries = 3;
-    retryInterval = 1000;
-    async fetchToken(serverUrl, accessKey, expiry) {
-        const queryParams = expiry ? `?expiresInHours=${expiry}` : '';
-        const sanitizedServerUrl = !serverUrl.endsWith('/') ? `${serverUrl}/` : serverUrl;
-        const headers = {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessKey.key}`
-        };
-        let attempts = 0;
-        while (attempts < this.maxRetries) {
-            try {
-                const requestUrl = `${sanitizedServerUrl}api/auth/token${queryParams}`;
-                core_debug(`Attempt ${attempts} to fetch short lived token at ${requestUrl}`);
-                const response = await this.httpc.post(requestUrl, '', headers);
-                if (response.message.statusCode === 200) {
-                    const text = await response.readBody();
-                    return new Promise(resolve => resolve({ hostname: accessKey.hostname, key: text }));
-                }
-                // This should be only 404
-                attempts++;
-                if (attempts === this.maxRetries) {
-                    return new Promise((resolve, reject) => reject(new Error(`Develocity short lived token request failed ${serverUrl} with status code ${response.message.statusCode}`)));
-                }
-            }
-            catch (error) {
-                attempts++;
-                if (attempts === this.maxRetries) {
-                    return new Promise((resolve, reject) => reject(error));
-                }
-            }
-            await new Promise(resolve => setTimeout(resolve, this.retryInterval));
-        }
-        return new Promise((resolve, reject) => reject(new Error('Illegal state')));
-    }
-}
-class DevelocityAccessCredentials {
-    keys;
-    constructor(allKeys) {
-        this.keys = allKeys;
-    }
-    static of(allKeys) {
-        return new DevelocityAccessCredentials(allKeys);
-    }
-    static keyDelimiter = ';';
-    static hostDelimiter = '=';
-    static whitespace = /\s/;
-    /**
-     * Parse a `host=key[;host=key]*` access key value.
-     *
-     * Only the structure needed to split the value is validated: entries are separated by `;`, and
-     * each entry is a hostname followed by `=` and a key, where the hostname contains no `=`, `;` or
-     * whitespace, and the key is non-empty and contains no `;` or whitespace. Nothing else is
-     * assumed about the key: it may be an OIDC token containing `.`, `-`, `_` and `=` padding, so
-     * each entry is split on its _first_ `=` only.
-     *
-     * Returns `null` if the value doesn't match, emitting a warning that describes what is wrong.
-     */
-    static parse(rawKey) {
-        const trimmedKey = rawKey.trim();
-        if (!trimmedKey) {
-            return null;
-        }
-        const keys = new Array();
-        const entries = trimmedKey.split(this.keyDelimiter);
-        for (const [index, entry] of entries.entries()) {
-            const separatorIndex = entry.indexOf(this.hostDelimiter);
-            if (separatorIndex === -1) {
-                return this.warnBadlyFormed(index, entries.length, `no '${this.hostDelimiter}' separator`);
-            }
-            const hostname = entry.substring(0, separatorIndex);
-            const key = entry.substring(separatorIndex + 1);
-            if (!hostname) {
-                return this.warnBadlyFormed(index, entries.length, 'empty server name');
-            }
-            if (!key) {
-                return this.warnBadlyFormed(index, entries.length, 'empty key');
-            }
-            if (this.whitespace.test(hostname)) {
-                return this.warnBadlyFormed(index, entries.length, 'whitespace in the server name');
-            }
-            if (this.whitespace.test(key)) {
-                return this.warnBadlyFormed(index, entries.length, 'whitespace in the key');
-            }
-            keys.push({ hostname, key });
-        }
-        return new DevelocityAccessCredentials(keys);
-    }
-    /**
-     * Warn that an access key value is badly formed and cannot be parsed. Reports only the position
-     * of the offending entry and the reason: the value is a secret, and is not yet registered for
-     * masking at this point, so no part of it is ever included in the message.
-     */
-    static warnBadlyFormed(index, entryCount, reason) {
-        const location = entryCount > 1 ? `entry ${index + 1} of ${entryCount}` : 'the value';
-        warning(`Ignoring badly formed Develocity access key: ${reason} in ${location}. ` +
-            `The expected format is 'server${this.hostDelimiter}key` +
-            `[${this.keyDelimiter}server${this.hostDelimiter}key]*'.`);
-        return null;
-    }
-    isEmpty() {
-        return this.keys.length === 0;
-    }
-    raw() {
-        return this.keys
-            .map(k => `${k.hostname}${DevelocityAccessCredentials.hostDelimiter}${k.key}`)
-            .join(DevelocityAccessCredentials.keyDelimiter);
-    }
-}
-
-;// CONCATENATED MODULE: ./build-scan-shared/src/auth/auth.ts
-
-
-const ENV_KEY_DEVELOCITY_ACCESS_KEY = 'DEVELOCITY_ACCESS_KEY';
-const ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY = 'GRADLE_ENTERPRISE_ACCESS_KEY';
-async function getAccessToken(develocityAccessKeyFomInput, develocityTokenExpiryFromInput) {
-    if (develocityAccessKeyFomInput) {
-        try {
-            core_debug('Fetching short-lived token...');
-            const tokens = await getToken(develocityAccessKeyFomInput, develocityTokenExpiryFromInput);
-            if (tokens != null && !tokens.isEmpty()) {
-                core_debug(`Got token(s), setting the access key env vars`);
-                return tokens.raw();
-            }
-            else {
-                warning(`Failed to fetch short-lived token`);
-            }
-        }
-        catch (e) {
-            warning(`Failed to fetch short-lived token, reason: ${e}`);
-        }
-        info(`Falling back to using the access key from the input`);
-        return develocityAccessKeyFomInput;
-    }
-    const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY];
-    if (develocityAccessKeyFromEnv) {
-        warning(`The ${ENV_KEY_DEVELOCITY_ACCESS_KEY} env var should be mapped to a short-lived token`);
-        return develocityAccessKeyFromEnv;
-    }
-    const gradleEnterpriseAccessKeyFromEnv = process.env[ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY];
-    if (gradleEnterpriseAccessKeyFromEnv) {
-        warning(`The ${ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY} env var is deprecated`);
-        return gradleEnterpriseAccessKeyFromEnv;
-    }
-    core_debug('Using anonymous access');
-    return '';
-}
-
 ;// CONCATENATED MODULE: ./build-scan-shared/src/error.ts
 
 function handle(error) {
@@ -38632,7 +38452,7 @@ var jwtRE = new RegExp(`^${b64url}${sep}${b64url}${sep}${b64url}$`);
 var isJWT = jwtRE.test.bind(jwtRE);
 
 // pkg/dist-src/auth.js
-async function dist_bundle_auth(token) {
+async function auth(token) {
   const isApp = isJWT(token);
   const isInstallation = token.startsWith("v1.") || token.startsWith("ghs_");
   const isUserToServer = token.startsWith("ghu_");
@@ -38673,7 +38493,7 @@ var createTokenAuth = function createTokenAuth2(token) {
     );
   }
   token = token.replace(/^(token|bearer) +/i, "");
-  return Object.assign(dist_bundle_auth.bind(null, token), {
+  return Object.assign(auth.bind(null, token), {
     hook: hook.bind(null, token)
   });
 };
@@ -41736,6 +41556,313 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 //# sourceMappingURL=github.js.map
+// EXTERNAL MODULE: ./node_modules/typed-rest-client/HttpClient.js
+var typed_rest_client_HttpClient = __nccwpck_require__(6184);
+;// CONCATENATED MODULE: ./build-scan-shared/src/auth/short-lived-token.ts
+
+
+// MODIFICATIONS START HERE
+// This file is copied from https://github.com/gradle/actions/blob/main/sources/src/develocity/short-lived-token.ts
+// and trimmed to fit the needs of this project
+//
+// import {BuildScanConfig} from '../configuration'
+// import {recordDeprecation} from '../deprecation-collector'
+// export async function setupToken(develocityAccessKey: string, develocityTokenExpiry: string): Promise<void> {
+//     if (develocityAccessKey) {
+//         try {
+//             core.debug('Fetching short-lived token...')
+//             const tokens = await getToken(develocityAccessKey, develocityTokenExpiry)
+//             if (tokens != null && !tokens.isEmpty()) {
+//                 core.debug(`Got token(s), setting the access key env vars`)
+//                 const token = tokens.raw()
+//                 core.setSecret(token)
+//                 exportAccessKeyEnvVars(token)
+//             } else {
+//                 handleMissingAccessToken()
+//             }
+//         } catch (e) {
+//             handleMissingAccessToken()
+//             core.warning(`Failed to fetch short-lived token, reason: ${e}`)
+//         }
+//     }
+// }
+//
+// function exportAccessKeyEnvVars(value: string): void {
+//     ;[BuildScanConfig.DevelocityAccessKeyEnvVar, BuildScanConfig.GradleEnterpriseAccessKeyEnvVar].forEach(key =>
+//         core.exportVariable(key, value)
+//     )
+// }
+//
+// function handleMissingAccessToken(): void {
+//     core.warning(`Failed to fetch short-lived token for Develocity`)
+//
+//     if (process.env[BuildScanConfig.GradleEnterpriseAccessKeyEnvVar]) {
+//         // We do not clear the GRADLE_ENTERPRISE_ACCESS_KEY env var in v3, to let the users upgrade to DV 2024.1
+//         recordDeprecation(`The ${BuildScanConfig.GradleEnterpriseAccessKeyEnvVar} env var is deprecated`)
+//     }
+//     if (process.env[BuildScanConfig.DevelocityAccessKeyEnvVar]) {
+//         core.warning(`The ${BuildScanConfig.DevelocityAccessKeyEnvVar} env var should be mapped to a short-lived token`)
+//     }
+// }
+// MODIFICATIONS END HERE
+async function getToken(accessKey, expiry) {
+    const empty = new Promise(r => r(null));
+    const develocityAccessKey = DevelocityAccessCredentials.parse(accessKey);
+    const shortLivedTokenClient = new ShortLivedTokenClient();
+    if (develocityAccessKey == null) {
+        return empty;
+    }
+    const tokens = new Array();
+    for (const k of develocityAccessKey.keys) {
+        try {
+            info(`Requesting short-lived Develocity access token for ${k.hostname}`);
+            const token = await shortLivedTokenClient.fetchToken(`https://${k.hostname}`, k, expiry);
+            tokens.push(token);
+        }
+        catch (e) {
+            // Ignore failure to obtain token
+            info(`Failed to obtain short-lived Develocity access token for ${k.hostname}: ${e}`);
+        }
+    }
+    if (tokens.length > 0) {
+        return DevelocityAccessCredentials.of(tokens);
+    }
+    return empty;
+}
+class ShortLivedTokenClient {
+    httpc = new typed_rest_client_HttpClient.HttpClient('gradle/actions/setup-gradle');
+    maxRetries = 3;
+    retryInterval = 1000;
+    async fetchToken(serverUrl, accessKey, expiry) {
+        const queryParams = expiry ? `?expiresInHours=${expiry}` : '';
+        const sanitizedServerUrl = !serverUrl.endsWith('/') ? `${serverUrl}/` : serverUrl;
+        const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessKey.key}`
+        };
+        let attempts = 0;
+        while (attempts < this.maxRetries) {
+            try {
+                const requestUrl = `${sanitizedServerUrl}api/auth/token${queryParams}`;
+                debug(`Attempt ${attempts} to fetch short lived token at ${requestUrl}`);
+                const response = await this.httpc.post(requestUrl, '', headers);
+                if (response.message.statusCode === 200) {
+                    const text = await response.readBody();
+                    return new Promise(resolve => resolve({ hostname: accessKey.hostname, key: text }));
+                }
+                // This should be only 404
+                attempts++;
+                if (attempts === this.maxRetries) {
+                    return new Promise((resolve, reject) => reject(new Error(`Develocity short lived token request failed ${serverUrl} with status code ${response.message.statusCode}`)));
+                }
+            }
+            catch (error) {
+                attempts++;
+                if (attempts === this.maxRetries) {
+                    return new Promise((resolve, reject) => reject(error));
+                }
+            }
+            await new Promise(resolve => setTimeout(resolve, this.retryInterval));
+        }
+        return new Promise((resolve, reject) => reject(new Error('Illegal state')));
+    }
+}
+class DevelocityAccessCredentials {
+    keys;
+    constructor(allKeys) {
+        this.keys = allKeys;
+    }
+    static of(allKeys) {
+        return new DevelocityAccessCredentials(allKeys);
+    }
+    static keyDelimiter = ';';
+    static hostDelimiter = '=';
+    static whitespace = /\s/;
+    /**
+     * Parse a `host=key[;host=key]*` access key value.
+     *
+     * Only the structure needed to split the value is validated: entries are separated by `;`, and
+     * each entry is a hostname followed by `=` and a key, where the hostname contains no `=`, `;` or
+     * whitespace, and the key is non-empty and contains no `;` or whitespace. Nothing else is
+     * assumed about the key: it may be an OIDC token containing `.`, `-`, `_` and `=` padding, so
+     * each entry is split on its _first_ `=` only.
+     *
+     * Returns `null` if the value doesn't match, emitting a warning that describes what is wrong.
+     */
+    static parse(rawKey) {
+        const trimmedKey = rawKey.trim();
+        if (!trimmedKey) {
+            return null;
+        }
+        const keys = new Array();
+        const entries = trimmedKey.split(this.keyDelimiter);
+        for (const [index, entry] of entries.entries()) {
+            const separatorIndex = entry.indexOf(this.hostDelimiter);
+            if (separatorIndex === -1) {
+                return this.warnBadlyFormed(index, entries.length, `no '${this.hostDelimiter}' separator`);
+            }
+            const hostname = entry.substring(0, separatorIndex);
+            const key = entry.substring(separatorIndex + 1);
+            if (!hostname) {
+                return this.warnBadlyFormed(index, entries.length, 'empty server name');
+            }
+            if (!key) {
+                return this.warnBadlyFormed(index, entries.length, 'empty key');
+            }
+            if (this.whitespace.test(hostname)) {
+                return this.warnBadlyFormed(index, entries.length, 'whitespace in the server name');
+            }
+            if (this.whitespace.test(key)) {
+                return this.warnBadlyFormed(index, entries.length, 'whitespace in the key');
+            }
+            keys.push({ hostname, key });
+        }
+        return new DevelocityAccessCredentials(keys);
+    }
+    /**
+     * Warn that an access key value is badly formed and cannot be parsed. Reports only the position
+     * of the offending entry and the reason: the value is a secret, and is not yet registered for
+     * masking at this point, so no part of it is ever included in the message.
+     */
+    static warnBadlyFormed(index, entryCount, reason) {
+        const location = entryCount > 1 ? `entry ${index + 1} of ${entryCount}` : 'the value';
+        warning(`Ignoring badly formed Develocity access key: ${reason} in ${location}. ` +
+            `The expected format is 'server${this.hostDelimiter}key` +
+            `[${this.keyDelimiter}server${this.hostDelimiter}key]*'.`);
+        return null;
+    }
+    isEmpty() {
+        return this.keys.length === 0;
+    }
+    raw() {
+        return this.keys
+            .map(k => `${k.hostname}${DevelocityAccessCredentials.hostDelimiter}${k.key}`)
+            .join(DevelocityAccessCredentials.keyDelimiter);
+    }
+}
+
+;// CONCATENATED MODULE: ./build-scan-shared/src/auth/auth.ts
+
+
+const ENV_KEY_DEVELOCITY_ACCESS_KEY = 'DEVELOCITY_ACCESS_KEY';
+const ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY = 'GRADLE_ENTERPRISE_ACCESS_KEY';
+async function getAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput, workloadIdentityFromInput) {
+    const accessToken = await resolveAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput, workloadIdentityFromInput);
+    maskAccessKey(accessToken);
+    return accessToken;
+}
+/**
+ * Registers the access key as a secret, so that it is never printed.
+ *
+ * The runner masks a registered value only where it appears whole. Build tools and agents use the part after
+ * `host=`, so each per-host key is registered as well.
+ */
+function maskAccessKey(accessKey) {
+    if (!accessKey) {
+        return;
+    }
+    setSecret(accessKey);
+    for (const entry of accessKey.split(';')) {
+        const key = entry.substring(entry.indexOf('=') + 1).trim();
+        if (key) {
+            setSecret(key);
+        }
+    }
+}
+/**
+ * Use the credential selected by the inputs: the GitHub OIDC token when develocity-auth is workload-identity, the access
+ * key otherwise. It is never replaced by another credential: when it cannot be exchanged for a short-lived token, the
+ * build runs without authentication.
+ */
+async function resolveAccessToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput, workloadIdentityFromInput) {
+    if (workloadIdentityFromInput) {
+        if (develocityAccessKeyFromInput) {
+            warning('Ignoring develocity-access-key as develocity-auth is workload-identity');
+        }
+        return getWorkloadIdentityAccessToken(workloadIdentityFromInput, develocityTokenExpiryFromInput);
+    }
+    if (develocityAccessKeyFromInput) {
+        info('Authenticating with develocity-access-key');
+        return exchangeForShortLivedToken(develocityAccessKeyFromInput, develocityTokenExpiryFromInput);
+    }
+    return getAccessKeyFromEnv();
+}
+async function exchangeForShortLivedToken(accessKey, expiry, hint = '') {
+    let reason = '';
+    try {
+        debug('Fetching short-lived token...');
+        const tokens = await getToken(accessKey, expiry);
+        if (tokens != null && !tokens.isEmpty()) {
+            debug('Got short-lived token(s)');
+            return tokens.raw();
+        }
+    }
+    catch (e) {
+        reason = `, reason: ${e}`;
+    }
+    return runWithoutAuthentication(`${reason}${hint}`);
+}
+function runWithoutAuthentication(reason = '') {
+    warning(`No short-lived token could be obtained, running without Develocity authentication${reason}`);
+    return '';
+}
+function getAccessKeyFromEnv() {
+    const develocityAccessKeyFromEnv = process.env[ENV_KEY_DEVELOCITY_ACCESS_KEY];
+    if (develocityAccessKeyFromEnv) {
+        warning(`The ${ENV_KEY_DEVELOCITY_ACCESS_KEY} env var should be mapped to a short-lived token`);
+        return develocityAccessKeyFromEnv;
+    }
+    const gradleEnterpriseAccessKeyFromEnv = process.env[ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY];
+    if (gradleEnterpriseAccessKeyFromEnv) {
+        warning(`The ${ENV_KEY_GRADLE_ENTERPRISE_ACCESS_KEY} env var is deprecated`);
+        return gradleEnterpriseAccessKeyFromEnv;
+    }
+    debug('Using anonymous access');
+    return '';
+}
+/**
+ * Mint a GitHub OIDC token for the Develocity server, and exchange it for a short-lived token. Develocity accepts it
+ * when a workload identity rule matches its issuer, audience and claims. The audience defaults to the origin of the
+ * Develocity URL.
+ */
+async function getWorkloadIdentityAccessToken(workloadIdentity, expiry) {
+    let url;
+    try {
+        url = new URL(workloadIdentity.develocityUrl);
+    }
+    catch {
+        warning(workloadIdentity.develocityUrl
+            ? `Workload identity requires a valid develocity-url: '${workloadIdentity.develocityUrl}' is not a URL`
+            : 'Workload identity requires develocity-url to be set');
+        return runWithoutAuthentication();
+    }
+    // The origin of a URL that is not http(s) is the string 'null'
+    const audience = workloadIdentity.audience || (url.origin === 'null' ? '' : url.origin);
+    if (!audience) {
+        warning(`Workload identity requires an audience: '${workloadIdentity.develocityUrl}' has no origin, set develocity-oidc-audience or use an http(s) develocity-url`);
+        return runWithoutAuthentication();
+    }
+    info(`Authenticating with workload identity, with a GitHub OIDC token for audience '${audience}'`);
+    if (!process.env['ACTIONS_ID_TOKEN_REQUEST_URL']) {
+        warning("No GitHub OIDC token is available to this job: grant the job the 'id-token: write' permission. GitHub provides " +
+            'no OIDC token to pull requests from forks. To use an access key instead, remove develocity-auth: ' +
+            'workload-identity and set develocity-access-key.');
+        return runWithoutAuthentication();
+    }
+    let idToken;
+    try {
+        idToken = await getIDToken(audience);
+        setSecret(idToken);
+    }
+    catch (e) {
+        warning(`Failed to get a GitHub OIDC token for audience '${audience}': ${e}`);
+        return runWithoutAuthentication();
+    }
+    return exchangeForShortLivedToken(`${url.host}=${idToken}`, expiry, `. Check that a workload identity rule matches the job's issuer (https://token.actions.githubusercontent.com, or ` +
+        `https://HOSTNAME/_services/token/actions on GitHub Enterprise Server), the audience '${audience}' and the ` +
+        `workflow's claims`);
+}
+
 ;// CONCATENATED MODULE: ./build-scan-shared/src/input.ts
 
 function input_getInput(key, options) {
@@ -41765,7 +41892,7 @@ function getGithubToken() {
 
 
 function getDevelocityUrl() {
-    return sharedInput.getInput('develocity-url');
+    return input_getInput('develocity-url');
 }
 function getDevelocityInjectionEnabled() {
     return input_getBooleanInput('develocity-injection-enabled');
@@ -41774,7 +41901,7 @@ function getDevelocityMavenExtensionVersion() {
     return sharedInput.getInput('develocity-maven-extension-version');
 }
 function getCcudExtensionVersion() {
-    return sharedInput.getInput('develocity-ccud-extension-version');
+    return sharedInput.getInput('develocity-ccud-maven-extension-version');
 }
 function getDevelocityMavenRepositoryUrl() {
     return sharedInput.getInput('develocity-maven-repository-url');
@@ -41798,13 +41925,34 @@ function getDevelocityEnforceUrl() {
     return getBooleanInput('develocity-enforce-url');
 }
 function getDevelocityCaptureFileFingerprints() {
-    return getBooleanInput('develocity-capture-file-fingerprints');
+    return getBooleanInput('develocity-capture-file-fingerprints', true);
 }
 function getDevelocityAccessKey() {
     return input_getInput('develocity-access-key');
 }
 function getDevelocityTokenExpiry() {
     return input_getInput('develocity-token-expiry');
+}
+function getWorkloadIdentity() {
+    const develocityAuth = input_getInput('develocity-auth');
+    switch (develocityAuth) {
+        case '':
+        case 'access-key':
+            return undefined;
+        case 'workload-identity':
+            return {
+                develocityUrl: getDevelocityUrl(),
+                audience: input_getInput('develocity-oidc-audience')
+            };
+        default:
+            throw new Error(`Unsupported develocity-auth '${develocityAuth}'. Valid values are: [access-key, workload-identity]`);
+    }
+}
+/**
+ * Get the short-lived access token for the credential selected by the authentication inputs
+ */
+async function input_getAccessToken() {
+    return getAccessToken(getDevelocityAccessKey(), getDevelocityTokenExpiry(), getWorkloadIdentity());
 }
 function getWorkflowName() {
     // workflow name should always be populated https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
@@ -41830,28 +41978,33 @@ function getJobName() {
     }
 }
 function getCaptureStrategy() {
-    return sharedInput.getInput('capture-strategy');
+    return sharedInput.getInput('capture-strategy') || 'ALWAYS';
 }
 function getCaptureUnpublishedBuildScans() {
-    return sharedInput.getInput('capture-unpublished-build-scans');
+    return sharedInput.getInput('capture-unpublished-build-scans') || 'true';
 }
 function getCaptureBuildScanLinks() {
-    return sharedInput.getInput('capture-build-scan-links');
+    return sharedInput.getInput('capture-build-scan-links') || 'true';
 }
 function isAddPrComment() {
-    return getBooleanInput('add-pr-comment');
+    return getBooleanInput('add-pr-comment', true);
 }
 function isAddJobSummary() {
-    return getBooleanInput('add-job-summary');
+    return getBooleanInput('add-job-summary', true);
 }
 function isAddProjectIdInJobSummary() {
     return getBooleanInput('add-project-id-in-job-summary');
 }
-function exportVariables(accessToken, buildTool) {
+function exportAccessToken(accessToken) {
+    // getAccessToken already masked the token
     if (accessToken) {
-        core.setSecret(accessToken);
-        core.exportVariable(auth.ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken);
+        exportVariable(ENV_KEY_DEVELOCITY_ACCESS_KEY, accessToken);
     }
+}
+/**
+ * Export the configuration read by the Maven capture extension
+ */
+function exportBuildScanCaptureVariables(buildTool) {
     core.exportVariable('INPUT_CAPTURE_STRATEGY', getCaptureStrategy());
     core.exportVariable('INPUT_CAPTURE_UNPUBLISHED_BUILD_SCANS', getCaptureUnpublishedBuildScans());
     core.exportVariable('INPUT_CAPTURE_BUILD_SCAN_LINKS', getCaptureBuildScanLinks());
@@ -41867,6 +42020,8 @@ function exportVariables(accessToken, buildTool) {
 ;// CONCATENATED MODULE: ./setup-python/src/input.ts
 
 const DEFAULT_AGENT_BASE_URL = 'https://develocity-python-pkgs.gradle.com';
+// The version this release of the action was tested with
+const DEFAULT_AGENT_VERSION = '0.10.1';
 /**
  * Checksums of the agent versions this action was tested with, so the default install is verified without
  * further input.
@@ -41881,7 +42036,7 @@ function getPythonExecutable() {
     return input_getInput('python-executable') || 'python';
 }
 function getAgentRequirement() {
-    return agentRequirement(input_getInput('develocity-python-agent-url-override'), input_getInput('develocity-python-agent-version'), input_getInput('develocity-python-agent-sha256'));
+    return agentRequirement(input_getInput('develocity-python-agent-url-override'), input_getInput('develocity-python-agent-version') || DEFAULT_AGENT_VERSION, input_getInput('develocity-python-agent-sha256'));
 }
 /**
  * Builds the pip requirement for the agent. The override is the full URL of the wheel, so the version is ignored
@@ -41907,7 +42062,7 @@ function agentRequirement(urlOverride, version, sha256) {
  * equivalent of NODE_PATH that would load the agent into any interpreter, so it only instruments the tools run by
  * that interpreter and its environment.
  */
-async function installDevelocity(accessToken) {
+async function installDevelocity() {
     if (!getDevelocityInjectionEnabled()) {
         return;
     }
@@ -41918,7 +42073,7 @@ async function installDevelocity(accessToken) {
     const python = getPythonExecutable();
     info(`Installing the Develocity Python agent into ${python}: ${requirement}`);
     await exec_exec(...(await installCommand(python, requirement)));
-    configureEnvironment(accessToken);
+    configureEnvironment();
 }
 /**
  * pip when the interpreter has it, otherwise uv, which creates environments without pip.
@@ -41934,12 +42089,8 @@ async function installCommand(python, requirement) {
     }
     throw new Error(`${python} has no pip and uv is not on the PATH, so the Develocity Python agent cannot be installed`);
 }
-function configureEnvironment(accessToken) {
+function configureEnvironment() {
     exportVariable('DEVELOCITY_URL', input_getDevelocityUrl());
-    if (accessToken) {
-        core_setSecret(accessToken);
-        exportVariable('DEVELOCITY_ACCESS_KEY', accessToken);
-    }
     // The Python agent's equivalent of DEVELOCITY_ALLOW_UNTRUSTED_SERVER
     const allowUntrustedServer = getDevelocityAllowUntrustedServer();
     if (allowUntrustedServer) {
@@ -41952,11 +42103,11 @@ function configureEnvironment(accessToken) {
 
 
 
-
 async function main() {
     try {
-        const accessToken = await getAccessToken(getDevelocityAccessKey(), getDevelocityTokenExpiry());
-        await installDevelocity(accessToken);
+        const accessToken = await input_getAccessToken();
+        await installDevelocity();
+        exportAccessToken(accessToken);
     }
     catch (error) {
         handle(error);
