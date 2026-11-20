@@ -380,30 +380,6 @@ The following permissions are required for this action to operate:
 
 ---
 
-## Build the action
-
-```bash
-npm run all
-```
-
----
-
-## Release the action
-
-Run the `/release` [Claude Code skill](.claude/skills/release/SKILL.md), or manually:
-
-- Fill the release notes in `release/changelog.md` and merge the change
-- Push the new version as a tag, which publishes the GitHub release:
-
-```bash
-git tag -a -m "vX.Y" vX.Y
-git push origin vX.Y
-```
-
-- Empty the release notes in `release/changelog.md` and merge the change to prepare for next development iteration
-
----
-
 ## setup-npm action
 
 ### Usage
@@ -586,3 +562,35 @@ so a different name needs `configuration.project_name` in a `.develocity.py`.
 | `develocity-python-agent-url-override` | *Optional*: Override the URL to use to download the Develocity Python agent wheel                             |                            |
 | `develocity-python-agent-sha256`       | *Optional*: Expected SHA-256 of the agent wheel. Known for the default version                                |                            |
 | `python-executable`                    | *Optional*: Python interpreter the agent is installed into                                                    | `python`                   |
+
+---
+
+## Build the action
+
+```bash
+npm run all
+```
+
+---
+
+## Release the action
+
+### With Claude Code
+
+Run the [`/release`](.claude/skills/release/SKILL.md) skill from [Claude Code](https://claude.com/claude-code) at the root of the repository, optionally passing the version (`/release vX.Y`). The skill:
+
+1. Fills `release/changelog.md` from the commits since the last tag and opens an `Update release notes` PR
+2. Once the PR is merged and the `Update dist` workflow has completed, tags the head of `main` (after confirmation), which triggers the `release` workflow publishing the GitHub release
+3. Resets `release/changelog.md` and opens a `Prepare next development iteration` PR
+
+### Manually (legacy)
+
+- Fill the release notes in `release/changelog.md` and merge the change
+- Push the new version as a tag, which publishes the GitHub release:
+
+```bash
+git tag -a -m "vX.Y" vX.Y
+git push origin vX.Y
+```
+
+- Empty the release notes in `release/changelog.md` and merge the change to prepare for next development iteration
