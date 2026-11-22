@@ -8,6 +8,7 @@ export default {
     moduleFileExtensions: ['js', 'ts', 'json'],
     testEnvironment: 'node',
     testMatch: ['**/*.test.ts'],
+    setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
     extensionsToTreatAsEsm: ['.ts'],
     transform: {
         '^.+\\.ts$': ['ts-jest', {useESM: true}]
